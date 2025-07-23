@@ -12,7 +12,8 @@ const path = require('path');
 const mongoose = require('mongoose');
 const { connectToDatabase } = require('../lib/mongodb-cjs.js');
 const { KPIDataModel } = require('../lib/models-cjs.js');
-const { generateInsights } = require('../lib/ai-insights-cjs.js');
+const ai = require('../lib/ai-insights-cjs.js');
+const generateInsights = ai.generateInsights;
 
 // --- (All gold standard config, helpers, and logic from root optimized-kpi-dashboard.js) ---
 //region Configuration

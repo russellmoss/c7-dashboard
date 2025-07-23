@@ -6,6 +6,11 @@ module.exports = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  safelist: [
+    { pattern: /bg-(wine|amber)-(50|100|200|300|400|500|600|700|800|900|950)/ },
+    { pattern: /text-(wine|amber)-(50|100|200|300|400|500|600|700|800|900|950)/ },
+    { pattern: /border-(wine|amber)-(50|100|200|300|400|500|600|700|800|900|950)/ },
+  ],
   theme: {
     extend: {
       colors: {

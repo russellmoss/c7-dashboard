@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2025-07-23T16:36:17.764Z",
+  "periodType": "qtd",
+  "definitions": {
+    "totalRevenue": "Total Revenue generated from orders within the selected period.",
+    "totalOrders": "Total number of orders placed within the selected period.",
+    "totalClubMemberships": "Total number of new club memberships acquired within the selected period.",
+    "wineBottleConversionRate": "Percentage of orders that resulted in a new club membership, specifically for wine bottle purchases.",
+    "clubConversionRate": "Percentage of orders that resulted in a new club membership, regardless of product type."
+  },
+  "current": [
+    {
+      "totalRevenue": 0,
+      "totalOrders": 706,
+      "totalClubMemberships": 26,
+      "wineBottleConversionRate": 3.68,
+      "clubConversionRate": 3.68
+    },
+    {
+      "totalRevenue": 0,
+      "totalOrders": 0,
+      "totalClubMemberships": 0,
+      "wineBottleConversionRate": 0,
+      "clubConversionRate": 0
+    }
+  ],
+  "previous": [
+    {
+      "totalRevenue": 0,
+      "totalOrders": 1101,
+      "totalClubMemberships": 33,
+      "wineBottleConversionRate": 3,
+      "clubConversionRate": 3
+    },
+    {
+      "totalRevenue": 0,
+      "totalOrders": 0,
+      "totalClubMemberships": 0,
+      "wineBottleConversionRate": 0,
+      "clubConversionRate": 0
+    }
+  ],
+  "yearOverYear": {
+    "0": 0,
+    "1": 0
+  }
+}

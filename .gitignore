@@ -1,0 +1,62 @@
+# Node.js dependencies
+node_modules/
+
+# Next.js build output
+.next/
+
+# Local environment variables/secrets
+.env
+.env.*
+.env.local
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Output of npm pack
+*.tgz
+
+# Test coverage
+coverage/
+
+# Build artifacts
+dist/
+out/
+
+# Misc
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Ignore documentation with secrets
+dashboard-implementation.md
+
+# Ignore other sensitive files
+*.local
+
+# Ignore next/image cache
+public/cache/
+
+# Ignore typescript build info
+*.tsbuildinfo
+
+# Ignore lock files (optional, if using only one package manager)
+# package-lock.json
+yarn.lock
+pnpm-lock.yaml 

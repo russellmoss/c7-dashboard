@@ -1,0 +1,130 @@
+{
+  "generatedAt": "2025-07-23T17:11:19.059Z",
+  "periodType": "all-quarters",
+  "year": 2025,
+  "definitions": {
+    "totalRevenue": "Total Revenue generated from orders within the selected period.",
+    "totalOrders": "Total number of orders placed within the selected period.",
+    "totalClubMemberships": "Total number of new club memberships acquired within the selected period.",
+    "wineBottleConversionRate": "Percentage of orders that resulted in a new club membership, specifically for wine bottle purchases.",
+    "clubConversionRate": "Percentage of orders that resulted in a new club membership, regardless of product type."
+  },
+  "quarters": {
+    "Q1": {
+      "current": [
+        {
+          "totalRevenue": 0,
+          "totalOrders": 1796,
+          "totalClubMemberships": 64,
+          "wineBottleConversionRate": 3.56,
+          "clubConversionRate": 3.56
+        },
+        {
+          "totalRevenue": 0,
+          "totalOrders": 0,
+          "totalClubMemberships": 0,
+          "wineBottleConversionRate": 0,
+          "clubConversionRate": 0
+        }
+      ],
+      "previous": [
+        {
+          "totalRevenue": 0,
+          "totalOrders": 1656,
+          "totalClubMemberships": 45,
+          "wineBottleConversionRate": 2.72,
+          "clubConversionRate": 2.72
+        },
+        {
+          "totalRevenue": 0,
+          "totalOrders": 0,
+          "totalClubMemberships": 0,
+          "wineBottleConversionRate": 0,
+          "clubConversionRate": 0
+        }
+      ]
+    },
+    "Q2": {
+      "current": [
+        {
+          "totalRevenue": 0,
+          "totalOrders": 3261,
+          "totalClubMemberships": 107,
+          "wineBottleConversionRate": 3.28,
+          "clubConversionRate": 3.28
+        },
+        {
+          "totalRevenue": 0,
+          "totalOrders": 0,
+          "totalClubMemberships": 0,
+          "wineBottleConversionRate": 0,
+          "clubConversionRate": 0
+        }
+      ],
+      "previous": [
+        {
+          "totalRevenue": 0,
+          "totalOrders": 4534,
+          "totalClubMemberships": 112,
+          "wineBottleConversionRate": 2.47,
+          "clubConversionRate": 2.47
+        },
+        {
+          "totalRevenue": 0,
+          "totalOrders": 0,
+          "totalClubMemberships": 0,
+          "wineBottleConversionRate": 0,
+          "clubConversionRate": 0
+        }
+      ]
+    },
+    "Q3": {
+      "current": [
+        {
+          "totalRevenue": 0,
+          "totalOrders": 703,
+          "totalClubMemberships": 26,
+          "wineBottleConversionRate": 3.7,
+          "clubConversionRate": 3.7
+        },
+        {
+          "totalRevenue": 0,
+          "totalOrders": 0,
+          "totalClubMemberships": 0,
+          "wineBottleConversionRate": 0,
+          "clubConversionRate": 0
+        }
+      ],
+      "previous": [
+        {
+          "totalRevenue": 0,
+          "totalOrders": 1103,
+          "totalClubMemberships": 33,
+          "wineBottleConversionRate": 2.99,
+          "clubConversionRate": 2.99
+        },
+        {
+          "totalRevenue": 0,
+          "totalOrders": 0,
+          "totalClubMemberships": 0,
+          "wineBottleConversionRate": 0,
+          "clubConversionRate": 0
+        }
+      ]
+    }
+  },
+  "quarterComparisons": {
+    "Q1": {
+      "0": 0,
+      "1": 0
+    },
+    "Q2": {
+      "0": 0,
+      "1": 0
+    },
+    "Q3": {
+      "0": 0,
+      "1": 0
+    }
+  }
+}

@@ -8,8 +8,12 @@ export async function GET(
 ) {
   try {
     const { periodType } = params;
-    if (!['mtd', 'qtd', 'ytd', 'all-quarters'].includes(periodType)) {
-      return NextResponse.json({ error: 'Invalid period type' }, { status: 400 });
+    const validPeriods = ['mtd', 'qtd', 'ytd', 'all-quarters'];
+    if (!validPeriods.includes(periodType)) {
+      return NextResponse.json(
+        { error: 'Invalid period type' },
+        { status: 400 }
+      );
     }
     await connectToDatabase();
     const kpiData = await KPIDataModel.findOne({
@@ -23,16 +27,27 @@ export async function GET(
         { status: 404 }
       );
     }
+    // Return complete data structure with metrics and insights, only if metrics exists
+    const metrics = (kpiData as any).metrics;
     return NextResponse.json({
       success: true,
-      periodType: kpiData.periodType,
-      data: kpiData.data,
-      insights: kpiData.insights,
-      lastUpdated: kpiData.updatedAt,
-      executionTime: kpiData.executionTime
+      data: {
+        ...kpiData.data,
+        ...(metrics ? { metrics } : {}),
+        insights: kpiData.insights,
+        generatedAt: kpiData.generatedAt,
+        periodType: kpiData.periodType
+      }
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      },
     });
   } catch (error) {
-    console.error(`Error fetching ${params.periodType} data:`, error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 } 

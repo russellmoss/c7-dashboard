@@ -12,6 +12,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const { connectToDatabase } = require('../lib/mongodb-cjs.js');
 const { KPIDataModel } = require('../lib/models-cjs.js');
+const { generateInsights } = require('../lib/ai-insights-cjs.js');
 
 // --- (All gold standard config, helpers, and logic from root optimized-kpi-dashboard.js) ---
 //region Configuration
@@ -629,31 +630,60 @@ function getDefinitions() {
 //endregion
 
 // --- MONGODB SAVE FUNCTION ---
-async function saveToMongoDB(data, periodType, executionTime) {
-    try {
-        log.step("SAVING DATA TO MONGODB...");
-        await connectToDatabase();
-        const year = new Date().getFullYear();
-        const kpiData = await KPIDataModel.findOneAndUpdate(
-            { periodType: periodType, year: year },
-            {
-                periodType: periodType,
-                year: year,
-                data: { ...data },
-                status: 'completed',
-                executionTime: executionTime
-            },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
-        log.success(`✅ Successfully saved ${periodType.toUpperCase()} data to MongoDB`);
-        log.info(`   Document ID: ${kpiData._id}`);
-    } catch (error) {
-        log.error(`❌ Failed to save to MongoDB: ${error.message}`);
-        await KPIDataModel.findOneAndUpdate(
-            { periodType: periodType, year: new Date().getFullYear() },
-            { status: 'failed' }
-        );
-        throw error;
+async function saveKPIDataToMongoDB(kpiData, periodType) {
+    let retries = 0;
+    const maxRetries = 3;
+    while (retries < maxRetries) {
+        try {
+            await connectToDatabase();
+            // Generate AI insights
+            const insights = await generateInsights(kpiData);
+            // Prepare complete data document
+            const dataDocument = {
+                periodType,
+                generatedAt: kpiData.generatedAt,
+                year: kpiData.year || new Date().getFullYear(),
+                data: kpiData,
+                insights,
+                metrics: {
+                    yearOverYear: kpiData.yearOverYear,
+                    current: {
+                        overallMetrics: kpiData.current?.overallMetrics,
+                        serviceTypeAnalysis: kpiData.current?.serviceTypeAnalysis,
+                        staffAnalysis: kpiData.current?.staffAnalysis,
+                        conversionMetrics: kpiData.current?.conversionMetrics,
+                        wineMetrics: kpiData.current?.wineMetrics,
+                        guestMetrics: kpiData.current?.guestMetrics
+                    },
+                    previous: {
+                        overallMetrics: kpiData.previous?.overallMetrics,
+                        serviceTypeAnalysis: kpiData.previous?.serviceTypeAnalysis,
+                        staffAnalysis: kpiData.previous?.staffAnalysis,
+                        conversionMetrics: kpiData.previous?.conversionMetrics,
+                        wineMetrics: kpiData.previous?.wineMetrics,
+                        guestMetrics: kpiData.previous?.guestMetrics
+                    }
+                }
+            };
+            // Upsert the data
+            await KPIDataModel.findOneAndUpdate(
+                { periodType, year: dataDocument.year },
+                dataDocument,
+                { upsert: true, new: true }
+            );
+            log.success('✅ KPI data saved to MongoDB successfully');
+            return;
+        } catch (error) {
+            retries++;
+            log.error(`❌ Error saving to MongoDB (attempt ${retries}): ${error.message}`);
+            if (retries >= maxRetries) {
+                log.error('❌ Max retries reached. Failing.');
+                throw error;
+            } else {
+                log.info('Retrying in 2 seconds...');
+                await delay(2000);
+            }
+        }
     }
 }
 
@@ -889,7 +919,7 @@ async function runAllQuartersReport(testMode = false) {
         if (testMode) {
             displayTestResults(allQuartersReport, 'all-quarters');
         } else {
-            await saveToMongoDB(allQuartersReport, 'all-quarters', duration);
+            await saveKPIDataToMongoDB(allQuartersReport, 'all-quarters');
             exportToJson(allQuartersReport);
         }
         log.magenta(`\nScript finished in ${(duration / 1000).toFixed(2)} seconds`);
@@ -949,7 +979,7 @@ async function runReport(periodType = 'mtd', testMode = false) {
             displayTestResults(finalReport, periodType);
         } else {
             displayComparativeSummary(finalReport);
-            await saveToMongoDB(finalReport, periodType, (new Date() - startTime));
+            await saveKPIDataToMongoDB(finalReport, periodType);
         }
         exportToJson(finalReport);
         const endTime = new Date();

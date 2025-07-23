@@ -318,94 +318,302 @@ async function fetchAllDataForAllQuarters(baseDate = new Date()) {
     return { allOrders, clubMemberships };
 }
 
+// Gold standard helper functions
 const getOrderRevenue = (order) => (order?.subTotal ?? 0) + (order?.taxTotal ?? 0);
-const getOrderDate = (order) => new Date(order?.createdAt ?? order?.orderPaidDate ?? order?.orderDate);
+
+const getOrderDate = (order) => {
+    const dateString = order?.createdAt ?? order?.orderPaidDate ?? order?.orderDate;
+    return dateString ? new Date(dateString) : null;
+};
+
 const round = (value, decimals = 2) => {
     if (isNaN(value) || !isFinite(value)) return 0;
     const factor = Math.pow(10, decimals);
     return Math.round(value * factor) / factor;
 };
 
+/**
+ * Calculate KPIs for a specific date range (unchanged from original)
+ */
 function calculateKPIsForPeriod(orders, clubMemberships, startDate, endDate, periodLabel) {
-    const currentPeriodOrders = orders.filter(order => getOrderDate(order) >= startDate && getOrderDate(order) <= endDate);
-    const currentPeriodClubMemberships = clubMemberships.filter(membership => getOrderDate(membership) >= startDate && getOrderDate(membership) <= endDate);
-
-    const totalRevenue = currentPeriodOrders.reduce(getOrderRevenue, 0);
-    const totalOrders = currentPeriodOrders.length;
-    const totalClubMemberships = currentPeriodClubMemberships.length;
-
-    const wineBottleConversionRate = totalOrders > 0 ? (totalClubMemberships / totalOrders) * 100 : 0;
-    const clubConversionRate = totalClubMemberships > 0 ? (totalClubMemberships / totalOrders) * 100 : 0;
-
-    const currentKPIs = {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Filter orders for this period
+    const periodOrders = orders.filter(order => {
+        const orderDate = getOrderDate(order);
+        return orderDate && orderDate >= startDate && orderDate <= endDate;
+    });
+    
+    const revenueOrders = periodOrders.filter(order => getOrderRevenue(order) > 0);
+    
+    // Debug logging
+    console.log(`\n📅 Processing ${periodLabel}:`);
+    console.log(`   - Date range: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+    console.log(`   - Orders in period: ${periodOrders.length}`);
+    console.log(`   - Revenue-generating orders: ${revenueOrders.length}`);
+    
+    // Filter club signups for this period
+    const periodClubSignups = clubMemberships.filter(mem => {
+        const signupDate = mem.signupDate ? new Date(mem.signupDate) : null;
+        return signupDate && signupDate >= startDate && signupDate <= endDate;
+    });
+    
+    const clubSignupCustomers = new Map(periodClubSignups.map(mem => [mem.customerId, true]));
+    
+    // Initialize KPI structure
+    const kpiData = {
         periodLabel,
-        overallMetrics: {
-            totalRevenue: round(totalRevenue),
-            totalOrders: totalOrders,
-            totalClubMemberships: totalClubMemberships,
-            wineBottleConversionRate: round(wineBottleConversionRate),
-            clubConversionRate: round(clubConversionRate)
-        }
-        // add other fields as needed
+        dateRange: { 
+            start: startDate.toISOString().split('T')[0], 
+            end: endDate.toISOString().split('T')[0] 
+        },
+        overallMetrics: { 
+            totalRevenue: 0, totalOrders: 0, totalGuests: 0, totalBottlesSold: 0, 
+            avgOrderValue: 0, avgGuestsPerOrder: 0, conversionRate: 0, 
+            wineBottleConversionRate: 0, clubConversionRate: 0, 
+            totalCustomersWhoSignedUpForClub: 0, totalGuestsWhoBoughtWineBottles: 0, 
+            totalNonClubAndTradeGuests: 0, subTotal: 0, shippingTotal: 0, 
+            taxTotal: 0, tipTotal: 0, grandTotal: 0,
+            wineBottleConversionGoalVariance: 0, clubConversionGoalVariance: 0 
+        },
+        todayMetrics: { totalRevenue: 0, totalOrders: 0, totalGuests: 0, totalBottlesSold: 0 },
+        guestBreakdown: {},
+        clubSignupBreakdown: {},
+        associatePerformance: {},
+        serviceTypeAnalysis: {
+            tasting: { orders: 0, guests: 0, bottles: 0, revenue: 0, guestsWhoBoughtBottles: 0, guestsWhoSignedUpForClub: 0, nonClubGuests: 0, bottleConversionRate: 0, clubConversionRate: 0, aov: 0 },
+            dining: { orders: 0, guests: 0, bottles: 0, revenue: 0, guestsWhoBoughtBottles: 0, guestsWhoSignedUpForClub: 0, nonClubGuests: 0, bottleConversionRate: 0, clubConversionRate: 0, aov: 0 },
+            byTheGlass: { orders: 0, guests: 0, bottles: 0, revenue: 0, guestsWhoBoughtBottles: 0, guestsWhoSignedUpForClub: 0, nonClubGuests: 0, bottleConversionRate: 0, clubConversionRate: 0, aov: 0 },
+            retail: { orders: 0, guests: 0, bottles: 0, revenue: 0, guestsWhoBoughtBottles: 0, guestsWhoSignedUpForClub: 0, nonClubGuests: 0, bottleConversionRate: 0, clubConversionRate: 0, aov: 0 },
+        },
+        conversionFunnel: { guestOnlyOrders: 0, wineOrders: 0, mixedOrders: 0 },
     };
+    
+    Object.values(GUEST_PRODUCT_IDS).forEach(name => { kpiData.guestBreakdown[name] = 0; });
+    Object.values(CLUB_NAMES).forEach(name => { kpiData.clubSignupBreakdown[name] = 0; });
+    
+    const customerClubSignupAttribution = new Map();
+    
+    // Process orders (same logic as original)
+    for (const order of revenueOrders) {
+        const orderDate = getOrderDate(order);
+        if (!orderDate) continue;
 
-    const previousPeriodOrders = orders.filter(order => getOrderDate(order) >= startDate.setDate(startDate.getDate() - 365) && getOrderDate(order) <= endDate.setDate(endDate.getDate() - 365));
-    const previousPeriodClubMemberships = clubMemberships.filter(membership => getOrderDate(membership) >= startDate.setDate(startDate.getDate() - 365) && getOrderDate(membership) <= endDate.setDate(endDate.getDate() - 365));
+        const orderRevenue = getOrderRevenue(order);
 
-    const previousTotalRevenue = previousPeriodOrders.reduce(getOrderRevenue, 0);
-    const previousTotalOrders = previousPeriodOrders.length;
-    const previousTotalClubMemberships = previousPeriodClubMemberships.length;
+        kpiData.overallMetrics.totalOrders++;
+        kpiData.overallMetrics.totalRevenue += orderRevenue;
+        kpiData.overallMetrics.subTotal += order.subTotal ?? 0;
+        kpiData.overallMetrics.shippingTotal += order.shippingTotal ?? 0;
+        kpiData.overallMetrics.taxTotal += order.taxTotal ?? 0;
+        kpiData.overallMetrics.tipTotal += order.tip ?? 0;
+        kpiData.overallMetrics.grandTotal += order.total ?? 0;
 
-    const previousWineBottleConversionRate = previousTotalOrders > 0 ? (previousTotalClubMemberships / previousTotalOrders) * 100 : 0;
-    const previousClubConversionRate = previousTotalClubMemberships > 0 ? (previousTotalClubMemberships / previousTotalOrders) * 100 : 0;
-
-    const previousKPIs = {
-        periodLabel,
-        overallMetrics: {
-            totalRevenue: round(previousTotalRevenue),
-            totalOrders: previousTotalOrders,
-            totalClubMemberships: previousTotalClubMemberships,
-            wineBottleConversionRate: round(previousWineBottleConversionRate),
-            clubConversionRate: round(previousClubConversionRate)
+        if (orderDate.toDateString() === today.toDateString()) {
+            kpiData.todayMetrics.totalOrders++;
+            kpiData.todayMetrics.totalRevenue += orderRevenue;
         }
-        // add other fields as needed
-    };
 
-    return [currentKPIs, previousKPIs];
+        const associateName = order.salesAssociate?.name || "Unknown";
+        if (!kpiData.associatePerformance[associateName]) {
+            kpiData.associatePerformance[associateName] = { 
+                orders: 0, guests: 0, revenue: 0, bottles: 0, wineBottleSales: 0, 
+                clubSignups: 0, wineBottleConversionRate: 0, clubConversionRate: 0, 
+                nonClubGuests: 0, wineBottleConversionGoalVariance: 'n/a', 
+                clubConversionGoalVariance: 'n/a' 
+            };
+        }
+        kpiData.associatePerformance[associateName].orders++;
+        kpiData.associatePerformance[associateName].revenue += orderRevenue;
+
+        let orderGuestCount = 0, orderNonClubAndTradeGuestCount = 0, orderBottleCount = 0;
+        let hasGuestItems = false, hasWineBottleItems = false;
+        let isTastingOrder = false, hasDiningItem = false, hasWineByTheGlassItem = false;
+
+        for (const item of order.items) {
+            if (GUEST_PRODUCT_IDS[item.productId]) {
+                const guestType = GUEST_PRODUCT_IDS[item.productId];
+                orderGuestCount += item.quantity;
+                kpiData.guestBreakdown[guestType] += item.quantity;
+                hasGuestItems = true;
+                if (guestType === 'Non-Club Guest' || guestType === 'Trade Guest') {
+                    orderNonClubAndTradeGuestCount += item.quantity;
+                }
+            }
+            
+            if (item.departmentId === TASTING_DEPARTMENT_ID) isTastingOrder = true;
+            if (item.departmentId === DINING_DEPARTMENT_ID) hasDiningItem = true;
+            if (item.departmentId === WINE_BY_THE_GLASS_DEPARTMENT_ID) hasWineByTheGlassItem = true;
+            
+            const isWineBottle = item.departmentId === WINE_BOTTLE_DEPARTMENT_ID;
+            if (isWineBottle) {
+                hasWineBottleItems = true;
+                orderBottleCount += item.quantity;
+            }
+        }
+
+        const customerSignedUpForClub = clubSignupCustomers.has(order.customerId);
+
+        kpiData.overallMetrics.totalBottlesSold += orderBottleCount;
+        if (orderDate.toDateString() === today.toDateString()) kpiData.todayMetrics.totalBottlesSold += orderBottleCount;
+        kpiData.associatePerformance[associateName].bottles += orderBottleCount;
+
+        let serviceType;
+        if (isTastingOrder) serviceType = 'tasting';
+        else if (hasDiningItem) serviceType = 'dining';
+        else if (hasWineByTheGlassItem) serviceType = 'byTheGlass';
+        else serviceType = 'retail';
+
+        const serviceMetrics = kpiData.serviceTypeAnalysis[serviceType];
+        serviceMetrics.orders++;
+        serviceMetrics.guests += orderGuestCount;
+        serviceMetrics.bottles += orderBottleCount;
+        serviceMetrics.revenue += orderRevenue;
+        serviceMetrics.nonClubGuests += orderNonClubAndTradeGuestCount;
+        
+        if (hasWineBottleItems && orderGuestCount > 0) {
+            serviceMetrics.guestsWhoBoughtBottles += orderGuestCount;
+        }
+        
+        if (customerSignedUpForClub) {
+            if (!customerClubSignupAttribution.has(order.customerId)) {
+                customerClubSignupAttribution.set(order.customerId, associateName);
+                kpiData.associatePerformance[associateName].clubSignups += 1;
+                kpiData.overallMetrics.totalCustomersWhoSignedUpForClub += 1;
+                serviceMetrics.guestsWhoSignedUpForClub += 1;
+            }
+        }
+
+        if (orderGuestCount > 0) {
+            kpiData.overallMetrics.totalGuests += orderGuestCount;
+            kpiData.overallMetrics.totalNonClubAndTradeGuests += orderNonClubAndTradeGuestCount;
+            if (orderDate.toDateString() === today.toDateString()) kpiData.todayMetrics.totalGuests += orderGuestCount;
+            kpiData.associatePerformance[associateName].guests += orderGuestCount;
+            kpiData.associatePerformance[associateName].nonClubGuests += orderNonClubAndTradeGuestCount;
+
+            if (hasWineBottleItems) {
+                kpiData.associatePerformance[associateName].wineBottleSales += orderGuestCount;
+            }
+        }
+        
+        if (hasGuestItems && !hasWineBottleItems) kpiData.conversionFunnel.guestOnlyOrders++;
+        else if (!hasGuestItems && hasWineBottleItems) kpiData.conversionFunnel.wineOrders++;
+        else if (hasGuestItems && hasWineBottleItems) kpiData.conversionFunnel.mixedOrders++;
+    }
+    
+    periodClubSignups.forEach(mem => {
+        const clubName = CLUB_NAMES[mem.clubId];
+        if (clubName) kpiData.clubSignupBreakdown[clubName]++;
+    });
+    
+    // Final calculations (same as original)
+    const { overallMetrics, serviceTypeAnalysis, associatePerformance, conversionFunnel } = kpiData;
+    
+    overallMetrics.totalGuestsWhoBoughtWineBottles = Object.values(serviceTypeAnalysis).reduce((acc, metrics) => acc + metrics.guestsWhoBoughtBottles, 0);
+
+    overallMetrics.avgOrderValue = round(overallMetrics.totalRevenue / overallMetrics.totalOrders, 2);
+    overallMetrics.avgGuestsPerOrder = round(overallMetrics.totalGuests / overallMetrics.totalOrders, 2);
+    const totalGuestExperiences = conversionFunnel.guestOnlyOrders + conversionFunnel.mixedOrders;
+    overallMetrics.conversionRate = round((conversionFunnel.mixedOrders / totalGuestExperiences) * 100, 2);
+    overallMetrics.wineBottleConversionRate = round((overallMetrics.totalGuestsWhoBoughtWineBottles / overallMetrics.totalGuests) * 100, 2);
+    overallMetrics.clubConversionRate = round((overallMetrics.totalCustomersWhoSignedUpForClub / overallMetrics.totalNonClubAndTradeGuests) * 100, 2);
+    
+    // Add goal variance for overall metrics
+    overallMetrics.wineBottleConversionGoalVariance = round(overallMetrics.wineBottleConversionRate - PERFORMANCE_GOALS.wineBottleConversionRate, 2);
+    overallMetrics.clubConversionGoalVariance = round(overallMetrics.clubConversionRate - PERFORMANCE_GOALS.clubConversionRate, 2);
+
+    for (const type in serviceTypeAnalysis) {
+        const metrics = serviceTypeAnalysis[type];
+        metrics.bottleConversionRate = round((metrics.guestsWhoBoughtBottles / metrics.guests) * 100, 2);
+        metrics.clubConversionRate = round((metrics.guestsWhoSignedUpForClub / metrics.nonClubGuests) * 100, 2);
+        metrics.aov = round(metrics.revenue / metrics.orders, 2);
+        metrics.revenue = round(metrics.revenue / 100, 2);
+        metrics.aov = round(metrics.aov / 100, 2);
+        
+        // Add goal variance for service types
+        metrics.bottleConversionGoalVariance = !isNaN(metrics.bottleConversionRate) ? 
+            round(metrics.bottleConversionRate - PERFORMANCE_GOALS.wineBottleConversionRate, 2) : 'n/a';
+        metrics.clubConversionGoalVariance = !isNaN(metrics.clubConversionRate) ? 
+            round(metrics.clubConversionRate - PERFORMANCE_GOALS.clubConversionRate, 2) : 'n/a';
+    }
+
+    for (const name in associatePerformance) {
+        const assoc = associatePerformance[name];
+        assoc.wineBottleConversionRate = round((assoc.wineBottleSales / assoc.guests) * 100, 2);
+        if (assoc.nonClubGuests > 0) {
+            assoc.clubConversionRate = round((assoc.clubSignups / assoc.nonClubGuests) * 100, 2);
+        } else {
+            assoc.clubConversionRate = 'n/a';
+        }
+        assoc.revenue = round(assoc.revenue / 100, 2);
+        
+        // Add goal variance calculations
+        assoc.wineBottleConversionGoalVariance = assoc.wineBottleConversionRate !== 0 ? 
+            round(assoc.wineBottleConversionRate - PERFORMANCE_GOALS.wineBottleConversionRate, 2) : 'n/a';
+        
+        assoc.clubConversionGoalVariance = (assoc.clubConversionRate !== 'n/a' && assoc.clubConversionRate !== 0) ? 
+            round(assoc.clubConversionRate - PERFORMANCE_GOALS.clubConversionRate, 2) : 'n/a';
+    }
+
+    Object.keys(overallMetrics).forEach(key => {
+        if (['totalRevenue', 'subTotal', 'shippingTotal', 'taxTotal', 'tipTotal', 'grandTotal', 'avgOrderValue'].includes(key)) {
+            overallMetrics[key] = round(overallMetrics[key] / 100, 2);
+        }
+    });
+    kpiData.todayMetrics.totalRevenue = round(kpiData.todayMetrics.totalRevenue / 100, 2);
+    
+    return kpiData;
 }
 
 function calculateYoYChanges(current, previous) {
-    // Use the same calculation logic as the gold standard, but output the nested structure the frontend expects
+    const calculateChange = (currentVal, previousVal) => {
+        if (!previousVal || previousVal === 0) return null;
+        return round(((currentVal - previousVal) / previousVal) * 100, 2);
+    };
+    const calculateGoalVariance = (actual, goal) => {
+        return round(actual - goal, 2);
+    };
     return {
         revenue: {
             current: current.overallMetrics.totalRevenue,
             previous: previous.overallMetrics.totalRevenue,
-            change: previous.overallMetrics.totalRevenue === 0 ? null :
-                round(((current.overallMetrics.totalRevenue - previous.overallMetrics.totalRevenue) / previous.overallMetrics.totalRevenue) * 100, 2)
+            change: calculateChange(current.overallMetrics.totalRevenue, previous.overallMetrics.totalRevenue)
         },
         guests: {
+            current: current.overallMetrics.totalGuests,
+            previous: previous.overallMetrics.totalGuests,
+            change: calculateChange(current.overallMetrics.totalGuests, previous.overallMetrics.totalGuests)
+        },
+        orders: {
             current: current.overallMetrics.totalOrders,
             previous: previous.overallMetrics.totalOrders,
-            change: previous.overallMetrics.totalOrders === 0 ? null :
-                round(((current.overallMetrics.totalOrders - previous.overallMetrics.totalOrders) / previous.overallMetrics.totalOrders) * 100, 2)
+            change: calculateChange(current.overallMetrics.totalOrders, previous.overallMetrics.totalOrders)
+        },
+        bottlesSold: {
+            current: current.overallMetrics.totalBottlesSold,
+            previous: previous.overallMetrics.totalBottlesSold,
+            change: calculateChange(current.overallMetrics.totalBottlesSold, previous.overallMetrics.totalBottlesSold)
+        },
+        avgOrderValue: {
+            current: current.overallMetrics.avgOrderValue,
+            previous: previous.overallMetrics.avgOrderValue,
+            change: calculateChange(current.overallMetrics.avgOrderValue, previous.overallMetrics.avgOrderValue)
         },
         wineConversionRate: {
             current: current.overallMetrics.wineBottleConversionRate,
             previous: previous.overallMetrics.wineBottleConversionRate,
-            change: previous.overallMetrics.wineBottleConversionRate === 0 ? null :
-                round(((current.overallMetrics.wineBottleConversionRate - previous.overallMetrics.wineBottleConversionRate) / previous.overallMetrics.wineBottleConversionRate) * 100, 2),
+            change: current.overallMetrics.wineBottleConversionRate - previous.overallMetrics.wineBottleConversionRate,
             goal: PERFORMANCE_GOALS.wineBottleConversionRate,
-            goalVariance: round(current.overallMetrics.wineBottleConversionRate - PERFORMANCE_GOALS.wineBottleConversionRate, 2)
+            goalVariance: calculateGoalVariance(current.overallMetrics.wineBottleConversionRate, PERFORMANCE_GOALS.wineBottleConversionRate)
         },
         clubConversionRate: {
             current: current.overallMetrics.clubConversionRate,
             previous: previous.overallMetrics.clubConversionRate,
-            change: previous.overallMetrics.clubConversionRate === 0 ? null :
-                round(((current.overallMetrics.clubConversionRate - previous.overallMetrics.clubConversionRate) / previous.overallMetrics.clubConversionRate) * 100, 2),
+            change: current.overallMetrics.clubConversionRate - previous.overallMetrics.clubConversionRate,
             goal: PERFORMANCE_GOALS.clubConversionRate,
-            goalVariance: round(current.overallMetrics.clubConversionRate - PERFORMANCE_GOALS.clubConversionRate, 2)
+            goalVariance: calculateGoalVariance(current.overallMetrics.clubConversionRate, PERFORMANCE_GOALS.clubConversionRate)
         }
-        // Add more metrics as needed
     };
 }
 
@@ -492,6 +700,140 @@ function displayTestResults(data, periodType) {
     // Display logic from your implementation guide or summary functions
 }
 
+/**
+ * Display all-quarters summary - NEW FUNCTIONALITY
+ */
+function displayAllQuartersSummary(report) {
+    const { quarters, quarterComparisons, year } = report;
+    const toCurrency = (val) => (val ?? 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    const formatChange = (change) => {
+        if (change === null) return 'N/A';
+        const arrow = change > 0 ? chalk.green : change < 0 ? chalk.red : chalk.gray;
+        return arrow(`${arrow} ${Math.abs(change)}%`);
+    };
+    const formatGoalVariance = (variance) => {
+        if (variance === null || variance === 'n/a') return 'N/A';
+        const color = variance >= 0 ? chalk.green : chalk.red;
+        const sign = variance >= 0 ? '+' : '';
+        return color(`${sign}${variance} pts`);
+    };
+    
+    log.green(`\n--- ALL QUARTERS KPI SUMMARY FOR ${year} ---`);
+    
+    // Display each quarter
+    Object.keys(quarters).forEach(quarter => {
+        const qData = quarters[quarter];
+        const qComparison = quarterComparisons[quarter];
+        
+        log.white(`\n${quarter.toUpperCase()} PERFORMANCE:`);
+        log.white(`Current: ${qData.current.periodLabel} | Previous: ${qData.previous.periodLabel}`);
+        
+        log.cyan(`  Revenue:     ${toCurrency(qComparison.revenue.current)} vs ${toCurrency(qComparison.revenue.previous)} ${formatChange(qComparison.revenue.change)}`);
+        log.cyan(`  Guests:      ${qComparison.guests.current.toLocaleString()} vs ${qComparison.guests.previous.toLocaleString()} ${formatChange(qComparison.guests.change)}`);
+        log.cyan(`  Orders:      ${qComparison.orders.current.toLocaleString()} vs ${qComparison.orders.previous.toLocaleString()} ${formatChange(qComparison.orders.change)}`);
+        log.cyan(`  Bottles:     ${qComparison.bottlesSold.current.toLocaleString()} vs ${qComparison.bottlesSold.previous.toLocaleString()} ${formatChange(qComparison.bottlesSold.change)}`);
+        log.cyan(`  Avg Order:   ${toCurrency(qComparison.avgOrderValue.current)} vs ${toCurrency(qComparison.avgOrderValue.previous)} ${formatChange(qComparison.avgOrderValue.change)}`);
+        
+        log.yellow(`  Wine Conv:   ${qComparison.wineConversionRate.current}% vs ${qComparison.wineConversionRate.previous}% (YoY: ${qComparison.wineConversionRate.change > 0 ? '+' : ''}${qComparison.wineConversionRate.change.toFixed(2)} pts) | Goal: ${formatGoalVariance(qComparison.wineConversionRate.goalVariance)}`);
+        log.yellow(`  Club Conv:   ${qComparison.clubConversionRate.current}% vs ${qComparison.clubConversionRate.previous}% (YoY: ${qComparison.clubConversionRate.change > 0 ? '+' : ''}${qComparison.clubConversionRate.change.toFixed(2)} pts) | Goal: ${formatGoalVariance(qComparison.clubConversionRate.goalVariance)}`);
+    });
+    
+    // Summary table
+    log.white(`\n--- QUARTERLY TRENDS SUMMARY ---`);
+    log.darkCyan("Quarter | Revenue      | Guests | Orders | Wine Conv% | Club Conv%");
+    log.darkCyan("--------|--------------|--------|--------|------------|----------");
+    
+    Object.keys(quarters).forEach(quarter => {
+        const qComparison = quarterComparisons[quarter];
+        const revStr = toCurrency(qComparison.revenue.current).padStart(12);
+        const guestStr = qComparison.guests.current.toLocaleString().padStart(6);
+        const orderStr = qComparison.orders.current.toLocaleString().padStart(6);
+        const wineStr = `${qComparison.wineConversionRate.current}%`.padStart(8);
+        const clubStr = `${qComparison.clubConversionRate.current}%`.padStart(8);
+        
+        log.darkCyan(`${quarter.padEnd(7)} | ${revStr} | ${guestStr} | ${orderStr} | ${wineStr}   | ${clubStr}`);
+    });
+}
+
+/**
+ * Display comparative summary with YoY data and goal comparisons (unchanged)
+ */
+function displayComparativeSummary(report) {
+    const { current, previous, yearOverYear } = report;
+    const toCurrency = (val) => (val ?? 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    const formatChange = (change) => {
+        if (change === null) return 'N/A';
+        const arrow = change > 0 ? '↑' : change < 0 ? '↓' : '→';
+        const color = change > 0 ? chalk.green : change < 0 ? chalk.red : chalk.gray;
+        return color(`${arrow} ${Math.abs(change)}%`);
+    };
+    const formatGoalVariance = (variance, isPercentage = true) => {
+        if (variance === null || variance === 'n/a') return 'N/A';
+        const color = variance >= 0 ? chalk.green : chalk.red;
+        const sign = variance >= 0 ? '+' : '';
+        return color(`${sign}${variance}${isPercentage ? ' pts' : ''}`);
+    };
+    
+    log.green(`\n--- COMPARATIVE KPI SUMMARY ---`);
+    log.white(`CURRENT PERIOD: ${current.periodLabel}`);
+    log.white(`PREVIOUS PERIOD: ${previous.periodLabel}\n`);
+    
+    log.white("KEY METRICS COMPARISON:");
+    log.cyan(`Revenue:`);
+    log.cyan(`  Current:  ${toCurrency(yearOverYear.revenue.current)}`);
+    log.cyan(`  Previous: ${toCurrency(yearOverYear.revenue.previous)}`);
+    log.cyan(`  Change:   ${formatChange(yearOverYear.revenue.change)}\n`);
+    
+    log.cyan(`Guests:`);
+    log.cyan(`  Current:  ${yearOverYear.guests.current.toLocaleString()}`);
+    log.cyan(`  Previous: ${yearOverYear.guests.previous.toLocaleString()}`);
+    log.cyan(`  Change:   ${formatChange(yearOverYear.guests.change)}\n`);
+    
+    log.cyan(`Wine Bottle Conversion Rate:`);
+    log.cyan(`  Current:  ${yearOverYear.wineConversionRate.current}%`);
+    log.cyan(`  Previous: ${yearOverYear.wineConversionRate.previous}%`);
+    log.cyan(`  YoY Change: ${yearOverYear.wineConversionRate.change > 0 ? '+' : ''}${yearOverYear.wineConversionRate.change.toFixed(2)} pts`);
+    log.cyan(`  Goal:     ${yearOverYear.wineConversionRate.goal}%`);
+    log.cyan(`  vs Goal:  ${formatGoalVariance(yearOverYear.wineConversionRate.goalVariance)}\n`);
+    
+    log.cyan(`Club Conversion Rate:`);
+    log.cyan(`  Current:  ${yearOverYear.clubConversionRate.current}%`);
+    log.cyan(`  Previous: ${yearOverYear.clubConversionRate.previous}%`);
+    log.cyan(`  YoY Change: ${yearOverYear.clubConversionRate.change > 0 ? '+' : ''}${yearOverYear.clubConversionRate.change.toFixed(2)} pts`);
+    log.cyan(`  Goal:     ${yearOverYear.clubConversionRate.goal}%`);
+    log.cyan(`  vs Goal:  ${formatGoalVariance(yearOverYear.clubConversionRate.goalVariance)}\n`);
+    
+    log.cyan(`Average Order Value:`);
+    log.cyan(`  Current:  ${toCurrency(yearOverYear.avgOrderValue.current)}`);
+    log.cyan(`  Previous: ${toCurrency(yearOverYear.avgOrderValue.previous)}`);
+    log.cyan(`  Change:   ${formatChange(yearOverYear.avgOrderValue.change)}\n`);
+    
+    // Display current period detailed metrics (same as original)
+    log.white(`CURRENT PERIOD DETAILS (${current.periodLabel}):`);
+    displaySummary(current);
+}
+
+/**
+ * Original display summary function (unchanged)
+ */
+function displaySummary(kpiData) {
+    const { overallMetrics, serviceTypeAnalysis } = kpiData;
+    const toCurrency = (val) => (val ?? 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+    log.cyan(`  - Total Revenue: ${toCurrency(overallMetrics.totalRevenue)}`);
+    log.cyan(`  - Total Orders: ${overallMetrics.totalOrders}`);
+    log.cyan(`  - Total Guests: ${overallMetrics.totalGuests}`);
+    log.cyan(`  - Total Bottles Sold: ${overallMetrics.totalBottlesSold}`);
+    
+    log.white("\nSERVICE TYPE BREAKDOWN:");
+    for (const [type, metrics] of Object.entries(serviceTypeAnalysis)) {
+        if (metrics.orders > 0) {
+            const icon = type === 'tasting' ? '🍷' : type === 'dining' ? '🍽️' : type === 'byTheGlass' ? '🥂' : '🛒';
+            log.yellow(`  ${icon} ${type.toUpperCase()}: ${metrics.orders} orders, ${metrics.guests} guests, ${toCurrency(metrics.revenue)} revenue`);
+        }
+    }
+}
+
 // --- MAIN RUN LOGIC ---
 async function runAllQuartersReport(testMode = false) {
     const startTime = Date.now();
@@ -558,26 +900,22 @@ async function runReport(periodType = 'mtd') {
             return;
         }
         log.step("STEP 2: CALCULATING KPIS FOR BOTH PERIODS");
-        const currentPeriodKPIs = await calculateKPIsForPeriod(
-            allOrders, 
-            clubMemberships, 
-            dateRanges.current.start, 
-            dateRanges.current.end,
-            dateRanges.current.label
-        );
-        const previousPeriodKPIs = await calculateKPIsForPeriod(
-            allOrders, 
-            clubMemberships, 
-            dateRanges.previous.start, 
-            dateRanges.previous.end,
-            dateRanges.previous.label
-        );
-        if (!currentPeriodKPIs || !currentPeriodKPIs.overallMetrics) {
-            throw new Error("Current period KPIs missing or malformed");
-        }
-        if (!previousPeriodKPIs || !previousPeriodKPIs.overallMetrics) {
-            throw new Error("Previous period KPIs missing or malformed");
-        }
+        const [currentPeriodKPIs, previousPeriodKPIs] = await Promise.all([
+            calculateKPIsForPeriod(
+                allOrders, 
+                clubMemberships, 
+                dateRanges.current.start, 
+                dateRanges.current.end,
+                dateRanges.current.label
+            ),
+            calculateKPIsForPeriod(
+                allOrders, 
+                clubMemberships, 
+                dateRanges.previous.start, 
+                dateRanges.previous.end,
+                dateRanges.previous.label
+            )
+        ]);
         const yoyComparison = calculateYoYChanges(currentPeriodKPIs, previousPeriodKPIs);
         const finalReport = {
             generatedAt: startTime.toISOString(),
@@ -598,6 +936,51 @@ async function runReport(periodType = 'mtd') {
     } catch (error) {
         log.error("An unexpected error occurred during the script execution:");
         log.error(error);
+    }
+}
+
+// Add this test function to verify output structure
+function verifyDataStructure(data) {
+    const required = [
+        'current.overallMetrics.totalRevenue',
+        'current.overallMetrics.totalGuests',
+        'current.overallMetrics.totalBottlesSold',
+        'current.overallMetrics.wineBottleConversionRate',
+        'current.overallMetrics.clubConversionRate',
+        'current.overallMetrics.wineBottleConversionGoalVariance',
+        'current.overallMetrics.clubConversionGoalVariance',
+        'current.guestBreakdown',
+        'current.clubSignupBreakdown',
+        'current.associatePerformance',
+        'current.serviceTypeAnalysis',
+        'current.conversionFunnel',
+        'yearOverYear.revenue',
+        'yearOverYear.guests',
+        'yearOverYear.orders',
+        'yearOverYear.bottlesSold',
+        'yearOverYear.avgOrderValue',
+        'yearOverYear.wineConversionRate',
+        'yearOverYear.clubConversionRate'
+    ];
+    
+    const missing = [];
+    required.forEach(path => {
+        const keys = path.split('.');
+        let obj = data;
+        for (const key of keys) {
+            if (!obj || !(key in obj)) {
+                missing.push(path);
+                break;
+            }
+            obj = obj[key];
+        }
+    });
+    
+    if (missing.length > 0) {
+        log.error('❌ Missing required fields in output:');
+        missing.forEach(field => log.error(`   - ${field}`));
+    } else {
+        log.success('✅ All required fields present in output structure');
     }
 }
 

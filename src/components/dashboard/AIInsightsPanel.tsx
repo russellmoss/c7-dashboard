@@ -1,175 +1,276 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, AlertTriangle, Award, Target, ThumbsUp, AlertCircle } from "lucide-react";
+'use client';
 
-interface AIInsights {
-  strengths?: string[];
-  opportunities?: string[];
-  weaknesses?: string[];
-  threats?: string[];
-  staffPraise?: Array<{
+import { Card, CardContent } from "@/components/ui/card";
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  AlertTriangle, 
+  Target, 
+  Users, 
+  Brain,
+  CheckCircle,
+  XCircle,
+  Clock
+} from "lucide-react";
+
+interface AIInsight {
+  strengths: string[];
+  opportunities: string[];
+  weaknesses: string[];
+  threats: string[];
+  staffPraise: Array<{
     name: string;
     reason: string;
     metrics: string[];
   }>;
-  staffCoaching?: Array<{
+  staffCoaching: Array<{
     name: string;
     reason: string;
     metrics: string[];
   }>;
-  recommendations?: string[];
-  generatedAt?: string;
+  recommendations: string[];
+  generatedAt: string;
+  error?: string;
 }
 
 interface AIInsightsPanelProps {
-  insights: AIInsights | null | undefined;
+  insights?: AIInsight;
+  loading?: boolean;
 }
 
-export function AIInsightsPanel({ insights }: AIInsightsPanelProps) {
-  if (!insights) {
+export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
+  if (loading) {
     return (
-      <Card>
+      <Card className="h-full">
+        <div className="flex flex-row items-center space-y-0 pb-2 px-4 pt-4">
+          <Brain className="h-5 w-5 text-wine-600 mr-2" />
+          <h2 className="text-lg font-semibold">AI Insights</h2>
+        </div>
         <CardContent>
-          <h3 className="text-wine-700 text-lg font-semibold mb-2 flex items-center">
-            <Target className="w-5 h-5 mr-2" />AI Insights
-          </h3>
-          <p className="text-gray-500 text-sm">No AI insights available yet.</p>
+          <div className="flex items-center justify-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-wine-600"></div>
+            <span className="ml-2 text-slate-600">Analyzing data...</span>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
-  const SectionCard = ({ 
-    title, 
-    items, 
-    icon: Icon, 
-    colorClass 
-  }: {
-    title: string;
-    items: string[];
-    icon: any;
-    colorClass: string;
-  }) => (
-    <div className={`border-l-4 ${colorClass} bg-white p-4 rounded-r-lg`}>
-      <div className="flex items-center mb-3">
-        <Icon className="w-4 h-4 mr-2" />
-        <h4 className="font-semibold text-sm">{title}</h4>
-      </div>
-      <ul className="space-y-1">
-        {items.slice(0, 3).map((item, index) => (
-          <li key={index} className="text-xs text-gray-700">
-            • {item}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+  if (!insights) {
+    return (
+      <Card className="h-full">
+        <div className="flex flex-row items-center space-y-0 pb-2 px-4 pt-4">
+          <Brain className="h-5 w-5 text-slate-400 mr-2" />
+          <h2 className="text-lg font-semibold text-slate-600">AI Insights</h2>
+        </div>
+        <CardContent>
+          <div className="text-center py-8">
+            <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+            <p className="text-slate-600">No insights available</p>
+            <p className="text-sm text-slate-500 mt-1">Generate new data to see AI analysis</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleString();
+    } catch {
+      return 'Unknown';
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardContent className="space-y-4">
-          <div className="mb-2">
-            <h3 className="text-wine-700 text-lg font-semibold flex items-center">
-              <Target className="w-5 h-5 mr-2" />AI Insights
-            </h3>
-            {insights.generatedAt && (
-              <p className="text-xs text-gray-500">
-                Generated: {new Date(insights.generatedAt).toLocaleString()}
-              </p>
-            )}
+    <Card className="h-full">
+      <div className="flex flex-row items-center space-y-0 pb-2 px-4 pt-4">
+        <Brain className="h-5 w-5 text-wine-600 mr-2" />
+        <div className="flex-1">
+          <h2 className="text-lg font-semibold">AI Insights</h2>
+          <div className="flex items-center text-xs text-slate-500 mt-1">
+            <Clock className="h-3 w-3 mr-1" />
+            Generated: {formatDate(insights.generatedAt)}
           </div>
-          {/* SWOT Analysis */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {insights.strengths && insights.strengths.length > 0 && (
-              <SectionCard
-                title="Strengths"
-                items={insights.strengths}
-                icon={TrendingUp}
-                colorClass="border-l-green-500"
-              />
-            )}
-            {insights.opportunities && insights.opportunities.length > 0 && (
-              <SectionCard
-                title="Opportunities"
-                items={insights.opportunities}
-                icon={Target}
-                colorClass="border-l-blue-500"
-              />
-            )}
-            {insights.weaknesses && insights.weaknesses.length > 0 && (
-              <SectionCard
-                title="Weaknesses"
-                items={insights.weaknesses}
-                icon={AlertTriangle}
-                colorClass="border-l-yellow-500"
-              />
-            )}
-            {insights.threats && insights.threats.length > 0 && (
-              <SectionCard
-                title="Threats"
-                items={insights.threats}
-                icon={AlertTriangle}
-                colorClass="border-l-red-500"
-              />
-            )}
-          </div>
-
-          {/* Staff Feedback */}
-          {((insights.staffPraise && insights.staffPraise.length > 0) || 
-            (insights.staffCoaching && insights.staffCoaching.length > 0)) && (
-            <div className="border-t pt-4">
-              <h4 className="font-semibold text-sm mb-3">Staff Feedback</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {insights.staffPraise && insights.staffPraise.length > 0 && (
-                  <div className="border border-green-200 bg-green-50 p-3 rounded">
-                    <div className="flex items-center mb-2">
-                      <ThumbsUp className="w-4 h-4 text-green-600 mr-2" />
-                      <span className="font-medium text-green-800 text-sm">Praise</span>
-                    </div>
-                    {insights.staffPraise.slice(0, 2).map((praise, index) => (
-                      <div key={index} className="mb-2">
-                        <p className="font-medium text-xs text-green-800">{praise.name}</p>
-                        <p className="text-xs text-green-700">{praise.reason}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {insights.staffCoaching && insights.staffCoaching.length > 0 && (
-                  <div className="border border-amber-200 bg-amber-50 p-3 rounded">
-                    <div className="flex items-center mb-2">
-                      <AlertCircle className="w-4 h-4 text-amber-600 mr-2" />
-                      <span className="font-medium text-amber-800 text-sm">Coaching</span>
-                    </div>
-                    {insights.staffCoaching.slice(0, 2).map((coaching, index) => (
-                      <div key={index} className="mb-2">
-                        <p className="font-medium text-xs text-amber-800">{coaching.name}</p>
-                        <p className="text-xs text-amber-700">{coaching.reason}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+        </div>
+        {insights.error && (
+          <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-semibold ml-2">Limited Analysis</span>
+        )}
+      </div>
+      <CardContent className="space-y-4">
+        {/* SWOT Analysis */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Strengths */}
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <TrendingUp className="h-4 w-4 text-green-600 mr-2" />
+              <h4 className="font-semibold text-green-700">Strengths</h4>
             </div>
-          )}
+            <div className="space-y-1">
+              {insights.strengths.length > 0 ? (
+                insights.strengths.map((strength, idx) => (
+                  <div key={idx} className="text-sm text-slate-700 bg-green-50 p-2 rounded border-l-2 border-green-200">
+                    {strength}
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-500 italic">None identified</p>
+              )}
+            </div>
+          </div>
 
-          {/* Recommendations */}
-          {insights.recommendations && insights.recommendations.length > 0 && (
-            <div className="border-t pt-4">
-              <h4 className="font-semibold text-sm mb-3">Top Recommendations</h4>
+          {/* Opportunities */}
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <Target className="h-4 w-4 text-blue-600 mr-2" />
+              <h4 className="font-semibold text-blue-700">Opportunities</h4>
+            </div>
+            <div className="space-y-1">
+              {insights.opportunities.length > 0 ? (
+                insights.opportunities.map((opportunity, idx) => (
+                  <div key={idx} className="text-sm text-slate-700 bg-blue-50 p-2 rounded border-l-2 border-blue-200">
+                    {opportunity}
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-500 italic">None identified</p>
+              )}
+            </div>
+          </div>
+
+          {/* Weaknesses */}
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <TrendingDown className="h-4 w-4 text-amber-600 mr-2" />
+              <h4 className="font-semibold text-amber-700">Areas for Improvement</h4>
+            </div>
+            <div className="space-y-1">
+              {insights.weaknesses.length > 0 ? (
+                insights.weaknesses.map((weakness, idx) => (
+                  <div key={idx} className="text-sm text-slate-700 bg-amber-50 p-2 rounded border-l-2 border-amber-200">
+                    {weakness}
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-500 italic">None identified</p>
+              )}
+            </div>
+          </div>
+
+          {/* Threats */}
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <AlertTriangle className="h-4 w-4 text-red-600 mr-2" />
+              <h4 className="font-semibold text-red-700">Concerns</h4>
+            </div>
+            <div className="space-y-1">
+              {insights.threats.length > 0 ? (
+                insights.threats.map((threat, idx) => (
+                  <div key={idx} className="text-sm text-slate-700 bg-red-50 p-2 rounded border-l-2 border-red-200">
+                    {threat}
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-500 italic">None identified</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Separator */}
+        <div className="my-4 border-t border-slate-200" />
+
+        {/* Staff Performance */}
+        {(insights.staffPraise.length > 0 || insights.staffCoaching.length > 0) && (
+          <div className="space-y-3">
+            <div className="flex items-center">
+              <Users className="h-4 w-4 text-wine-600 mr-2" />
+              <h4 className="font-semibold text-wine-700">Staff Performance</h4>
+            </div>
+            
+            {insights.staffPraise.length > 0 && (
               <div className="space-y-2">
-                {insights.recommendations.slice(0, 4).map((rec, index) => (
-                  <div key={index} className="flex items-start bg-wine-50 p-2 rounded">
-                    <span className="bg-wine-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
-                      {index + 1}
-                    </span>
-                    <p className="text-xs text-wine-800">{rec}</p>
+                <h5 className="text-sm font-medium text-green-700 flex items-center">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Recognition
+                </h5>
+                {insights.staffPraise.map((praise, idx) => (
+                  <div key={idx} className="text-sm bg-green-50 p-3 rounded border-l-2 border-green-200">
+                    <p className="font-medium">{praise.name}</p>
+                    <p className="text-slate-700">{praise.reason}</p>
+                    {praise.metrics.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {praise.metrics.map((metric, mIdx) => (
+                          <span key={mIdx} className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-medium">
+                            {metric}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+            )}
+
+            {insights.staffCoaching.length > 0 && (
+              <div className="space-y-2">
+                <h5 className="text-sm font-medium text-amber-700 flex items-center">
+                  <Target className="h-3 w-3 mr-1" />
+                  Development Opportunities
+                </h5>
+                {insights.staffCoaching.map((coaching, idx) => (
+                  <div key={idx} className="text-sm bg-amber-50 p-3 rounded border-l-2 border-amber-200">
+                    <p className="font-medium">{coaching.name}</p>
+                    <p className="text-slate-700">{coaching.reason}</p>
+                    {coaching.metrics.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {coaching.metrics.map((metric, mIdx) => (
+                          <span key={mIdx} className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-medium">
+                            {metric}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Separator */}
+        <div className="my-4 border-t border-slate-200" />
+
+        {/* Recommendations */}
+        <div className="space-y-2">
+          <div className="flex items-center">
+            <Target className="h-4 w-4 text-wine-600 mr-2" />
+            <h4 className="font-semibold text-wine-700">Recommendations</h4>
+          </div>
+          <div className="space-y-1">
+            {insights.recommendations.length > 0 ? (
+              insights.recommendations.map((recommendation, idx) => (
+                <div key={idx} className="text-sm text-slate-700 bg-wine-50 p-2 rounded border-l-2 border-wine-200">
+                  <span className="font-medium text-wine-800">{idx + 1}.</span> {recommendation}
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-slate-500 italic">No recommendations available</p>
+            )}
+          </div>
+        </div>
+
+        {insights.error && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+            <div className="flex items-center">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 mr-2" />
+              <p className="text-sm text-yellow-800">
+                AI analysis partially available. Some insights may be limited.
+              </p>
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 } 

@@ -19,7 +19,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
-    "@radix-ui/react-slot": "^1.0.2",
+    "@radix-ui/react-separator": "^1.1.7",
+    "@radix-ui/react-slot": "^1.2.3",
     "@types/node-cron": "^3.0.8",
     "axios": "^1.6.0",
     "chalk": "^4.1.2",

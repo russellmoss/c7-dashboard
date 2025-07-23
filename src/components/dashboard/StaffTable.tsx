@@ -36,14 +36,10 @@ export function StaffTable({ staff, praise = [], coaching = [] }: StaffTableProp
             <TableHead>Club Signups</TableHead>
             <TableHead>Wine Conv. Rate</TableHead>
             <TableHead>Club Conv. Rate</TableHead>
-            <TableHead>Praise</TableHead>
-            <TableHead>Coaching</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {staff.map((s) => {
-            const praiseItem = praise.find(p => p.name === s.name);
-            const coachingItem = coaching.find(c => c.name === s.name);
             return (
               <TableRow key={s.name}>
                 <TableCell className="font-medium text-wine-700">{s.name}</TableCell>
@@ -67,16 +63,6 @@ export function StaffTable({ staff, praise = [], coaching = [] }: StaffTableProp
                     </span>
                   )}
                 </TableCell>
-                <TableCell>{praiseItem && (
-                  <span title={praiseItem.reason}>
-                    <ThumbsUp className="h-4 w-4 text-green-600" />
-                  </span>
-                )}</TableCell>
-                <TableCell>{coachingItem && (
-                  <span title={coachingItem.reason}>
-                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                  </span>
-                )}</TableCell>
               </TableRow>
             );
           })}

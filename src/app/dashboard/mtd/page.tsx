@@ -8,27 +8,45 @@ import { RefreshButton } from '@/components/dashboard/RefreshButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, Calendar, TrendingUp, Wine, Crown, Users } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/dashboard/AIInsightsPanel';
+import Link from 'next/link';
 
 export default function MTDDashboard() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [insights, setInsights] = useState<any>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      console.log('[MTD] Fetching MTD data...');
       const response = await fetch('/api/kpi/mtd');
       if (!response.ok) {
         const errData = await response.json();
+        console.error('[MTD] Error response from API:', errData);
         throw new Error(errData.error || 'Failed to fetch data');
       }
       const result = await response.json();
+      console.log('[MTD] API Response:', result);
       setData(result);
+      setLastUpdated(new Date());
+      // Extract and set insights for the panel
+      if (result.data?.insights) {
+        setInsights(result.data.insights);
+        console.log('[MTD] ✅ AI Insights found:', result.data.insights);
+      } else {
+        setInsights(null);
+        console.warn('[MTD] ⚠️ No AI insights in response');
+      }
     } catch (err) {
+      console.error('[MTD] Error fetching MTD data:', err);
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setInsights(null);
     } finally {
       setLoading(false);
+      console.log('[MTD] Loading state set to false');
     }
   }, []);
 
@@ -74,13 +92,26 @@ export default function MTDDashboard() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-slate-900">Month to Date Performance</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="inline-flex items-center px-3 py-1.5 rounded bg-wine-600 text-white hover:bg-wine-700 transition font-semibold text-sm shadow">
+            Home
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Month to Date Performance</h1>
+            <div className="flex items-center text-slate-600 mt-1">
+              <Calendar className="h-4 w-4 mr-2" />
+              <span>{current?.periodLabel}</span>
+              {lastUpdated && (
+                <span className="ml-4 text-sm">
+                  Last updated: {lastUpdated.toLocaleString()}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
         <RefreshButton periodType="mtd" onRefreshComplete={fetchData} />
       </div>
-      <p className="text-slate-600 mb-6">
-        {current?.periodLabel} | Last updated: {new Date(data?.lastUpdated).toLocaleString()}
-      </p>
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <KPICard title="Total Revenue" value={`$${yoy?.revenue?.current?.toLocaleString()}`} change={yoy?.revenue?.change} icon={<TrendingUp />} />
@@ -89,12 +120,17 @@ export default function MTDDashboard() {
           <KPICard title="Total Guests" value={yoy?.guests?.current?.toLocaleString()} change={yoy?.guests?.change} icon={<Users />} />
       </div>
       {/* Charts and Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Revenue Chart */}
         <div className="lg:col-span-2">
-            <RevenueChart data={current} />
+          <RevenueChart data={current} />
         </div>
+        {/* AI Insights Panel */}
         <div>
-          <AIInsightsPanel insights={data?.insights} />
+          <AIInsightsPanel 
+            insights={insights}
+            loading={loading}
+          />
         </div>
       </div>
       {/* Staff Table */}

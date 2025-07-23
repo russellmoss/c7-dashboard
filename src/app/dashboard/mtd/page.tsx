@@ -7,6 +7,7 @@ import { StaffTable } from '@/components/dashboard/StaffTable';
 import { RefreshButton } from '@/components/dashboard/RefreshButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, Calendar, TrendingUp, Wine, Crown, Users } from 'lucide-react';
+import { AIInsightsPanel } from '@/components/dashboard/AIInsightsPanel';
 
 export default function MTDDashboard() {
   const [data, setData] = useState<any>(null);
@@ -56,13 +57,18 @@ export default function MTDDashboard() {
 
   const current = data?.data?.current;
   const yoy = data?.data?.yearOverYear;
-  const staff = current?.associatePerformance ? Object.entries(current.associatePerformance).map(([name, perf]: any) => ({
-    name,
-    orders: perf.orders,
-    revenue: perf.revenue,
-    bottles: perf.bottles,
-    clubSignups: perf.clubSignups,
-  })) : [];
+  const staff = current?.associatePerformance ? 
+    Object.entries(current.associatePerformance).map(([name, perf]: any) => ({
+      name,
+      orders: perf.orders,
+      revenue: perf.revenue,
+      bottles: perf.bottles,
+      clubSignups: perf.clubSignups,
+      wineBottleConversionRate: perf.wineBottleConversionRate,
+      clubConversionRate: perf.clubConversionRate,
+      wineBottleConversionGoalVariance: perf.wineBottleConversionGoalVariance,
+      clubConversionGoalVariance: perf.clubConversionGoalVariance,
+    })) : [];
   const praise = data?.insights?.staffPraise || [];
   const coaching = data?.insights?.staffCoaching || [];
 
@@ -88,7 +94,7 @@ export default function MTDDashboard() {
             <RevenueChart data={current} />
         </div>
         <div>
-            {/* AI Insights Component would go here */}
+          <AIInsightsPanel insights={data?.insights} />
         </div>
       </div>
       {/* Staff Table */}

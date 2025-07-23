@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const scriptPath = path.join(process.cwd(), 'src/scripts/optimized-kpi-dashboard.js');
     const command = `node "${scriptPath}" ${periodType}`;
     console.log(`🚀 Manually starting ${periodType} generation...`);
-    exec(command, (error, stdout, stderr) => {
+    exec(command, { env: process.env }, (error, stdout, stderr) => {
         runningJobs.delete(periodType);
         if (error) {
             console.error(`❌ Manual ${periodType} generation failed:`, error);

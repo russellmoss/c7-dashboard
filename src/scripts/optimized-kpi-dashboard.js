@@ -697,7 +697,26 @@ function exportToJson(data) {
 function displayTestResults(data, periodType) {
     log.header(`🧪 TEST MODE - ${periodType.toUpperCase()} RESULTS`);
     log.cyan("=========================================");
-    // Display logic from your implementation guide or summary functions
+    
+    if (periodType === 'all-quarters') {
+        // Display all quarters summary
+        displayAllQuartersSummary(data);
+    } else {
+        // Display regular period summary
+        displayComparativeSummary(data);
+    }
+    
+    log.yellow("\n📋 DATA STRUCTURE VALIDATION:");
+    const validationResult = verifyDataStructure(data);
+    if (validationResult.length === 0) {
+        log.success("✅ All required data fields present");
+    } else {
+        log.error("❌ Missing required fields:");
+        validationResult.forEach(field => log.error(`   - ${field}`));
+    }
+    
+    log.magenta("\n💾 TEST MODE: Data NOT saved to MongoDB");
+    log.info("To save data, run without test mode");
 }
 
 /**
@@ -880,9 +899,9 @@ async function runAllQuartersReport(testMode = false) {
     }
 }
 
-async function runReport(periodType = 'mtd') {
+async function runReport(periodType = 'mtd', testMode = false) {
     if (periodType === 'all-quarters') {
-        return await runAllQuartersReport();
+        return await runAllQuartersReport(testMode);
     }
     try {
         log.header("🍷 MILEA ESTATE VINEYARD - KPI DASHBOARD DATA GENERATOR (OPTIMIZED + MongoDB)");
@@ -925,12 +944,16 @@ async function runReport(periodType = 'mtd') {
             previous: previousPeriodKPIs,
             yearOverYear: yoyComparison
         };
-        log.step("STEP 3: DISPLAYING SUMMARY & EXPORTING TO JSON & MONGODB");
-        displayComparativeSummary(finalReport);
+        log.step("STEP 3: DISPLAYING SUMMARY & EXPORTING TO JSON" + (testMode ? "" : " & MONGODB"));
+        if (testMode) {
+            displayTestResults(finalReport, periodType);
+        } else {
+            displayComparativeSummary(finalReport);
+            await saveToMongoDB(finalReport, periodType, (new Date() - startTime));
+        }
         exportToJson(finalReport);
         const endTime = new Date();
         const duration = endTime - startTime;
-        await saveToMongoDB(finalReport, periodType, duration);
         log.magenta(`\nScript finished at ${endTime.toLocaleString()} (Duration: ${(duration / 1000).toFixed(2)} seconds)`);
         log.cyan("=========================================================");
     } catch (error) {
@@ -985,6 +1008,33 @@ function verifyDataStructure(data) {
 }
 
 // --- RUN THE SCRIPT ---
+// Parse command line arguments
 const args = process.argv.slice(2);
 const periodType = args[0] || 'mtd';
-runReport(periodType);
+const testMode = args.includes('--test') || args.includes('-t');
+
+// Validate period type
+const basicPeriods = ['mtd', 'ytd', 'qtd', 'month', 'quarter', 'year', 'fullyear', 'all-quarters'];
+const isSpecificPeriod = periodType.includes(':');
+
+if (!isSpecificPeriod && !basicPeriods.includes(periodType)) {
+    log.error(`Invalid period type: ${periodType}`);
+    log.info(`Valid options are:`);
+    log.info(`  Basic: ${basicPeriods.join(', ')}`);
+    log.info(`  Specific months: month:1 through month:12`);
+    log.info(`  Specific quarters: quarter:1 through quarter:4`);
+    log.info(`  Specific years: year:2024, year:2025, etc.`);
+    log.info(`\nOptions:`);
+    log.info(`  --test, -t    Run in test mode (no MongoDB save)`);
+    process.exit(1);
+}
+
+// Run the report
+runReport(periodType, testMode).then(() => {
+    if (!testMode) {
+        mongoose.connection.close();
+    }
+}).catch(error => {
+    log.error("Script failed:", error);
+    process.exit(1);
+});

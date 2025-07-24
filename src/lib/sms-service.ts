@@ -1,5 +1,6 @@
 import { chatWithAssistant } from './ai-insights';
 import { CoachingSMSHistoryModel } from './models';
+import PQueue from 'p-queue';
 
 export interface StaffPerformance {
   name: string;
@@ -44,6 +45,10 @@ export interface DashboardSchedule {
   };
 }
 
+// Rate limit: 1 SMS/sec (Twilio), 1 AI req/sec (Anthropic)
+export const smsQueue = new PQueue({ interval: 1000, intervalCap: 1 });
+export const aiQueue = new PQueue({ interval: 1000, intervalCap: 1 });
+
 export class SMSService {
   private static client: any;
 
@@ -75,12 +80,11 @@ export class SMSService {
 
     try {
       const message = await this.generateCoachingMessage(staffPerformance, config, periodType);
-      
-      await this.client.messages.create({
+      await smsQueue.add(() => this.client.messages.create({
         body: message,
         from: process.env.TWILIO_PHONE_NUMBER,
         to: phoneNumber
-      });
+      }));
 
       // Save to MongoDB coaching_sms_history
       try {
@@ -171,8 +175,17 @@ export class SMSService {
   ): Promise<string> {
     try {
       const prompt = this.buildAIPrompt(performance, config, periodType, previousMessages);
-      const response = await chatWithAssistant(prompt);
-      
+      let response: string | undefined;
+      await aiQueue.add(async () => {
+        try {
+          response = await chatWithAssistant(prompt);
+        } catch (err) {
+          throw err;
+        }
+      });
+      if (typeof response !== 'string') {
+        throw new Error('AI response was undefined or not a string');
+      }
       // Clean up the response to fit SMS format
       let coaching = response.trim();
       

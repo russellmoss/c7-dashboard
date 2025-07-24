@@ -121,7 +121,7 @@ const EmailSubscriptionSchema = new Schema<EmailSubscription>({
     mtd: {
       frequency: {
         type: String,
-        enum: ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'],
+        enum: ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly', 'custom'],
         default: 'weekly'
       },
       timeEST: {
@@ -140,7 +140,7 @@ const EmailSubscriptionSchema = new Schema<EmailSubscription>({
     qtd: {
       frequency: {
         type: String,
-        enum: ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'],
+        enum: ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly', 'custom'],
         default: 'monthly'
       },
       timeEST: {
@@ -159,7 +159,7 @@ const EmailSubscriptionSchema = new Schema<EmailSubscription>({
     ytd: {
       frequency: {
         type: String,
-        enum: ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'],
+        enum: ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly', 'custom'],
         default: 'quarterly'
       },
       timeEST: {
@@ -178,7 +178,7 @@ const EmailSubscriptionSchema = new Schema<EmailSubscription>({
     'all-quarters': {
       frequency: {
         type: String,
-        enum: ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'],
+        enum: ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly', 'custom'],
         default: 'monthly'
       },
       timeEST: {
@@ -222,7 +222,7 @@ const EmailSubscriptionSchema = new Schema<EmailSubscription>({
         },
         frequency: {
           type: String,
-          enum: ['daily', 'weekly', 'monthly', 'quarterly'],
+          enum: ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly'],
           required: true
         },
         timeEST: {

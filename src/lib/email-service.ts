@@ -1,7 +1,11 @@
 import { Resend } from 'resend';
 import { EmailTemplates, KPIDashboardData } from './email-templates';
+import PQueue from 'p-queue';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Rate limit: 1 email/sec
+export const emailQueue = new PQueue({ interval: 1000, intervalCap: 1 });
 
 export interface EmailSubscription {
   _id?: string;
@@ -34,11 +38,20 @@ export class EmailService {
         html: emailContent,
       };
 
-      const { data, error } = await resend.emails.send(emailData);
+      let data, error: any;
+      await emailQueue.add(async () => {
+        try {
+          const result = await resend.emails.send(emailData);
+          data = result.data;
+          error = result.error;
+        } catch (err) {
+          throw err;
+        }
+      });
 
       if (error) {
         console.error('Error sending KPI email:', error);
-        throw new Error(`Failed to send email: ${error.message}`);
+        throw new Error(`Failed to send email: ${(error as any)?.message || String(error)}`);
       }
 
       console.log('KPI email sent successfully:', data);

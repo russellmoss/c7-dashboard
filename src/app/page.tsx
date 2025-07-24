@@ -5,10 +5,21 @@ import Link from 'next/link';
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, BarChart3, TrendingUp, Wine, Clock, CheckCircle, XCircle, CalendarRange, Settings } from "lucide-react";
 import dynamic from 'next/dynamic';
+import { useAuth } from '../components/AuthProvider';
+import { useRouter } from 'next/navigation';
 
 const AIChat = dynamic(() => import('@/components/ai-assistant/AIChat'), { ssr: false });
 
-export default function Home() {
+export default function HomePage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  useEffect(() => {
+    if (!user) {
+      router.replace('/login');
+    }
+  }, [user, router]);
+  if (!user) return null;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50">
       <div className="container mx-auto px-4 py-16">

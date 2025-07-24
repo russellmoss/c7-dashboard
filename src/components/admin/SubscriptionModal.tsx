@@ -98,6 +98,11 @@ export default function SubscriptionModal({
   const [smsArchive, setSmsArchive] = useState<any[]>([]);
   const [smsArchiveLoading, setSmsArchiveLoading] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<any | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminError, setAdminError] = useState('');
+  const [adminSuccess, setAdminSuccess] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   useEffect(() => {
     if (subscription) {
@@ -188,21 +193,50 @@ export default function SubscriptionModal({
     }
   }, [smsArchiveOpen, subscription?._id]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAdminError('');
+    setAdminSuccess('');
     if (subscription) {
-      onSave({
+      const dataToSave = {
         _id: subscription._id,
         name: formData.name || '',
         email: formData.email || '',
+        phone: formData.smsCoaching?.phoneNumber || '',
         subscribedReports: formData.subscribedReports || [],
         reportSchedules: formData.reportSchedules || {},
         smsCoaching: formData.smsCoaching,
         isActive: formData.isActive ?? true,
         createdAt: formData.createdAt || new Date(),
         updatedAt: new Date(),
-        unsubscribeToken: subscription.unsubscribeToken
-      });
+        unsubscribeToken: subscription.unsubscribeToken,
+        admin: isAdmin,
+        adminPassword: isAdmin ? adminPassword : undefined
+      };
+      if (isAdmin && adminPassword) {
+        // Call Supabase user creation API
+        try {
+          const res = await fetch('/api/admin/create-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: dataToSave.name,
+              email: dataToSave.email,
+              phone: dataToSave.phone,
+              password: adminPassword
+            })
+          });
+          const result = await res.json();
+          if (!res.ok) {
+            setAdminError(result.error || 'Failed to create user');
+          } else {
+            setAdminSuccess('User created in Supabase!');
+          }
+        } catch (err: any) {
+          setAdminError(err.message || 'Failed to create user');
+        }
+      }
+      onSave(dataToSave as any);
     }
   };
 
@@ -278,6 +312,46 @@ export default function SubscriptionModal({
             placeholder="subscriber@email.com"
             required
           />
+        </div>
+        <div className="mb-6 flex items-center">
+          <label className="mr-2 font-medium">Admin</label>
+          <input
+            type="checkbox"
+            checked={isAdmin}
+            onChange={e => setIsAdmin(e.target.checked)}
+            className="accent-[#a92020]"
+          />
+        </div>
+        <div className="mb-6">
+          <label className="block mb-2 text-sm font-medium">Password (for dashboard login)</label>
+          <div className="relative">
+            <input
+              type={showAdminPassword ? 'text' : 'password'}
+              className="w-full border rounded px-3 py-2 pr-10"
+              value={adminPassword}
+              onChange={e => setAdminPassword(e.target.value)}
+              disabled={!isAdmin}
+              placeholder={isAdmin ? 'Enter password for dashboard login' : 'Enable admin to set password'}
+              style={{ backgroundColor: isAdmin ? 'white' : '#f3f3f3' }}
+            />
+            <button
+              type="button"
+              tabIndex={-1}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowAdminPassword(v => !v)}
+              disabled={!isAdmin}
+            >
+              {showAdminPassword ? (
+                // Eye open SVG
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+              ) : (
+                // Eye closed SVG
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.293-3.95m3.249-2.383A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.043 5.306M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" /></svg>
+              )}
+            </button>
+          </div>
+          {adminError && <div className="text-red-600 mb-2">{adminError}</div>}
+          {adminSuccess && <div className="text-green-600 mb-2">{adminSuccess}</div>}
         </div>
         <div className="mb-6">
           <Label>Staff Name (for SMS coaching)</Label>

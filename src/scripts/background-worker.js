@@ -1,89 +1,187 @@
+// PRODUCTION-READY BACKGROUND WORKER
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local') });
 const cron = require('node-cron');
-const { exec } = require('child_process');
-const { promisify } = require('util');
+const moment = require('moment-timezone');
 const mongoose = require('mongoose');
-const path = require('path');
-const { Resend } = require('resend');
-const { generateInsights } = require('../lib/ai-insights-cjs.js');
-
-const execAsync = promisify(exec);
-
+const chalk = require('chalk');
+const express = require('express');
 const { connectToDatabase } = require('../lib/mongodb-cjs.js');
-const { CronJobLogModel, KPIDataModel, EmailSubscriptionModel } = require('../lib/models-cjs.js');
+const { KPIDataModel, EmailSubscriptionModel, CronJobLogModel, ScheduledJobLogModel } = require('../lib/models-cjs.js');
 const { EmailService } = require('../lib/email-service');
 const { SMSService } = require('../lib/sms-service');
 
+// Logging
 const log = {
-    info: (message) => console.log(`[${new Date().toISOString()}] 📊 ${message}`),
-    success: (message) => console.log(`[${new Date().toISOString()}] ✅ ${message}`),
-    error: (message) => console.log(`[${new Date().toISOString()}] ❌ ${message}`),
-    warn: (message) => console.log(`[${new Date().toISOString()}] ⚠️ ${message}`),
-    step: (message) => console.log(`[${new Date().toISOString()}] 🚀 ${message}`)
+    info: (msg) => console.log(chalk.blue(`[${new Date().toISOString()}] INFO: ${msg}`)),
+    success: (msg) => console.log(chalk.green(`[${new Date().toISOString()}] SUCCESS: ${msg}`)),
+    error: (msg) => console.log(chalk.red(`[${new Date().toISOString()}] ERROR: ${msg}`)),
+    warn: (msg) => console.log(chalk.yellow(`[${new Date().toISOString()}] WARN: ${msg}`)),
 };
 
 const runningJobs = new Set();
-const resend = new Resend(process.env.RESEND_API_KEY);
+const jobExecutionLog = new Map();
 
-async function generateAIInsights(periodType) {
+// Reliable timezone-aware scheduling
+function isJobDueNow(schedule, now) {
     try {
-        log.step(`Generating AI insights for ${periodType}...`);
-        const latestData = await KPIDataModel.findOne({
-            periodType,
-            year: new Date().getFullYear(),
-            status: 'completed'
-        }).sort({ createdAt: -1 });
-        if (!latestData) {
-            log.warn(`No KPI data found for ${periodType} to generate insights`);
-            return;
+        const estNow = moment.tz(now, 'America/New_York');
+        const hour = estNow.hour();
+        const minute = estNow.minute();
+        const dayOfWeek = estNow.day();
+        const dayOfMonth = estNow.date();
+        const [scheduleHour, scheduleMinute] = (schedule.timeEST || '09:00').split(':').map(Number);
+        if (hour !== scheduleHour || minute !== scheduleMinute) return false;
+        const jobKey = `${schedule.periodType || 'email'}_${schedule.frequency}_${schedule.timeEST}`;
+        if (hasJobExecutedRecently(jobKey)) {
+            log.warn(`Job ${jobKey} already executed recently, skipping`);
+            return false;
         }
-        const insights = await generateInsights(latestData.data);
-        await KPIDataModel.findByIdAndUpdate(latestData._id, { insights });
-        log.success(`AI insights generated and saved for ${periodType}`);
+        switch (schedule.frequency) {
+            case 'daily':
+                return true;
+            case 'weekly':
+                return schedule.dayOfWeek === dayOfWeek;
+            case 'biweekly': {
+                if (schedule.dayOfWeek !== dayOfWeek) return false;
+                const weeksSinceEpoch = Math.floor(estNow.valueOf() / (7 * 24 * 60 * 60 * 1000));
+                return weeksSinceEpoch % 2 === (schedule.weekStart || 0) % 2;
+            }
+            case 'monthly':
+                if (schedule.dayOfMonth) {
+                    return dayOfMonth === schedule.dayOfMonth;
+                }
+                if (schedule.dayOfWeek !== undefined && schedule.weekOfMonth) {
+                    const firstDayOfMonth = estNow.clone().startOf('month');
+                    const firstWeekdayOfMonth = firstDayOfMonth.day();
+                    const nthWeekdayDate = 1 + (schedule.weekOfMonth - 1) * 7 + (schedule.dayOfWeek - firstWeekdayOfMonth + 7) % 7;
+                    return dayOfMonth === nthWeekdayDate;
+                }
+                return false;
+            case 'quarterly': {
+                const quarterStartMonth = Math.floor(estNow.month() / 3) * 3;
+                return estNow.month() === quarterStartMonth && dayOfMonth === 1;
+            }
+            default:
+                return false;
+        }
     } catch (error) {
-        log.error(`Failed to generate AI insights for ${periodType}: ${error.message}`);
+        log.error(`Error in isJobDueNow: ${error.message}`);
+        return false;
     }
 }
 
-async function sendFailureNotification(periodType, error) {
+function hasJobExecutedRecently(jobKey, windowMinutes = 30) {
+    const lastExecution = jobExecutionLog.get(jobKey);
+    if (!lastExecution) return false;
+    return (Date.now() - lastExecution) < (windowMinutes * 60 * 1000);
+}
+function markJobExecuted(jobKey) {
+    jobExecutionLog.set(jobKey, Date.now());
+}
+
+// Robust job processing with individual error handling
+async function processScheduledJobs() {
+    let connection;
     try {
-        await resend.emails.send({
-            from: 'dashboard@milea.com',
-            to: 'your-team@example.com',
-            subject: `KPI Job Failed: ${periodType}`,
-            html: `<p>The ${periodType} KPI job failed.<br>Error: ${error.message}</p>`
-        });
-        log.info('Failure notification sent.');
-    } catch (err) {
-        log.error('Failed to send failure notification:', err.message);
+        connection = await connectToDatabase();
+        const now = new Date();
+        const subs = await EmailSubscriptionModel.find({ isActive: true }).lean();
+        log.info(`Processing scheduled jobs for ${subs.length} active subscriptions`);
+        for (const sub of subs) {
+            // Email Reports
+            if (sub.subscribedReports && sub.reportSchedules) {
+                for (const reportKey of sub.subscribedReports) {
+                    try {
+                        const schedule = sub.reportSchedules[reportKey];
+                        if (schedule && schedule.isActive && isJobDueNow(schedule, now)) {
+                            const jobKey = `email_${reportKey}_${sub.email}`;
+                            const kpiData = await KPIDataModel.findOne({ periodType: reportKey, status: 'completed' }).sort({ createdAt: -1 }).lean();
+                            if (!kpiData) {
+                                log.warn(`No KPI data for ${reportKey} for ${sub.email}`);
+                                continue;
+                            }
+                            await EmailService.sendKPIDashboard(sub, kpiData.data);
+                            markJobExecuted(jobKey);
+                            log.success(`Sent ${reportKey} email report to ${sub.email}`);
+                        }
+                    } catch (err) {
+                        log.error(`Email report error for ${reportKey} to ${sub.email}: ${err.message}`);
+                    }
+                }
+            }
+            // SMS Coaching
+            if (sub.smsCoaching && sub.smsCoaching.isActive && sub.smsCoaching.staffMembers) {
+                for (const staff of sub.smsCoaching.staffMembers) {
+                    for (const dashboard of staff.dashboards || []) {
+                        try {
+                            if (dashboard.isActive && isJobDueNow(dashboard, now)) {
+                                const jobKey = `sms_${dashboard.periodType}_${staff.name}`;
+                                const kpiData = await KPIDataModel.findOne({ periodType: dashboard.periodType, status: 'completed' }).sort({ createdAt: -1 }).lean();
+                                if (!kpiData?.data?.current?.associatePerformance) {
+                                    log.warn(`No KPI data for ${dashboard.periodType} SMS to ${staff.name}`);
+                                    continue;
+                                }
+                                const staffPerf = kpiData.data.current.associatePerformance[staff.name];
+                                if (!staffPerf) {
+                                    log.warn(`No performance data for ${staff.name} in ${dashboard.periodType}`);
+                                    continue;
+                                }
+                                await SMSService.sendCoachingSMS(
+                                    sub.smsCoaching.phoneNumber,
+                                    staffPerf,
+                                    sub.smsCoaching,
+                                    dashboard.periodType
+                                );
+                                markJobExecuted(jobKey);
+                                log.success(`Sent SMS to ${sub.smsCoaching.phoneNumber} for ${staff.name} (${dashboard.periodType})`);
+                            }
+                        } catch (err) {
+                            log.error(`SMS coaching error for ${staff.name} (${dashboard.periodType}): ${err.message}`);
+                        }
+                    }
+                }
+            }
+        }
+        log.info('Completed processing scheduled jobs');
+    } catch (error) {
+        log.error(`Scheduled jobs processing failed: ${error.message}`);
+    } finally {
+        try {
+            if (connection) await mongoose.connection.close();
+        } catch (closeErr) {
+            log.error(`Error closing MongoDB connection: ${closeErr.message}`);
+        }
     }
 }
 
+// KPI job execution with error handling
 async function executeKPIJob(periodType) {
     if (runningJobs.has(periodType)) {
-        log.warn(`Job ${periodType} is already running, skipping this execution`);
+        log.warn(`Job ${periodType} is already running, skipping`);
         return;
     }
     runningJobs.add(periodType);
     const startTime = Date.now();
-    let cronLog;
+    let connection;
     try {
-        log.step(`Starting ${periodType.toUpperCase()} KPI generation...`);
-        await connectToDatabase();
-        cronLog = await CronJobLogModel.create({
+        log.info(`Starting ${periodType.toUpperCase()} KPI generation...`);
+        connection = await connectToDatabase();
+        const cronLog = await CronJobLogModel.create({
             jobType: periodType,
             status: 'running',
             startTime: new Date(startTime)
         });
-        const scriptPath = path.join(__dirname, 'optimized-kpi-dashboard.js');
+        const { exec } = require('child_process');
+        const { promisify } = require('util');
+        const execAsync = promisify(exec);
+        const scriptPath = require('path').join(__dirname, 'optimized-kpi-dashboard.js');
         const command = `node "${scriptPath}" ${periodType}`;
-        log.info(`Executing: ${command}`);
         const { stdout, stderr } = await execAsync(command, {
-            timeout: 1800000, // 30 minute timeout
-            maxBuffer: 1024 * 1024 * 10 
+            timeout: 1800000,
+            maxBuffer: 1024 * 1024 * 10,
+            env: { ...process.env }
         });
         if (stderr) log.warn(`Script warnings for ${periodType}: ${stderr}`);
-        log.info(`Script output for ${periodType}: ${stdout}`);
         const executionTime = Date.now() - startTime;
         await CronJobLogModel.findByIdAndUpdate(cronLog._id, {
             status: 'completed',
@@ -92,157 +190,103 @@ async function executeKPIJob(periodType) {
             dataGenerated: true
         });
         log.success(`${periodType.toUpperCase()} completed in ${(executionTime / 1000).toFixed(2)}s`);
-        await generateAIInsights(periodType);
+        // Generate AI insights (non-blocking)
+        setTimeout(() => generateAIInsights(periodType), 1000);
     } catch (error) {
         const executionTime = Date.now() - startTime;
         log.error(`${periodType.toUpperCase()} failed after ${(executionTime / 1000).toFixed(2)}s: ${error.message}`);
-        if (cronLog) {
-            await CronJobLogModel.findByIdAndUpdate(cronLog._id, {
-                status: 'failed',
-                endTime: new Date(),
-                executionTime,
-                error: error.message,
-            });
-        }
         await sendFailureNotification(periodType, error);
     } finally {
         runningJobs.delete(periodType);
-        await mongoose.connection.close();
+        try {
+            if (connection) await mongoose.connection.close();
+        } catch (closeErr) {
+            log.error(`Error closing connection: ${closeErr.message}`);
+        }
     }
 }
 
+// Health monitoring
+let lastHealthCheck = Date.now();
+function logHealth() {
+    lastHealthCheck = Date.now();
+    log.info(`[HEALTH] Worker healthy at ${new Date(lastHealthCheck).toISOString()}`);
+}
+function setupHealthMonitoring() {
+    setInterval(() => {
+        const health = {
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            memory: process.memoryUsage(),
+            runningJobs: Array.from(runningJobs)
+        };
+        log.info(`Health check: ${JSON.stringify(health)}`);
+    }, 5 * 60 * 1000);
+}
+
+// Graceful shutdown
+async function gracefulShutdown() {
+    log.info('Received shutdown signal, gracefully shutting down...');
+    const shutdownTimeout = 30000;
+    const startTime = Date.now();
+    while (runningJobs.size > 0 && (Date.now() - startTime) < shutdownTimeout) {
+        log.info(`Waiting for ${runningJobs.size} jobs to complete...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    if (runningJobs.size > 0) {
+        log.warn(`Forcing shutdown with ${runningJobs.size} jobs still running`);
+    }
+    process.exit(0);
+}
+
+// Cron jobs
 function setupCronJobs() {
-    // MTD at 1:00 AM EST
-    cron.schedule('0 1 * * *', () => executeKPIJob('mtd'), { timezone: "America/New_York" });
-    // YTD at 2:00 AM EST
-    cron.schedule('0 2 * * *', () => executeKPIJob('ytd'), { timezone: "America/New_York" });
-    // QTD at 3:00 AM EST
-    cron.schedule('0 3 * * *', () => executeKPIJob('qtd'), { timezone: "America/New_York" });
-    // All-Quarters at 4:00 AM EST
-    cron.schedule('0 4 * * *', () => executeKPIJob('all-quarters'), { timezone: "America/New_York" });
+    cron.schedule('0 1 * * *', () => executeKPIJob('mtd'), { timezone: 'America/New_York', name: 'mtd-generation' });
+    cron.schedule('0 2 * * *', () => executeKPIJob('ytd'), { timezone: 'America/New_York', name: 'ytd-generation' });
+    cron.schedule('0 3 * * *', () => executeKPIJob('qtd'), { timezone: 'America/New_York', name: 'qtd-generation' });
+    cron.schedule('0 4 * * *', () => executeKPIJob('all-quarters'), { timezone: 'America/New_York', name: 'all-quarters-generation' });
+    cron.schedule('0 * * * *', async () => {
+        try {
+            await processScheduledJobs();
+        } catch (error) {
+            log.error(`Scheduled jobs failed: ${error.message}`);
+            setTimeout(processScheduledJobs, 5 * 60 * 1000);
+        }
+    }, { timezone: 'America/New_York', name: 'scheduled-communications' });
     log.success('✅ All cron jobs scheduled successfully');
 }
 
-// Helper: check if a job is due now based on schedule
-function isJobDueNow(schedule, now) {
-  // schedule: { frequency, dayOfWeek, weekOfMonth, weekStart, timeEST, ... }
-  // now: Date object (UTC)
-  // Convert now to EST
-  const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-  const hour = estNow.getHours();
-  const minute = estNow.getMinutes();
-  const dayOfWeek = estNow.getDay();
-  const date = estNow.getDate();
-  const weekOfMonth = Math.ceil((date - estNow.getDay() + 1) / 7);
+// Express /health endpoint
+const app = express();
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        uptime: process.uptime(),
+        lastHealthCheck: new Date(lastHealthCheck).toISOString(),
+        memoryUsage: process.memoryUsage(),
+    });
+});
+const port = process.env.PORT || 3001;
+app.listen(port, () => {
+    log.info(`[HEALTH] Health endpoint listening on port ${port}`);
+});
 
-  // Only run at the top of the hour
-  if (minute !== 0) return false;
-  if (schedule.timeEST && hour !== parseInt(schedule.timeEST.split(':')[0], 10)) return false;
-
-  switch (schedule.frequency) {
-    case 'daily':
-      return true;
-    case 'weekly':
-      return schedule.dayOfWeek === dayOfWeek;
-    case 'biweekly': {
-      if (schedule.dayOfWeek !== dayOfWeek) return false;
-      // weekOfMonth: 1-5, weekStart: 1-5
-      // Only send on even/odd weeks based on weekStart
-      if (!schedule.weekStart) return false;
-      return ((weekOfMonth - schedule.weekStart) % 2 === 0);
-    }
-    case 'monthly':
-      return schedule.weekOfMonth === weekOfMonth && schedule.dayOfWeek === dayOfWeek;
-    case 'quarterly':
-      // Simplified: run on first week of quarter
-      return schedule.weekOfMonth === weekOfMonth && schedule.dayOfWeek === dayOfWeek;
-    case 'yearly':
-      // Not implemented
-      return false;
-    default:
-      return false;
-  }
-}
-
-async function processScheduledJobs() {
-  try {
-    await connectToDatabase();
-    const now = new Date();
-    const subs = await EmailSubscriptionModel.find({ isActive: true }).lean();
-    for (const sub of subs) {
-      // Email Reports
-      if (sub.subscribedReports && sub.reportSchedules) {
-        for (const reportKey of sub.subscribedReports) {
-          const schedule = sub.reportSchedules[reportKey];
-          if (schedule && schedule.isActive && isJobDueNow(schedule, now)) {
-            try {
-              // Fetch latest KPI data for this periodType
-              const kpiData = await KPIDataModel.findOne({ periodType: reportKey, status: 'completed' }).sort({ createdAt: -1 }).lean();
-              if (!kpiData) {
-                console.warn(`[SCHEDULED EMAIL] No KPI data for ${reportKey} for ${sub.email}`);
-                continue;
-              }
-              await EmailService.sendKPIDashboard(sub, kpiData.data);
-              console.log(`[SCHEDULED EMAIL] Sent ${reportKey} report to ${sub.email}`);
-            } catch (err) {
-              console.error(`[SCHEDULED EMAIL] Error sending ${reportKey} report to ${sub.email}:`, err);
-            }
-          }
-        }
-      }
-      // SMS Coaching
-      if (sub.smsCoaching && sub.smsCoaching.isActive && sub.smsCoaching.staffMembers) {
-        for (const staff of sub.smsCoaching.staffMembers) {
-          for (const dash of staff.dashboards || []) {
-            if (dash.isActive && isJobDueNow(dash, now)) {
-              try {
-                // Fetch latest KPI data for this dashboard periodType
-                const kpiData = await KPIDataModel.findOne({ periodType: dash.periodType, status: 'completed' }).sort({ createdAt: -1 }).lean();
-                if (!kpiData || !kpiData.data || !kpiData.data.current || !kpiData.data.current.associatePerformance) {
-                  console.warn(`[SCHEDULED SMS] No KPI data for ${dash.periodType} for ${staff.name}`);
-                  continue;
-                }
-                // Find staff performance by name
-                const staffPerf = kpiData.data.current.associatePerformance[staff.name];
-                if (!staffPerf) {
-                  console.warn(`[SCHEDULED SMS] No performance data for ${staff.name} in ${dash.periodType}`);
-                  continue;
-                }
-                await SMSService.sendCoachingSMS(sub.smsCoaching.phoneNumber, staffPerf, sub.smsCoaching, dash.periodType);
-                console.log(`[SCHEDULED SMS] Sent SMS to ${sub.smsCoaching.phoneNumber} for ${staff.name} (${dash.periodType})`);
-              } catch (err) {
-                console.error(`[SCHEDULED SMS] Error sending SMS to ${sub.smsCoaching.phoneNumber} for ${staff.name} (${dash.periodType}):`, err);
-              }
-            }
-          }
-        }
-      }
-    }
-    await mongoose.connection.close();
-  } catch (err) {
-    console.error('Error processing scheduled jobs:', err);
-    try { await mongoose.connection.close(); } catch {}
-  }
-}
-
-// Run every hour at minute 0
-cron.schedule('0 * * * *', processScheduledJobs, { timezone: 'America/New_York' });
-
+// Start the worker
 async function startWorker() {
     try {
-        log.info('🚀 Starting KPI Background Worker...');
-        await connectToDatabase();
-        log.success('📊 MongoDB connection established for worker.');
-        await mongoose.connection.close(); // Close initial connection, jobs will reconnect
+        log.info('🚀 Starting Milea Estate KPI Background Worker...');
+        const connection = await connectToDatabase();
+        log.success('📊 MongoDB connection established');
+        await mongoose.connection.close();
         setupCronJobs();
-        log.info('Worker is now running and waiting for scheduled jobs...');
+        setupHealthMonitoring();
+        log.success('✅ Worker started successfully and waiting for scheduled jobs...');
+        process.on('SIGTERM', gracefulShutdown);
+        process.on('SIGINT', gracefulShutdown);
     } catch (error) {
-        log.error(`Failed to start background worker: ${error.message}`);
+        log.error(`Failed to start worker: ${error.message}`);
         process.exit(1);
     }
 }
 
 startWorker();
-
-// Export for manual/API triggers
-module.exports = { executeKPIJob };

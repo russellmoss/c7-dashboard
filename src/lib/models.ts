@@ -314,8 +314,22 @@ const CoachingSMSHistorySchema = new Schema<CoachingSMSHistory>({
   collection: 'coaching_sms_history'
 });
 
+// Scheduled Job Log Schema
+const ScheduledJobLogSchema = new Schema({
+  jobKey: { type: String, required: true, unique: true },
+  lastExecuted: { type: Date, required: true },
+  jobType: { type: String, required: true }, // 'email' or 'sms'
+  target: { type: String, required: true }, // e.g. email or phone number
+  status: { type: String, required: true }, // 'success', 'error', etc.
+  error: { type: String },
+}, {
+  timestamps: true,
+  collection: 'scheduled_job_logs'
+});
+
 // Export models with proper typing
 export const KPIDataModel: Model<KPIData> = mongoose.models.KPIData || mongoose.model('KPIData', KPIDataSchema);
 export const CronJobLogModel: Model<CronJobLog> = mongoose.models.CronJobLog || mongoose.model('CronJobLog', CronJobLogSchema);
 export const EmailSubscriptionModel: Model<EmailSubscription> = mongoose.models.EmailSubscription || mongoose.model('EmailSubscription', EmailSubscriptionSchema);
 export const CoachingSMSHistoryModel: Model<CoachingSMSHistory> = mongoose.models.CoachingSMSHistory || mongoose.model('CoachingSMSHistory', CoachingSMSHistorySchema);
+export const ScheduledJobLogModel = mongoose.models.ScheduledJobLog || mongoose.model('ScheduledJobLog', ScheduledJobLogSchema);

@@ -1,12 +1,13 @@
 export interface DashboardSchedule {
   periodType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters';
-  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
+  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
   timeEST: string;
   dayOfWeek?: number;
   dayOfMonth?: number;
   weekOfMonth?: number;
   weekStart?: number;
   monthOfQuarter?: number;
+  monthOfYear?: number;
   isActive: boolean;
   includeMetrics: {
     wineConversionRate: boolean;

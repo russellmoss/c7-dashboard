@@ -1,6 +1,8 @@
 // CommonJS version for scripts
 const mongoose = require('mongoose');
 
+console.log('Mongoose instance in models:', require('mongoose'));
+
 // KPI Data Schema
 const KPIDataSchema = new mongoose.Schema({
   periodType: {

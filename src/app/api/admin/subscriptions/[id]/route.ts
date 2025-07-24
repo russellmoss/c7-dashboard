@@ -106,26 +106,3 @@ export async function DELETE(
     return NextResponse.json({ error: 'Failed to delete subscription' }, { status: 500 });
   }
 } 
-
-// Add a GET handler for /api/admin/subscriptions/[id]/sms-archive
-export async function GET_SMS_ARCHIVE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    await connectToDatabase();
-    const subscription = await EmailSubscriptionModel.findById(params.id);
-    if (!subscription || !subscription.smsCoaching?.phoneNumber) {
-      return NextResponse.json({ error: 'Subscription or phone number not found' }, { status: 404 });
-    }
-    const messages = await CoachingSMSHistoryModel.find({
-      phoneNumber: subscription.smsCoaching.phoneNumber
-    })
-      .sort({ sentAt: -1 })
-      .lean();
-    return NextResponse.json({ messages });
-  } catch (error) {
-    console.error('Error fetching SMS archive:', error);
-    return NextResponse.json({ error: 'Failed to fetch SMS archive' }, { status: 500 });
-  }
-} 

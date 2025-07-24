@@ -53,9 +53,7 @@ export default function SubscriptionModal({
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
-    unsubscribeToken: '',
-    admin: false,
-    adminPassword: ''
+    unsubscribeToken: ''
   });
 
   const [availableStaffByReport, setAvailableStaffByReport] = useState<Record<ReportKey, string[]>>({
@@ -160,9 +158,7 @@ export default function SubscriptionModal({
         isActive: subscription.isActive,
         createdAt: subscription.createdAt,
         updatedAt: subscription.updatedAt,
-        unsubscribeToken: subscription.unsubscribeToken,
-        admin: subscription.admin,
-        adminPassword: subscription.adminPassword
+        unsubscribeToken: subscription.unsubscribeToken
       }));
     }
   }, [subscription]);
@@ -273,7 +269,7 @@ export default function SubscriptionModal({
 
   const handleDelete = () => {
     if (subscription && confirm('Are you sure you want to delete this subscription?')) {
-      onDelete(subscription._id);
+      onDelete(subscription._id as string || '');
       onClose();
     }
   };
@@ -369,7 +365,6 @@ export default function SubscriptionModal({
             onValueChange={value => setFormData(prev => ({
               ...prev,
               smsCoaching: {
-                ...prev.smsCoaching,
                 isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
                 phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
                 staffMembers: value ? [{ id: '', name: value, phoneNumber: '', enabled: true, isActive: true, dashboards: [] }] : [],
@@ -392,7 +387,6 @@ export default function SubscriptionModal({
             onChange={e => setFormData(prev => ({
               ...prev,
               smsCoaching: {
-                ...prev.smsCoaching,
                 isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
                 phoneNumber: e.target.value,
                 staffMembers: prev.smsCoaching?.staffMembers?.map(staff => ({
@@ -583,6 +577,33 @@ export default function SubscriptionModal({
         {/* SMS Coaching Section */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold mb-2">SMS Coaching</h3>
+          <div className="flex items-center mb-4">
+            <input
+              type="checkbox"
+              id="enable-sms-coaching"
+              className="mr-2"
+              checked={!!formData.smsCoaching?.isActive}
+              onChange={e => setFormData(prev => ({
+                ...prev,
+                smsCoaching: {
+                  isActive: e.target.checked,
+                  phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
+                  staffMembers: prev.smsCoaching?.staffMembers?.map(staff => ({
+                    ...staff,
+                    id: staff.id ?? '',
+                    name: staff.name ?? '',
+                    phoneNumber: staff.phoneNumber ?? '',
+                    enabled: typeof staff.enabled === 'boolean' ? staff.enabled : false,
+                    isActive: typeof staff.isActive === 'boolean' ? staff.isActive : false,
+                    dashboards: staff.dashboards ?? []
+                  })) ?? [],
+                  coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                  customMessage: prev.smsCoaching?.customMessage ?? '',
+                }
+              }))}
+            />
+            <label htmlFor="enable-sms-coaching" className="font-medium">Enable SMS Coaching</label>
+          </div>
           <p className="text-gray-500 mb-4 text-sm">SMS messages are personalized for the selected staff member, using their performance data for the selected report/dashboard and sent on the schedule you set below.</p>
           {formData.smsCoaching?.staffMembers && formData.smsCoaching.staffMembers[0] && (
             <div className="grid grid-cols-2 gap-4">
@@ -621,6 +642,12 @@ export default function SubscriptionModal({
                                     periodType: key,
                                     frequency: 'weekly',
                                     timeEST: '09:00',
+                                    dayOfWeek: 0,
+                                    weekOfMonth: 1,
+                                    dayOfMonth: 1,
+                                    weekStart: 1,
+                                    monthOfQuarter: 1,
+                                    monthOfYear: 1,
                                     isActive: true,
                                     includeMetrics: {
                                       wineConversionRate: true,
@@ -637,11 +664,14 @@ export default function SubscriptionModal({
                             return {
                               ...prev,
                               smsCoaching: {
-                                ...prev.smsCoaching,
+                                isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
                                 staffMembers: [{
                                   ...staff,
                                   dashboards
-                                }]
+                                }],
+                                coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                customMessage: prev.smsCoaching?.customMessage ?? '',
                               }
                             };
                           });
@@ -656,24 +686,29 @@ export default function SubscriptionModal({
                         <Select
                           value={dashboard.frequency}
                           onValueChange={value => {
-                            setFormData(prev => ({
-                              ...prev,
-                              smsCoaching: {
-                                ...prev.smsCoaching,
-                                isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
-                                phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
-                                staffMembers: [{
-                                  id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
-                                  name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
-                                  phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
-                                  enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
-                                  isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
-                                  dashboards: dashboards
-                                }],
-                                coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
-                                customMessage: prev.smsCoaching?.customMessage ?? '',
-                              }
-                            }));
+                            setFormData(prev => {
+                              const staff = prev.smsCoaching?.staffMembers?.[0];
+                              if (!staff) return prev;
+                              let dashboards = staff.dashboards ?? [];
+                              dashboards = dashboards.map(d =>
+                                d.periodType === key
+                                  ? { ...d, frequency: value as DashboardSchedule["frequency"] }
+                                  : d
+                              );
+                              return {
+                                ...prev,
+                                smsCoaching: {
+                                  isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                  phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
+                                  staffMembers: [{
+                                    ...staff,
+                                    dashboards
+                                  }],
+                                  coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                  customMessage: prev.smsCoaching?.customMessage ?? '',
+                                }
+                              } as EmailSubscription;
+                            });
                           }}
                         >
                           {frequencyOptions.map(freq => (
@@ -690,7 +725,8 @@ export default function SubscriptionModal({
                                 setFormData(prev => ({
                                   ...prev,
                                   smsCoaching: {
-                                    ...prev.smsCoaching,
+                                    isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                    phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
                                     staffMembers: [{
                                       id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
                                       name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
@@ -699,6 +735,8 @@ export default function SubscriptionModal({
                                       isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
                                       dashboards: dashboards
                                     }],
+                                    coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                    customMessage: prev.smsCoaching?.customMessage ?? ''
                                   }
                                 }));
                               }}
@@ -712,20 +750,29 @@ export default function SubscriptionModal({
                               type="time"
                               value={dashboard.timeEST || ''}
                               onChange={e => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  smsCoaching: {
-                                    ...prev.smsCoaching,
-                                    staffMembers: [{
-                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
-                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
-                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
-                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
-                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
-                                      dashboards: dashboards
-                                    }],
-                                  }
-                                }));
+                                setFormData(prev => {
+                                  const staff = prev.smsCoaching?.staffMembers?.[0];
+                                  if (!staff) return prev;
+                                  let dashboards = staff.dashboards ?? [];
+                                  dashboards = dashboards.map(d =>
+                                    d.periodType === key
+                                      ? { ...d, timeEST: e.target.value }
+                                      : d
+                                  );
+                                  return {
+                                    ...prev,
+                                    smsCoaching: {
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
+                                      staffMembers: [{
+                                        ...staff,
+                                        dashboards
+                                      }],
+                                      coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                      customMessage: prev.smsCoaching?.customMessage ?? ''
+                                    }
+                                  };
+                                });
                               }}
                             />
                           </>
@@ -740,7 +787,8 @@ export default function SubscriptionModal({
                                 setFormData(prev => ({
                                   ...prev,
                                   smsCoaching: {
-                                    ...prev.smsCoaching,
+                                    isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                    phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
                                     staffMembers: [{
                                       id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
                                       name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
@@ -749,6 +797,8 @@ export default function SubscriptionModal({
                                       isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
                                       dashboards: dashboards
                                     }],
+                                    coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                    customMessage: prev.smsCoaching?.customMessage ?? ''
                                   }
                                 }));
                               }}
@@ -764,7 +814,8 @@ export default function SubscriptionModal({
                                 setFormData(prev => ({
                                   ...prev,
                                   smsCoaching: {
-                                    ...prev.smsCoaching,
+                                    isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                    phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
                                     staffMembers: [{
                                       id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
                                       name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
@@ -773,6 +824,8 @@ export default function SubscriptionModal({
                                       isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
                                       dashboards: dashboards
                                     }],
+                                    coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                    customMessage: prev.smsCoaching?.customMessage ?? ''
                                   }
                                 }));
                               }}
@@ -786,20 +839,29 @@ export default function SubscriptionModal({
                               type="time"
                               value={dashboard.timeEST || ''}
                               onChange={e => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  smsCoaching: {
-                                    ...prev.smsCoaching,
-                                    staffMembers: [{
-                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
-                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
-                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
-                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
-                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
-                                      dashboards: dashboards
-                                    }],
-                                  }
-                                }));
+                                setFormData(prev => {
+                                  const staff = prev.smsCoaching?.staffMembers?.[0];
+                                  if (!staff) return prev;
+                                  let dashboards = staff.dashboards ?? [];
+                                  dashboards = dashboards.map(d =>
+                                    d.periodType === key
+                                      ? { ...d, timeEST: e.target.value }
+                                      : d
+                                  );
+                                  return {
+                                    ...prev,
+                                    smsCoaching: {
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
+                                      staffMembers: [{
+                                        ...staff,
+                                        dashboards
+                                      }],
+                                      coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                      customMessage: prev.smsCoaching?.customMessage ?? ''
+                                    }
+                                  };
+                                });
                               }}
                             />
                           </>
@@ -814,7 +876,8 @@ export default function SubscriptionModal({
                                 setFormData(prev => ({
                                   ...prev,
                                   smsCoaching: {
-                                    ...prev.smsCoaching,
+                                    isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                    phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
                                     staffMembers: [{
                                       id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
                                       name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
@@ -823,6 +886,8 @@ export default function SubscriptionModal({
                                       isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
                                       dashboards: dashboards
                                     }],
+                                    coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                    customMessage: prev.smsCoaching?.customMessage ?? ''
                                   }
                                 }));
                               }}
@@ -836,7 +901,8 @@ export default function SubscriptionModal({
                                 setFormData(prev => ({
                                   ...prev,
                                   smsCoaching: {
-                                    ...prev.smsCoaching,
+                                    isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                    phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
                                     staffMembers: [{
                                       id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
                                       name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
@@ -845,6 +911,8 @@ export default function SubscriptionModal({
                                       isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
                                       dashboards: dashboards
                                     }],
+                                    coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                    customMessage: prev.smsCoaching?.customMessage ?? ''
                                   }
                                 }));
                               }}
@@ -858,20 +926,29 @@ export default function SubscriptionModal({
                               type="time"
                               value={dashboard.timeEST || ''}
                               onChange={e => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  smsCoaching: {
-                                    ...prev.smsCoaching,
-                                    staffMembers: [{
-                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
-                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
-                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
-                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
-                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
-                                      dashboards: dashboards
-                                    }],
-                                  }
-                                }));
+                                setFormData(prev => {
+                                  const staff = prev.smsCoaching?.staffMembers?.[0];
+                                  if (!staff) return prev;
+                                  let dashboards = staff.dashboards ?? [];
+                                  dashboards = dashboards.map(d =>
+                                    d.periodType === key
+                                      ? { ...d, timeEST: e.target.value }
+                                      : d
+                                  );
+                                  return {
+                                    ...prev,
+                                    smsCoaching: {
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
+                                      staffMembers: [{
+                                        ...staff,
+                                        dashboards
+                                      }],
+                                      coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                      customMessage: prev.smsCoaching?.customMessage ?? ''
+                                    }
+                                  };
+                                });
                               }}
                             />
                           </>
@@ -886,7 +963,8 @@ export default function SubscriptionModal({
                                 setFormData(prev => ({
                                   ...prev,
                                   smsCoaching: {
-                                    ...prev.smsCoaching,
+                                    isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                    phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
                                     staffMembers: [{
                                       id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
                                       name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
@@ -895,6 +973,8 @@ export default function SubscriptionModal({
                                       isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
                                       dashboards: dashboards
                                     }],
+                                    coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                    customMessage: prev.smsCoaching?.customMessage ?? ''
                                   }
                                 }));
                               }}
@@ -908,20 +988,29 @@ export default function SubscriptionModal({
                               type="time"
                               value={dashboard.timeEST || ''}
                               onChange={e => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  smsCoaching: {
-                                    ...prev.smsCoaching,
-                                    staffMembers: [{
-                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
-                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
-                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
-                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
-                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
-                                      dashboards: dashboards
-                                    }],
-                                  }
-                                }));
+                                setFormData(prev => {
+                                  const staff = prev.smsCoaching?.staffMembers?.[0];
+                                  if (!staff) return prev;
+                                  let dashboards = staff.dashboards ?? [];
+                                  dashboards = dashboards.map(d =>
+                                    d.periodType === key
+                                      ? { ...d, timeEST: e.target.value }
+                                      : d
+                                  );
+                                  return {
+                                    ...prev,
+                                    smsCoaching: {
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
+                                      staffMembers: [{
+                                        ...staff,
+                                        dashboards
+                                      }],
+                                      coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                      customMessage: prev.smsCoaching?.customMessage ?? ''
+                                    }
+                                  };
+                                });
                               }}
                             />
                             <Label>Start on Week #</Label>
@@ -931,7 +1020,8 @@ export default function SubscriptionModal({
                                 setFormData(prev => ({
                                   ...prev,
                                   smsCoaching: {
-                                    ...prev.smsCoaching,
+                                    isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                    phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
                                     staffMembers: [{
                                       id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
                                       name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
@@ -940,6 +1030,8 @@ export default function SubscriptionModal({
                                       isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
                                       dashboards: dashboards
                                     }],
+                                    coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                    customMessage: prev.smsCoaching?.customMessage ?? ''
                                   }
                                 }));
                               }}
@@ -960,7 +1052,8 @@ export default function SubscriptionModal({
                                 setFormData(prev => ({
                                   ...prev,
                                   smsCoaching: {
-                                    ...prev.smsCoaching,
+                                    isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                    phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
                                     staffMembers: [{
                                       id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
                                       name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
@@ -969,6 +1062,8 @@ export default function SubscriptionModal({
                                       isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
                                       dashboards: dashboards
                                     }],
+                                    coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                    customMessage: prev.smsCoaching?.customMessage ?? ''
                                   }
                                 }));
                               }}
@@ -984,20 +1079,29 @@ export default function SubscriptionModal({
                               max={31}
                               value={String(dashboard.dayOfMonth ?? 1)}
                               onChange={e => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  smsCoaching: {
-                                    ...prev.smsCoaching,
-                                    staffMembers: [{
-                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
-                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
-                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
-                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
-                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
-                                      dashboards: dashboards
-                                    }],
-                                  }
-                                }));
+                                setFormData(prev => {
+                                  const staff = prev.smsCoaching?.staffMembers?.[0];
+                                  if (!staff) return prev;
+                                  let dashboards = staff.dashboards ?? [];
+                                  dashboards = dashboards.map(d =>
+                                    d.periodType === key
+                                      ? { ...d, dayOfMonth: Number(e.target.value) }
+                                      : d
+                                  );
+                                  return {
+                                    ...prev,
+                                    smsCoaching: {
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
+                                      staffMembers: [{
+                                        ...staff,
+                                        dashboards
+                                      }],
+                                      coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                      customMessage: prev.smsCoaching?.customMessage ?? ''
+                                    }
+                                  };
+                                });
                               }}
                             />
                             <Label>Time (EST)</Label>
@@ -1005,20 +1109,29 @@ export default function SubscriptionModal({
                               type="time"
                               value={dashboard.timeEST || ''}
                               onChange={e => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  smsCoaching: {
-                                    ...prev.smsCoaching,
-                                    staffMembers: [{
-                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
-                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
-                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
-                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
-                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
-                                      dashboards: dashboards
-                                    }],
-                                  }
-                                }));
+                                setFormData(prev => {
+                                  const staff = prev.smsCoaching?.staffMembers?.[0];
+                                  if (!staff) return prev;
+                                  let dashboards = staff.dashboards ?? [];
+                                  dashboards = dashboards.map(d =>
+                                    d.periodType === key
+                                      ? { ...d, timeEST: e.target.value }
+                                      : d
+                                  );
+                                  return {
+                                    ...prev,
+                                    smsCoaching: {
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
+                                      staffMembers: [{
+                                        ...staff,
+                                        dashboards
+                                      }],
+                                      coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                      customMessage: prev.smsCoaching?.customMessage ?? ''
+                                    }
+                                  };
+                                });
                               }}
                             />
                           </>
@@ -1040,7 +1153,6 @@ export default function SubscriptionModal({
             onValueChange={value => setFormData(prev => ({
               ...prev,
               smsCoaching: {
-                ...prev.smsCoaching,
                 isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
                 phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
                 staffMembers: prev.smsCoaching?.staffMembers?.map(staff => ({
@@ -1070,7 +1182,6 @@ export default function SubscriptionModal({
             onChange={e => setFormData(prev => ({
               ...prev,
               smsCoaching: {
-                ...prev.smsCoaching,
                 isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
                 phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
                 staffMembers: prev.smsCoaching?.staffMembers?.map(staff => ({
@@ -1096,7 +1207,7 @@ export default function SubscriptionModal({
             {subscription?._id ? 'Save Changes' : 'Add Subscriber'}
           </Button>
           {subscription?._id && (
-            <Button type="button" variant="destructive" onClick={() => onDelete(subscription._id!)}>
+            <Button type="button" variant="destructive" onClick={() => onDelete(subscription._id as string || '')}>
               Delete
             </Button>
           )}

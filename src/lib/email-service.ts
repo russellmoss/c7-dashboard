@@ -2,7 +2,11 @@ import { Resend } from 'resend';
 import { EmailTemplates, KPIDashboardData } from './email-templates';
 import PQueue from 'p-queue';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResendInstance() {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) throw new Error('RESEND_API_KEY is not set');
+  return new Resend(key);
+}
 
 // Rate limit: 1 email/sec
 export const emailQueue = new PQueue({ interval: 1000, intervalCap: 1 });
@@ -41,6 +45,7 @@ export class EmailService {
       let data, error: any;
       await emailQueue.add(async () => {
         try {
+          const resend = getResendInstance();
           const result = await resend.emails.send(emailData);
           data = result.data;
           error = result.error;
@@ -89,6 +94,7 @@ export class EmailService {
         </div>
       `;
 
+      const resend = getResendInstance();
       const { data, error } = await resend.emails.send({
         from: 'Milea Estate Vineyard <onboarding@resend.dev>',
         to: [subscription.email],
@@ -109,6 +115,5 @@ export class EmailService {
       throw error;
     }
   }
-
 
 } 

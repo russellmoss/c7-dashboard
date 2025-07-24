@@ -1,7 +1,7 @@
 import { chatWithAssistant } from './ai-insights';
 import { CoachingSMSHistoryModel } from './models';
 import PQueue from 'p-queue';
-import { StaffMemberCoaching, DashboardSchedule, SMSCoaching, CoachingSMSHistory } from '@/types/sms';
+import { StaffMemberCoaching, DashboardSchedule, SMSCoaching, CoachingSMSHistory } from '@/types/sms'; // type-only, no .js needed
 
 export interface StaffPerformance {
   name: string;

@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "tsc --project tsconfig.build.json",
+    "postbuild": "powershell -Command 'New-Item -ItemType Directory -Force -Path .\\dist\\lib; Copy-Item -Path .\\src\\lib\\*.js -Destination .\\dist\\lib\\'",
     "start": "next start",
     "lint": "next lint",
     "worker": "node src/scripts/background-worker.js",
@@ -46,7 +47,7 @@
     "tailwind-merge": "^2.0.0",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
-    "twilio": "^5.7.3"
+    "twilio": "^5.8.0"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { EmailSubscriptionModel } from '@/lib/models';
-import { CoachingSMSHistory } from '@/types/sms';
+import { EmailSubscriptionModel, CoachingSMSHistoryModel } from '@/lib/models';
+import type { CoachingSMSHistory } from '@/types/sms';
 
 export async function GET(
   request: NextRequest,
@@ -13,7 +13,7 @@ export async function GET(
     if (!subscription || !subscription.smsCoaching?.phoneNumber) {
       return NextResponse.json({ error: 'Subscription or phone number not found' }, { status: 404 });
     }
-    const messages: CoachingSMSHistory[] = await CoachingSMSHistory.find({
+    const messages: CoachingSMSHistory[] = await CoachingSMSHistoryModel.find({
       phoneNumber: subscription.smsCoaching.phoneNumber
     })
       .sort({ sentAt: -1 })

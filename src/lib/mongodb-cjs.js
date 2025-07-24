@@ -14,36 +14,29 @@ if (!global.mongoose) {
 }
 
 async function connectToDatabase() {
-  if (cached.conn) {
+  // 1 = connected, 2 = connecting
+  if (mongoose.connection.readyState === 1) {
     console.log('📊 Using existing MongoDB connection');
-    return cached.conn;
+    return mongoose;
   }
-
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      family: 4
-    };
-
-    console.log('📊 Creating new MongoDB connection...');
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      console.log('✅ MongoDB connected successfully');
-      return mongoose;
-    });
+  if (mongoose.connection.readyState === 2) {
+    // If connecting, wait for it to finish
+    await new Promise(resolve => mongoose.connection.once('connected', resolve));
+    console.log('📊 Using existing (just connected) MongoDB connection');
+    return mongoose;
   }
-
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    console.error('❌ MongoDB connection failed:', e);
-    throw e;
-  }
-
-  return cached.conn;
+  // Otherwise, connect
+  const opts = {
+    bufferCommands: false,
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+    family: 4
+  };
+  console.log('📊 Creating new MongoDB connection...');
+  await mongoose.connect(MONGODB_URI, opts);
+  console.log('✅ MongoDB connected successfully');
+  return mongoose;
 }
 
 module.exports = { connectToDatabase };

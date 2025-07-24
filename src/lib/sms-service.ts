@@ -23,6 +23,9 @@ export class SMSService {
   private static client: any;
 
   static initialize() {
+    console.log('[SMSService] TWILIO_ACCOUNT_SID:', !!process.env.TWILIO_ACCOUNT_SID);
+    console.log('[SMSService] TWILIO_AUTH_TOKEN:', !!process.env.TWILIO_AUTH_TOKEN);
+    console.log('[SMSService] TWILIO_PHONE_NUMBER:', !!process.env.TWILIO_PHONE_NUMBER);
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
       console.warn('Twilio credentials not found. SMS functionality will be disabled.');
       return;
@@ -32,6 +35,7 @@ export class SMSService {
       // Dynamic import to avoid issues if Twilio is not installed
       const twilio = require('twilio');
       this.client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+      console.log('[SMSService] Twilio client constructed successfully.');
     } catch (error) {
       console.warn('Twilio not installed. SMS functionality will be disabled.');
     }
@@ -50,11 +54,22 @@ export class SMSService {
 
     try {
       const message = await this.generateCoachingMessage(staffPerformance, config, periodType);
-      await smsQueue.add(() => this.client.messages.create({
+      const payload = {
         body: message,
         from: process.env.TWILIO_PHONE_NUMBER,
         to: phoneNumber
-      }));
+      };
+      console.log('[SMSService] Sending SMS with payload:', payload);
+      await smsQueue.add(async () => {
+        try {
+          console.log('[SMSService] About to call Twilio messages.create');
+          const result = await this.client.messages.create(payload);
+          console.log('[SMSService] Twilio messages.create result:', result);
+        } catch (twilioErr) {
+          console.error('[SMSService] Error from Twilio messages.create:', twilioErr);
+          throw twilioErr;
+        }
+      });
 
       // Save to MongoDB coaching_sms_history
       try {
@@ -70,10 +85,10 @@ export class SMSService {
         console.error('Error saving coaching SMS history:', dbErr);
       }
 
-      console.log(`SMS sent to ${phoneNumber} for ${staffPerformance.name} (${periodType})`);
+      console.log(`[SMSService] SMS sent to ${phoneNumber} for ${staffPerformance.name} (${periodType})`);
       return true;
     } catch (error) {
-      console.error('Error sending SMS:', error);
+      console.error('[SMSService] Error sending SMS:', error);
       return false;
     }
   }

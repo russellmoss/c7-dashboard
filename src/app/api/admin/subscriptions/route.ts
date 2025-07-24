@@ -16,10 +16,10 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, subscribedReports, frequency, timeEST } = body;
+    const { name, email, subscribedReports, reportSchedules, smsCoaching } = body;
 
     // Validate required fields
-    if (!name || !email || !subscribedReports || !frequency || !timeEST) {
+    if (!name || !email || !subscribedReports || !reportSchedules) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
       name,
       email,
       subscribedReports,
-      frequency,
-      timeEST,
+      reportSchedules,
+      smsCoaching,
       isActive: true
     });
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { EmailSubscriptionModel } from '@/lib/models';
+import { EmailSubscriptionModel, CoachingSMSHistoryModel } from '@/lib/models';
 
 export async function GET(
   request: NextRequest,
@@ -27,10 +27,10 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { name, email, subscribedReports, frequency, timeEST } = body;
+    const { name, email, subscribedReports, reportSchedules, smsCoaching } = body;
 
     // Validate required fields
-    if (!name || !email || !subscribedReports || !frequency || !timeEST) {
+    if (!name || !email || !subscribedReports || !reportSchedules) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -47,7 +47,7 @@ export async function PUT(
 
     const subscription = await EmailSubscriptionModel.findByIdAndUpdate(
       params.id,
-      { name, email, subscribedReports, frequency, timeEST },
+      { name, email, subscribedReports, reportSchedules, smsCoaching },
       { new: true, runValidators: true }
     );
 
@@ -103,5 +103,28 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting subscription:', error);
     return NextResponse.json({ error: 'Failed to delete subscription' }, { status: 500 });
+  }
+} 
+
+// Add a GET handler for /api/admin/subscriptions/[id]/sms-archive
+export async function GET_SMS_ARCHIVE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await connectToDatabase();
+    const subscription = await EmailSubscriptionModel.findById(params.id);
+    if (!subscription || !subscription.smsCoaching?.phoneNumber) {
+      return NextResponse.json({ error: 'Subscription or phone number not found' }, { status: 404 });
+    }
+    const messages = await CoachingSMSHistoryModel.find({
+      phoneNumber: subscription.smsCoaching.phoneNumber
+    })
+      .sort({ sentAt: -1 })
+      .lean();
+    return NextResponse.json({ messages });
+  } catch (error) {
+    console.error('Error fetching SMS archive:', error);
+    return NextResponse.json({ error: 'Failed to fetch SMS archive' }, { status: 500 });
   }
 } 

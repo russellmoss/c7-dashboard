@@ -1,54 +1,56 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import React, { useState, useEffect } from 'react';
+import { EmailSubscription } from '@/types/kpi';
 import SubscriptionModal from '@/components/admin/SubscriptionModal';
-
-interface EmailSubscription {
-  _id: string;
-  name: string;
-  email: string;
-  subscribedReports: string[];
-  frequency: 'daily' | 'weekly' | 'monthly';
-  timeEST: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export default function AdminDashboard() {
   const [subscriptions, setSubscriptions] = useState<EmailSubscription[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [modalSubscription, setModalSubscription] = useState<EmailSubscription | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // Form state
+  const [modalSubscription, setModalSubscription] = useState<EmailSubscription | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Form data for new subscription
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    subscribedReports: [] as string[],
-    frequency: 'weekly' as 'daily' | 'weekly' | 'monthly',
-    timeEST: '09:00'
+    subscribedReports: [] as ('mtd' | 'qtd' | 'ytd' | 'all-quarters')[],
+    reportSchedules: {
+      mtd: {
+        frequency: 'weekly' as 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom',
+        timeEST: '09:00',
+        dayOfWeek: 3,
+        isActive: true
+      },
+      qtd: {
+        frequency: 'monthly' as 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom',
+        timeEST: '09:00',
+        dayOfWeek: 3,
+        weekOfMonth: 1,
+        isActive: true
+      },
+      ytd: {
+        frequency: 'quarterly' as 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom',
+        timeEST: '09:00',
+        dayOfWeek: 3,
+        monthOfQuarter: 1,
+        isActive: true
+      },
+      'all-quarters': {
+        frequency: 'monthly' as 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom',
+        timeEST: '09:00',
+        dayOfMonth: 1,
+        isActive: true
+      }
+    },
+    smsCoaching: {
+      isActive: false,
+      phoneNumber: '',
+      staffMembers: [],
+      coachingStyle: 'balanced' as 'encouraging' | 'analytical' | 'motivational' | 'balanced',
+      customMessage: ''
+    }
   });
-
-  const reportOptions = [
-    { value: 'mtd', label: 'Month-to-Date' },
-    { value: 'qtd', label: 'Quarter-to-Date' },
-    { value: 'ytd', label: 'Year-to-Date' },
-    { value: 'all-quarters', label: 'All Quarters' }
-  ];
-
-  const frequencyOptions = [
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'monthly', label: 'Monthly' }
-  ];
 
   useEffect(() => {
     fetchSubscriptions();
@@ -64,44 +66,64 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error fetching subscriptions:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.name || !formData.email) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    if (formData.subscribedReports.length === 0) {
+      alert('Please select at least one report type');
+      return;
+    }
+
     try {
-      const url = editingId 
-        ? `/api/admin/subscriptions/${editingId}`
-        : '/api/admin/subscriptions';
-      
-      const method = editingId ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
+      const response = await fetch('/api/admin/subscriptions', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          subscribedReports: formData.subscribedReports,
+          reportSchedules: formData.reportSchedules,
+          smsCoaching: formData.smsCoaching
+        })
       });
 
       if (response.ok) {
+        alert('Subscription created successfully!');
         setFormData({
           name: '',
           email: '',
           subscribedReports: [],
-          frequency: 'weekly',
-          timeEST: '09:00'
+          reportSchedules: {
+            mtd: { frequency: 'weekly', timeEST: '09:00', dayOfWeek: 3, isActive: true },
+            qtd: { frequency: 'monthly', timeEST: '09:00', dayOfWeek: 3, weekOfMonth: 1, isActive: true },
+            ytd: { frequency: 'quarterly', timeEST: '09:00', dayOfWeek: 3, monthOfQuarter: 1, isActive: true },
+            'all-quarters': { frequency: 'monthly', timeEST: '09:00', dayOfMonth: 1, isActive: true }
+          },
+          smsCoaching: {
+            isActive: false,
+            phoneNumber: '',
+            staffMembers: [],
+            coachingStyle: 'balanced',
+            customMessage: ''
+          }
         });
-        setEditingId(null);
         fetchSubscriptions();
       } else {
         const errorData = await response.json();
-        console.error('Server error:', errorData);
-        alert('Error saving subscription: ' + (errorData.error || 'Unknown error'));
+        alert('Error creating subscription: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error saving subscription:', error);
-      alert('Error saving subscription. Please try again.');
+      console.error('Error creating subscription:', error);
+      alert('Error creating subscription. Please try again.');
     }
   };
 
@@ -119,8 +141,9 @@ export default function AdminDashboard() {
           name: updatedSubscription.name,
           email: updatedSubscription.email,
           subscribedReports: updatedSubscription.subscribedReports,
-          frequency: updatedSubscription.frequency,
-          timeEST: updatedSubscription.timeEST
+          reportSchedules: updatedSubscription.reportSchedules,
+          smsCoaching: updatedSubscription.smsCoaching,
+          isActive: updatedSubscription.isActive
         })
       });
 
@@ -138,46 +161,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleModalDelete = async (id: string) => {
-    try {
-      const response = await fetch(`/api/admin/subscriptions/${id}`, {
-        method: 'DELETE'
-      });
-      
-      if (response.ok) {
-        fetchSubscriptions();
-        setIsModalOpen(false);
-        setModalSubscription(null);
-      }
-    } catch (error) {
-      console.error('Error deleting subscription:', error);
-    }
-  };
-
-  const handleTestEmail = async (subscription: EmailSubscription) => {
-    try {
-      const response = await fetch('/api/admin/test-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: subscription.email,
-          name: subscription.name
-        })
-      });
-
-      if (response.ok) {
-        alert('Test email sent successfully! Check your inbox.');
-      } else {
-        const errorData = await response.json();
-        alert('Failed to send test email: ' + (errorData.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error sending test email:', error);
-      alert('Error sending test email. Please try again.');
-    }
-  };
-
-  const handleTestKPIDashboardEmail = async (subscription: EmailSubscription) => {
+  const handleSendReports = async (subscription: EmailSubscription) => {
     try {
       // Send emails for each subscribed report
       const promises = subscription.subscribedReports.map(async (reportType) => {
@@ -207,266 +191,282 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSendComprehensiveEmail = async (subscription: EmailSubscription) => {
+  const handleSendSMSCoaching = async (subscription: EmailSubscription, periodType: string = 'mtd') => {
     try {
-      const response = await fetch('/api/admin/send-kpi-reports', {
+      const response = await fetch('/api/admin/send-sms-coaching', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: subscription.email,
-          name: subscription.name,
-          subscribedReports: subscription.subscribedReports
+          subscriptionId: subscription._id,
+          periodType: periodType
         })
       });
 
       if (response.ok) {
-        alert(`Comprehensive KPI dashboard email sent successfully with ${subscription.subscribedReports.length} report(s)! Check your inbox.`);
+        const result = await response.json();
+        alert(`SMS coaching sent successfully! ${result.message}`);
       } else {
         const errorData = await response.json();
-        alert('Failed to send comprehensive KPI email: ' + (errorData.error || 'Unknown error'));
+        alert('Failed to send SMS coaching: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error sending comprehensive KPI email:', error);
-      alert('Error sending comprehensive KPI email. Please try again.');
+      console.error('Error sending SMS coaching:', error);
+      alert('Error sending SMS coaching. Please try again.');
+    }
+  };
+
+  const handleTestSMS = async (phoneNumber: string, name: string) => {
+    try {
+      const response = await fetch('/api/admin/test-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneNumber,
+          name
+        })
+      });
+
+      if (response.ok) {
+        alert('Test SMS sent successfully! Check your phone.');
+      } else {
+        const errorData = await response.json();
+        alert('Failed to send test SMS: ' + (errorData.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error sending test SMS:', error);
+      alert('Error sending test SMS. Please try again.');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this subscription?')) return;
-    
-    try {
-      const response = await fetch(`/api/admin/subscriptions/${id}`, {
-        method: 'DELETE'
-      });
-      
-      if (response.ok) {
-        fetchSubscriptions();
+    if (confirm('Are you sure you want to delete this subscription?')) {
+      try {
+        const response = await fetch(`/api/admin/subscriptions/${id}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          fetchSubscriptions();
+        }
+      } catch (error) {
+        console.error('Error deleting subscription:', error);
       }
-    } catch (error) {
-      console.error('Error deleting subscription:', error);
     }
   };
 
   const handleToggleActive = async (id: string, isActive: boolean) => {
     try {
+      const subscription = subscriptions.find(s => s._id === id);
+      if (!subscription) return;
+
       const response = await fetch(`/api/admin/subscriptions/${id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !isActive })
+        body: JSON.stringify({
+          ...subscription,
+          isActive: isActive
+        })
       });
-      
+
       if (response.ok) {
         fetchSubscriptions();
       }
     } catch (error) {
-      console.error('Error toggling subscription:', error);
+      console.error('Error updating subscription status:', error);
     }
   };
 
   const handleReportToggle = (report: string) => {
     setFormData(prev => ({
       ...prev,
-      subscribedReports: prev.subscribedReports.includes(report)
+      subscribedReports: prev.subscribedReports.includes(report as any)
         ? prev.subscribedReports.filter(r => r !== report)
-        : [...prev.subscribedReports, report]
+        : [...prev.subscribedReports, report as any]
     }));
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">Loading...</div>
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-wine-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading subscription management system...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <Button onClick={() => window.location.href = '/'} variant="outline">
-          ← Back to Dashboard
-        </Button>
+    <div className="min-h-screen bg-pink-50">
+      <div className="p-6 flex items-center">
+        <a href="/" className="inline-flex items-center px-4 py-2 rounded bg-wine-600 text-white hover:bg-wine-700 transition font-semibold text-sm shadow mr-4">
+          Home
+        </a>
+        <h1 className="text-2xl font-bold text-wine-900">Subscription Management System</h1>
       </div>
+      <div className="max-w-5xl mx-auto p-4">
+        {/* Header */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Subscription Management System
+            </h1>
+            <p className="text-gray-600">
+              Manage email subscriptions and SMS coaching for KPI dashboards and staff performance updates.
+            </p>
+          </div>
+          <button
+            className="mt-4 md:mt-0 bg-wine-600 text-white px-6 py-2 rounded-lg hover:bg-wine-700 transition-colors font-semibold shadow"
+            onClick={() => {
+              setModalSubscription({
+                name: '',
+                email: '',
+                subscribedReports: [],
+                reportSchedules: {
+                  mtd: { frequency: 'weekly', timeEST: '09:00', dayOfWeek: 3, isActive: true },
+                  qtd: { frequency: 'monthly', timeEST: '09:00', dayOfWeek: 3, weekOfMonth: 1, isActive: true },
+                  ytd: { frequency: 'quarterly', timeEST: '09:00', dayOfWeek: 3, monthOfQuarter: 1, isActive: true },
+                  'all-quarters': { frequency: 'monthly', timeEST: '09:00', dayOfMonth: 1, isActive: true }
+                },
+                smsCoaching: {
+                  isActive: false,
+                  phoneNumber: '',
+                  staffMembers: [],
+                  coachingStyle: 'balanced',
+                  customMessage: ''
+                },
+                isActive: true,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              });
+              setIsModalOpen(true);
+            }}
+          >
+            + Add Subscriber
+          </button>
+        </div>
+        {/* Subscriptions Table */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">Active Subscriptions</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Services
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {subscriptions.map((subscription) => (
+                  <tr key={subscription._id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {subscription.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {subscription.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        subscription.isActive 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {subscription.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex flex-col space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-blue-600">📧</span>
+                          <span>{subscription.subscribedReports.length} Email Reports</span>
+                        </div>
+                        {subscription.smsCoaching?.isActive && (
+                          <div className="flex items-center space-x-2">
+                            <span className="text-green-600">📱</span>
+                            <span>SMS Coaching ({subscription.smsCoaching.staffMembers.length} staff)</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      <button
+                        onClick={() => handleEdit(subscription)}
+                        className="text-indigo-600 hover:text-indigo-900"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(subscription._id!)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Add/Edit Subscription Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {editingId ? 'Edit Subscription' : 'Add New Subscription'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label>Subscribed Reports</Label>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {reportOptions.map(option => (
-                    <label key={option.value} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.subscribedReports.includes(option.value)}
-                        onChange={() => handleReportToggle(option.value)}
-                        className="rounded"
-                      />
-                      <span className="text-sm">{option.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="frequency">Frequency</Label>
-                <Select
-                  value={formData.frequency}
-                  onValueChange={(value: string) => 
-                    setFormData(prev => ({ ...prev, frequency: value as 'daily' | 'weekly' | 'monthly' }))
+        {/* Subscription Modal */}
+        {isModalOpen && modalSubscription && (
+          <SubscriptionModal
+            subscription={modalSubscription}
+            isOpen={isModalOpen}
+            onClose={() => {
+              setIsModalOpen(false);
+              setModalSubscription(null);
+            }}
+            onSave={async (subscription) => {
+              if (!subscription._id) {
+                // New subscriber: POST
+                try {
+                  const response = await fetch('/api/admin/subscriptions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(subscription)
+                  });
+                  if (response.ok) {
+                    fetchSubscriptions();
+                    setIsModalOpen(false);
+                    setModalSubscription(null);
+                  } else {
+                    const errorData = await response.json();
+                    alert('Error creating subscription: ' + (errorData.error || 'Unknown error'));
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue>
-                      {formData.frequency ? frequencyOptions.find(opt => opt.value === formData.frequency)?.label : 'Select frequency'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {frequencyOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="timeEST">Time (EST)</Label>
-                <Input
-                  id="timeEST"
-                  type="time"
-                  value={formData.timeEST}
-                  onChange={(e) => setFormData(prev => ({ ...prev, timeEST: e.target.value }))}
-                  required
-                />
-              </div>
-
-              <div className="flex space-x-2">
-                <Button type="submit">
-                  {editingId ? 'Update' : 'Add'} Subscription
-                </Button>
-                {editingId && (
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={() => {
-                      setEditingId(null);
-                      setFormData({
-                        name: '',
-                        email: '',
-                        subscribedReports: [],
-                        frequency: 'weekly',
-                        timeEST: '09:00'
-                      });
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Subscriptions List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Email Subscriptions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {subscriptions.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No subscriptions found</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-1/2">Name</TableHead>
-                        <TableHead className="w-1/2">Email</TableHead>
-                        <TableHead className="w-24">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {subscriptions.map((subscription) => (
-                        <TableRow 
-                          key={subscription._id} 
-                          className="cursor-pointer hover:bg-gray-50"
-                          onClick={() => handleEdit(subscription)}
-                        >
-                          <TableCell className="font-medium truncate" title={subscription.name}>
-                            {subscription.name}
-                          </TableCell>
-                          <TableCell className="truncate" title={subscription.email}>
-                            {subscription.email}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="sm"
-                              variant={subscription.isActive ? "default" : "secondary"}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleActive(subscription._id, subscription.isActive);
-                              }}
-                            >
-                              {subscription.isActive ? 'Active' : 'Inactive'}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                } catch (error) {
+                  alert('Error creating subscription. Please try again.');
+                }
+              } else {
+                // Existing: PUT
+                await handleModalSave(subscription);
+              }
+            }}
+            onDelete={handleDelete}
+            onSendReports={handleSendReports}
+            onSendSMSCoaching={handleSendSMSCoaching}
+            onTestSMS={handleTestSMS}
+          />
+        )}
       </div>
-
-      {/* Subscription Modal */}
-      <SubscriptionModal
-        subscription={modalSubscription}
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setModalSubscription(null);
-        }}
-        onSave={handleModalSave}
-        onDelete={handleModalDelete}
-        onTestEmail={handleTestEmail}
-        onTestKPIDashboardEmail={handleTestKPIDashboardEmail}
-        onSendComprehensiveEmail={handleSendComprehensiveEmail}
-      />
     </div>
   );
 } 

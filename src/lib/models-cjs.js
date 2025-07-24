@@ -117,16 +117,152 @@ const EmailSubscriptionSchema = new mongoose.Schema({
     type: String,
     enum: ['mtd', 'qtd', 'ytd', 'all-quarters', 'custom']
   }],
-  frequency: {
-    type: String,
-    enum: ['daily', 'weekly', 'monthly'],
-    required: true,
-    default: 'weekly'
+  reportSchedules: {
+    mtd: {
+      frequency: {
+        type: String,
+        enum: ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'],
+        default: 'weekly'
+      },
+      timeEST: {
+        type: String,
+        default: '09:00'
+      },
+      dayOfWeek: Number, // 0-6 (Sunday-Saturday) for weekly
+      dayOfMonth: Number, // 1-31 for monthly
+      weekOfMonth: Number, // 1-5 for monthly (first week, second week, etc.)
+      monthOfQuarter: Number, // 1-3 for quarterly
+      isActive: {
+        type: Boolean,
+        default: true
+      }
+    },
+    qtd: {
+      frequency: {
+        type: String,
+        enum: ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'],
+        default: 'monthly'
+      },
+      timeEST: {
+        type: String,
+        default: '09:00'
+      },
+      dayOfWeek: Number,
+      dayOfMonth: Number,
+      weekOfMonth: Number,
+      monthOfQuarter: Number,
+      isActive: {
+        type: Boolean,
+        default: true
+      }
+    },
+    ytd: {
+      frequency: {
+        type: String,
+        enum: ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'],
+        default: 'quarterly'
+      },
+      timeEST: {
+        type: String,
+        default: '09:00'
+      },
+      dayOfWeek: Number,
+      dayOfMonth: Number,
+      weekOfMonth: Number,
+      monthOfQuarter: Number,
+      isActive: {
+        type: Boolean,
+        default: true
+      }
+    },
+    'all-quarters': {
+      frequency: {
+        type: String,
+        enum: ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'custom'],
+        default: 'monthly'
+      },
+      timeEST: {
+        type: String,
+        default: '09:00'
+      },
+      dayOfWeek: Number,
+      dayOfMonth: Number,
+      weekOfMonth: Number,
+      monthOfQuarter: Number,
+      isActive: {
+        type: Boolean,
+        default: true
+      }
+    }
   },
-  timeEST: {
-    type: String,
-    required: true,
-    default: '09:00'
+  smsCoaching: {
+    isActive: {
+      type: Boolean,
+      default: false
+    },
+    phoneNumber: {
+      type: String,
+      trim: true
+    },
+    staffMembers: [{
+      name: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      isActive: {
+        type: Boolean,
+        default: true
+      },
+      dashboards: [{
+        periodType: {
+          type: String,
+          enum: ['mtd', 'qtd', 'ytd', 'all-quarters'],
+          required: true
+        },
+        frequency: {
+          type: String,
+          enum: ['daily', 'weekly', 'monthly', 'quarterly'],
+          required: true
+        },
+        timeEST: {
+          type: String,
+          default: '09:00'
+        },
+        dayOfWeek: Number,
+        dayOfMonth: Number,
+        weekOfMonth: Number,
+        monthOfQuarter: Number,
+        isActive: {
+          type: Boolean,
+          default: true
+        },
+        includeMetrics: {
+          wineConversionRate: {
+            type: Boolean,
+            default: true
+          },
+          clubConversionRate: {
+            type: Boolean,
+            default: true
+          },
+          goalVariance: {
+            type: Boolean,
+            default: true
+          },
+          overallPerformance: {
+            type: Boolean,
+            default: true
+          }
+        }
+      }]
+    }],
+    coachingStyle: {
+      type: String,
+      enum: ['encouraging', 'analytical', 'motivational', 'balanced'],
+      default: 'balanced'
+    },
+    customMessage: String
   },
   isActive: {
     type: Boolean,

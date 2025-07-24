@@ -163,10 +163,69 @@ export interface EmailSubscription {
   name: string;
   email: string;
   subscribedReports: ('mtd' | 'qtd' | 'ytd' | 'all-quarters')[];
-  frequency: 'daily' | 'weekly' | 'monthly';
-  timeEST: string;
+  reportSchedules: {
+    mtd?: ReportSchedule;
+    qtd?: ReportSchedule;
+    ytd?: ReportSchedule;
+    'all-quarters'?: ReportSchedule;
+  };
+  smsCoaching?: SMSCoaching;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
   unsubscribeToken?: string;
+}
+
+export interface ReportSchedule {
+  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
+  timeEST: string;
+  dayOfWeek?: number; // 0-6 (Sunday-Saturday) for weekly/biweekly
+  dayOfMonth?: number; // 1-31 for monthly
+  weekOfMonth?: number; // 1-5 for monthly (first week, second week, etc.)
+  weekStart?: number; // 1-5, for biweekly: which week to start on
+  monthOfQuarter?: number; // 1-3 for quarterly
+  monthOfYear?: number; // 1-12 for yearly
+  isActive: boolean;
+}
+
+export interface SMSCoaching {
+  isActive: boolean;
+  phoneNumber: string;
+  staffMembers: StaffMemberCoaching[];
+  coachingStyle: 'encouraging' | 'analytical' | 'motivational' | 'balanced';
+  customMessage?: string;
+}
+
+export interface StaffMemberCoaching {
+  name: string;
+  isActive: boolean;
+  dashboards: DashboardSchedule[];
+}
+
+export interface DashboardSchedule {
+  periodType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters';
+  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
+  timeEST: string;
+  dayOfWeek?: number;
+  dayOfMonth?: number;
+  weekOfMonth?: number;
+  weekStart?: number;
+  monthOfQuarter?: number;
+  isActive: boolean;
+  includeMetrics: {
+    wineConversionRate: boolean;
+    clubConversionRate: boolean;
+    goalVariance: boolean;
+    overallPerformance: boolean;
+  };
+}
+
+export interface CoachingSMSHistory {
+  _id?: string;
+  staffName: string;
+  phoneNumber: string;
+  periodType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters' | 'custom';
+  coachingMessage: string;
+  coachingTechnique?: string; // Optional: extracted or labeled technique
+  sentAt: Date;
 }

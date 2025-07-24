@@ -2,21 +2,14 @@
   "name": "milea-kpi-dashboard",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "tsc --project tsconfig.build.json",
-    "postbuild": "powershell -Command 'New-Item -ItemType Directory -Force -Path .\\dist\\lib; Copy-Item -Path .\\src\\lib\\*.js -Destination .\\dist\\lib\\'",
-    "start": "next start",
-    "lint": "next lint",
-    "worker": "node src/scripts/background-worker.js",
-    "worker:dev": "nodemon src/scripts/background-worker.js",
-    "kpi:mtd": "node src/scripts/optimized-kpi-dashboard.js mtd",
-    "kpi:qtd": "node src/scripts/optimized-kpi-dashboard.js qtd",
-    "kpi:ytd": "node src/scripts/optimized-kpi-dashboard.js ytd",
-    "kpi:all-quarters": "node src/scripts/optimized-kpi-dashboard.js all-quarters",
-    "test:kpi": "node src/scripts/optimized-kpi-dashboard.js mtd --test",
-    "test:mongodb": "node -e \"require('./src/lib/mongodb-cjs.js').connectToDatabase().then(() => console.log('Connected')).catch(console.error)\"",
-    "deploy:render": "git push origin main"
+    "build": "next build",
+    "build:worker": "tsc -p tsconfig.worker.json",
+    "worker:dev": "npm run build:worker && node --loader ts-node/esm dist/scripts/background-worker.js",
+    "worker:prod": "node dist/scripts/background-worker.js",
+    "worker:watch": "nodemon --watch src --ext ts --exec 'npm run worker:dev'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",

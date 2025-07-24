@@ -1,10 +1,18 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "module": "CommonJS",
-    "noEmit": false,
-    "jsx": "react-jsx"
+    "module": "ES2022",
+    "target": "ES2022",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": false
   },
-  "include": ["src/scripts/**/*", "src/lib/**/*", "src/types/**/*"]
+  "include": ["src/scripts/**/*", "src/lib/**/*"],
+  "exclude": ["src/app/**/*", "src/pages/**/*", "src/components/**/*"]
 } 

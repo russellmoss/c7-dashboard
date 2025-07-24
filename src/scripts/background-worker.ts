@@ -1,22 +1,20 @@
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load environment variables FIRST
+config({ path: resolve(process.cwd(), '.env.local') });
+console.log('[Worker] Environment loaded. TWILIO_ACCOUNT_SID:', process.env.TWILIO_ACCOUNT_SID ? 'SET' : 'NOT SET');
+
+import cron from 'node-cron';
 import { fileURLToPath } from 'url';
 import path from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-import dotenv from 'dotenv';
-dotenv.config(); // loads .env if present
-dotenv.config({ path: '.env.local', override: true }); // loads .env.local if present, overrides .env
-
-// Now import everything else
-import cron from 'node-cron';
 import moment from 'moment-timezone';
 import mongoose from 'mongoose';
 import chalk from 'chalk';
 import express from 'express';
 import { EmailSubscriptionModel, CronJobLogModel } from '../lib/models-cjs.js';
 import { EmailService } from '../lib/email-service.js';
-import { SMSService } from '../lib/sms-service.node.js';
+import { getSmsService, sendSms, generateCoachingMessage } from '../lib/sms/worker.js';
 import type { EmailSubscription, KPIData } from '@/types/kpi';
 import type { KPIDashboardData } from '../lib/email-templates.js';
 
@@ -264,14 +262,22 @@ async function processScheduledJobs() {
                                     log.warn(`No performance data for ${staff.name} in ${dashboard.periodType}`);
                                     continue;
                                 }
-                                await SMSService.sendCoachingSMS(
-                                  sub.smsCoaching.phoneNumber,
+                                // For SMS body generation, use the logic from the new sms/base.ts or move generateCoachingMessage there if needed.
+                                const smsBody = await generateCoachingMessage(
                                   { ...staffPerf, name: staff.name },
                                   sub.smsCoaching,
                                   dashboard.periodType
                                 );
-                                markJobExecuted(jobKey);
-                                log.success(`Sent SMS to ${sub.smsCoaching.phoneNumber} for ${staff.name} (${dashboard.periodType})`);
+                                const smsSent = await sendSms(
+                                  sub.smsCoaching.phoneNumber,
+                                  smsBody
+                                );
+                                if (smsSent) {
+                                    markJobExecuted(jobKey);
+                                    log.success(`Sent SMS to ${sub.smsCoaching.phoneNumber} for ${staff.name} (${dashboard.periodType})`);
+                                } else {
+                                    log.error(`Failed to send SMS to ${sub.smsCoaching.phoneNumber} for ${staff.name} (${dashboard.periodType})`);
+                                }
                             }
                         }
                         catch (err: unknown) {
@@ -458,6 +464,9 @@ const port = process.env.PORT || 3001;
 app.listen(port, () => {
     log.info(`[HEALTH] Health endpoint listening on port ${port}`);
 });
+
+// Initialize SMS service after env loaded
+// initializeSmsService(); // This line is removed as per the new_code, as the service is now imported directly.
 
 // Start the worker
 async function startWorker() {

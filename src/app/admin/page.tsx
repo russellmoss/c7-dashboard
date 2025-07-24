@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { EmailSubscription } from '@/types/kpi';
 import SubscriptionModal from '@/components/admin/SubscriptionModal';
+import { SMSCoaching } from '@/types/sms';
 
 export default function AdminDashboard() {
   const [subscriptions, setSubscriptions] = useState<EmailSubscription[]>([]);

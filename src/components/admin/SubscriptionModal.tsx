@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X } from 'lucide-react';
-import { EmailSubscription, ReportSchedule, SMSCoaching, StaffMemberCoaching } from '@/types/kpi';
+import { EmailSubscription } from '@/types/kpi';
 import { Loader2 } from 'lucide-react';
+import { StaffMemberCoaching, DashboardSchedule, SMSCoaching, CoachingSMSHistory } from '@/types/sms';
 
 interface SubscriptionModalProps {
   subscription: EmailSubscription | null;
@@ -31,7 +32,8 @@ export default function SubscriptionModal({
   onSendSMSCoaching,
   onTestSMS
 }: SubscriptionModalProps) {
-  const [formData, setFormData] = useState<Partial<EmailSubscription>>({
+  const [formData, setFormData] = useState<EmailSubscription>({
+    _id: '',
     name: '',
     email: '',
     subscribedReports: [],
@@ -50,7 +52,10 @@ export default function SubscriptionModal({
     },
     isActive: true,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    unsubscribeToken: '',
+    admin: false,
+    adminPassword: ''
   });
 
   const [availableStaffByReport, setAvailableStaffByReport] = useState<Record<ReportKey, string[]>>({
@@ -111,7 +116,8 @@ export default function SubscriptionModal({
       if (subscription.smsCoaching && Array.isArray(subscription.smsCoaching.staffMembers) && subscription.smsCoaching.staffMembers.length > 0) {
         staffMembers = [subscription.smsCoaching.staffMembers[0]];
       }
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         name: subscription.name,
         email: subscription.email,
         subscribedReports: (subscription.subscribedReports ?? []) as ReportKey[],
@@ -153,8 +159,11 @@ export default function SubscriptionModal({
         },
         isActive: subscription.isActive,
         createdAt: subscription.createdAt,
-        updatedAt: subscription.updatedAt
-      });
+        updatedAt: subscription.updatedAt,
+        unsubscribeToken: subscription.unsubscribeToken,
+        admin: subscription.admin,
+        adminPassword: subscription.adminPassword
+      }));
     }
   }, [subscription]);
 
@@ -236,7 +245,7 @@ export default function SubscriptionModal({
           setAdminError(err.message || 'Failed to create user');
         }
       }
-      onSave(dataToSave as any);
+      onSave(dataToSave as EmailSubscription);
     }
   };
 
@@ -360,9 +369,10 @@ export default function SubscriptionModal({
             onValueChange={value => setFormData(prev => ({
               ...prev,
               smsCoaching: {
+                ...prev.smsCoaching,
                 isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
                 phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
-                staffMembers: value ? [{ name: value, isActive: true, dashboards: [] }] : [],
+                staffMembers: value ? [{ id: '', name: value, phoneNumber: '', enabled: true, isActive: true, dashboards: [] }] : [],
                 coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
                 customMessage: prev.smsCoaching?.customMessage ?? '',
               }
@@ -382,9 +392,18 @@ export default function SubscriptionModal({
             onChange={e => setFormData(prev => ({
               ...prev,
               smsCoaching: {
+                ...prev.smsCoaching,
                 isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
                 phoneNumber: e.target.value,
-                staffMembers: prev.smsCoaching?.staffMembers ?? [],
+                staffMembers: prev.smsCoaching?.staffMembers?.map(staff => ({
+                  ...staff,
+                  id: staff.id ?? '',
+                  name: staff.name ?? '',
+                  phoneNumber: staff.phoneNumber ?? '',
+                  enabled: typeof staff.enabled === 'boolean' ? staff.enabled : false,
+                  isActive: typeof staff.isActive === 'boolean' ? staff.isActive : false,
+                  dashboards: staff.dashboards ?? []
+                })) ?? [],
                 coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
                 customMessage: prev.smsCoaching?.customMessage ?? '',
               }
@@ -594,23 +613,35 @@ export default function SubscriptionModal({
                             const staff = prev.smsCoaching?.staffMembers?.[0];
                             if (!staff) return prev;
                             let dashboards = staff.dashboards ?? [];
-                            let isActive = typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false;
                             if (e.target.checked) {
-                              dashboards = [...dashboards, { ...dashboard, isActive: true }];
-                              isActive = true; // Auto-enable SMS coaching
+                              if (!dashboards.find(d => d.periodType === key)) {
+                                dashboards = [
+                                  ...dashboards,
+                                  {
+                                    periodType: key,
+                                    frequency: 'weekly',
+                                    timeEST: '09:00',
+                                    isActive: true,
+                                    includeMetrics: {
+                                      wineConversionRate: true,
+                                      clubConversionRate: true,
+                                      goalVariance: true,
+                                      overallPerformance: true
+                                    }
+                                  }
+                                ];
+                              }
                             } else {
                               dashboards = dashboards.filter(d => d.periodType !== key);
-                              // If no dashboards remain, auto-disable SMS coaching
-                              if (dashboards.length === 0) isActive = false;
                             }
                             return {
                               ...prev,
                               smsCoaching: {
-                                isActive,
-                                phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
-                                staffMembers: [{ ...staff, dashboards }],
-                                coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
-                                customMessage: prev.smsCoaching?.customMessage ?? '',
+                                ...prev.smsCoaching,
+                                staffMembers: [{
+                                  ...staff,
+                                  dashboards
+                                }]
                               }
                             };
                           });
@@ -625,23 +656,24 @@ export default function SubscriptionModal({
                         <Select
                           value={dashboard.frequency}
                           onValueChange={value => {
-                            setFormData(prev => {
-                              const staff = prev.smsCoaching?.staffMembers?.[0];
-                              if (!staff) return prev;
-                              let dashboards = (staff.dashboards ?? []).map(d =>
-                                d.periodType === key ? { ...d, frequency: value as 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biweekly' } : d
-                              );
-                              return {
-                                ...prev,
-                                smsCoaching: {
-                                  isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
-                                  phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
-                                  staffMembers: [{ ...staff, dashboards }],
-                                  coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
-                                  customMessage: prev.smsCoaching?.customMessage ?? '',
-                                }
-                              };
-                            });
+                            setFormData(prev => ({
+                              ...prev,
+                              smsCoaching: {
+                                ...prev.smsCoaching,
+                                isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
+                                staffMembers: [{
+                                  id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                  name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                  phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                  enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                  isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                  dashboards: dashboards
+                                }],
+                                coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                customMessage: prev.smsCoaching?.customMessage ?? '',
+                              }
+                            }));
                           }}
                         >
                           {frequencyOptions.map(freq => (
@@ -655,20 +687,20 @@ export default function SubscriptionModal({
                             <Select
                               value={String(dashboard.dayOfWeek ?? 0)}
                               onValueChange={value => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, dayOfWeek: Number(value) } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             >
                               {daysOfWeek.map((d, i) => (
@@ -680,20 +712,20 @@ export default function SubscriptionModal({
                               type="time"
                               value={dashboard.timeEST || ''}
                               onChange={e => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, timeEST: e.target.value } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             />
                           </>
@@ -705,20 +737,20 @@ export default function SubscriptionModal({
                             <Select
                               value={String(dashboard.weekOfMonth ?? 1)}
                               onValueChange={value => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, weekOfMonth: Number(value) } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             >
                               {weeksOfMonth.map((w, i) => (
@@ -729,20 +761,20 @@ export default function SubscriptionModal({
                             <Select
                               value={String(dashboard.dayOfWeek ?? 0)}
                               onValueChange={value => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, dayOfWeek: Number(value) } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             >
                               {daysOfWeek.map((d, i) => (
@@ -754,20 +786,20 @@ export default function SubscriptionModal({
                               type="time"
                               value={dashboard.timeEST || ''}
                               onChange={e => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, timeEST: e.target.value } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             />
                           </>
@@ -779,20 +811,20 @@ export default function SubscriptionModal({
                             <Select
                               value={String(dashboard.weekOfMonth ?? 1)}
                               onValueChange={value => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, weekOfMonth: Number(value) } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             >
                               <SelectItem value="1">First Week</SelectItem>
@@ -801,20 +833,20 @@ export default function SubscriptionModal({
                             <Select
                               value={String(dashboard.dayOfWeek ?? 0)}
                               onValueChange={value => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, dayOfWeek: Number(value) } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             >
                               {daysOfWeek.map((d, i) => (
@@ -826,20 +858,20 @@ export default function SubscriptionModal({
                               type="time"
                               value={dashboard.timeEST || ''}
                               onChange={e => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, timeEST: e.target.value } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             />
                           </>
@@ -851,20 +883,20 @@ export default function SubscriptionModal({
                             <Select
                               value={String(dashboard.dayOfWeek ?? 0)}
                               onValueChange={value => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, dayOfWeek: Number(value) } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             >
                               {daysOfWeek.map((d, i) => (
@@ -876,40 +908,40 @@ export default function SubscriptionModal({
                               type="time"
                               value={dashboard.timeEST || ''}
                               onChange={e => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, timeEST: e.target.value } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             />
                             <Label>Start on Week #</Label>
                             <Select
                               value={String(dashboard.weekStart ?? 1)}
                               onValueChange={value => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, weekStart: Number(value) } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             >
                               {[1,2,3,4,5].map((w) => (
@@ -925,20 +957,20 @@ export default function SubscriptionModal({
                             <Select
                               value={String(dashboard.monthOfYear ?? 1)}
                               onValueChange={value => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, monthOfYear: Number(value) } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             >
                               {monthsOfYear.map((m, i) => (
@@ -952,20 +984,20 @@ export default function SubscriptionModal({
                               max={31}
                               value={String(dashboard.dayOfMonth ?? 1)}
                               onChange={e => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, dayOfMonth: Number(e.target.value) } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             />
                             <Label>Time (EST)</Label>
@@ -973,20 +1005,20 @@ export default function SubscriptionModal({
                               type="time"
                               value={dashboard.timeEST || ''}
                               onChange={e => {
-                                setFormData(prev => {
-                                  const staff = prev.smsCoaching?.staffMembers?.[0];
-                                  if (!staff) return prev;
-                                  let dashboards = (staff.dashboards ?? []).map(d =>
-                                    d.periodType === key ? { ...d, timeEST: e.target.value } : d
-                                  );
-                                  return {
-                                    ...prev,
-                                    smsCoaching: {
-                                      ...(prev.smsCoaching || {}),
-                                      staffMembers: [{ ...staff, dashboards }],
-                                    }
-                                  };
-                                });
+                                setFormData(prev => ({
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching,
+                                    staffMembers: [{
+                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
+                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
+                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
+                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
+                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
+                                      dashboards: dashboards
+                                    }],
+                                  }
+                                }));
                               }}
                             />
                           </>
@@ -1008,9 +1040,18 @@ export default function SubscriptionModal({
             onValueChange={value => setFormData(prev => ({
               ...prev,
               smsCoaching: {
+                ...prev.smsCoaching,
                 isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
                 phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
-                staffMembers: prev.smsCoaching?.staffMembers ?? [],
+                staffMembers: prev.smsCoaching?.staffMembers?.map(staff => ({
+                  ...staff,
+                  id: staff.id ?? '',
+                  name: staff.name ?? '',
+                  phoneNumber: staff.phoneNumber ?? '',
+                  enabled: typeof staff.enabled === 'boolean' ? staff.enabled : false,
+                  isActive: typeof staff.isActive === 'boolean' ? staff.isActive : false,
+                  dashboards: staff.dashboards ?? []
+                })) ?? [],
                 coachingStyle: value as any,
                 customMessage: prev.smsCoaching?.customMessage ?? '',
               }
@@ -1029,9 +1070,18 @@ export default function SubscriptionModal({
             onChange={e => setFormData(prev => ({
               ...prev,
               smsCoaching: {
+                ...prev.smsCoaching,
                 isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
                 phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
-                staffMembers: prev.smsCoaching?.staffMembers ?? [],
+                staffMembers: prev.smsCoaching?.staffMembers?.map(staff => ({
+                  ...staff,
+                  id: staff.id ?? '',
+                  name: staff.name ?? '',
+                  phoneNumber: staff.phoneNumber ?? '',
+                  enabled: typeof staff.enabled === 'boolean' ? staff.enabled : false,
+                  isActive: typeof staff.isActive === 'boolean' ? staff.isActive : false,
+                  dashboards: staff.dashboards ?? []
+                })) ?? [],
                 coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
                 customMessage: e.target.value,
               }

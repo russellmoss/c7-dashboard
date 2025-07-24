@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { EmailSubscriptionModel, CoachingSMSHistoryModel } from '@/lib/models';
+import { SMSCoaching } from '@/types/sms';
 
 export async function GET(
   request: NextRequest,

@@ -1,5 +1,6 @@
 import mongoose, { Schema, Model } from 'mongoose';
-import { KPIData, AIInsights, CronJobLog, EmailSubscription, CoachingSMSHistory } from '@/types/kpi';
+import { KPIData, AIInsights, CronJobLog, EmailSubscription } from '@/types/kpi';
+import { CoachingSMSHistory } from '@/types/sms';
 
 // KPI Data Schema
 const KPIDataSchema = new Schema<KPIData>({

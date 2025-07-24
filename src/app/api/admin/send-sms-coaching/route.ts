@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { KPIDataModel, EmailSubscriptionModel } from '@/lib/models';
 import { SMSService, StaffPerformance } from '@/lib/sms-service';
+import { StaffMemberCoaching, SMSCoaching } from '@/types/sms';
 
 function levenshtein(a: string, b: string): number {
   if (a === b) return 0;

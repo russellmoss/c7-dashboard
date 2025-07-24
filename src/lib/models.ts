@@ -5,7 +5,7 @@ import { KPIData, AIInsights, CronJobLog, EmailSubscription } from '@/types/kpi'
 const KPIDataSchema = new Schema<KPIData>({
   periodType: {
     type: String,
-    enum: ['mtd', 'qtd', 'ytd', 'all-quarters'],
+    enum: ['mtd', 'qtd', 'ytd', 'all-quarters', 'custom'],
     required: true,
     index: true
   },
@@ -45,21 +45,32 @@ const KPIDataSchema = new Schema<KPIData>({
     type: String,
     enum: ['generating', 'completed', 'failed'],
     default: 'generating'
-  }
+  },
+  startDate: String, // For custom reports
+  endDate: String    // For custom reports
 }, {
   timestamps: true,
   collection: 'kpi_data'
 });
 
 // Compound index for efficient queries
-KPIDataSchema.index({ periodType: 1, year: 1 }, { unique: true });
+// For custom reports, include startDate and endDate in the unique constraint
+KPIDataSchema.index({ periodType: 1, year: 1, startDate: 1, endDate: 1 }, {
+  unique: true,
+  partialFilterExpression: { periodType: 'custom' }
+});
+// For standard reports (mtd, qtd, ytd, all-quarters), use the original unique constraint
+KPIDataSchema.index({ periodType: 1, year: 1 }, {
+  unique: true,
+  partialFilterExpression: { periodType: { $in: ['mtd', 'qtd', 'ytd', 'all-quarters'] } }
+});
 KPIDataSchema.index({ createdAt: -1 });
 
 // Cron Job Log Schema
 const CronJobLogSchema = new Schema<CronJobLog>({
   jobType: {
     type: String,
-    enum: ['mtd', 'qtd', 'ytd', 'all-quarters'],
+    enum: ['mtd', 'qtd', 'ytd', 'all-quarters', 'custom'],
     required: true,
     index: true
   },
@@ -80,7 +91,9 @@ const CronJobLogSchema = new Schema<CronJobLog>({
     type: Boolean,
     default: false
   },
-  recordsProcessed: Number
+  recordsProcessed: Number,
+  startDate: String, // For custom reports
+  endDate: String    // For custom reports
 }, {
   timestamps: true,
   collection: 'cron_job_logs'
@@ -88,6 +101,11 @@ const CronJobLogSchema = new Schema<CronJobLog>({
 
 // Email Subscription Schema
 const EmailSubscriptionSchema = new Schema<EmailSubscription>({
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
   email: {
     type: String,
     required: true,
@@ -97,9 +115,20 @@ const EmailSubscriptionSchema = new Schema<EmailSubscription>({
   },
   subscribedReports: [{
     type: String,
-    enum: ['mtd', 'qtd', 'ytd', 'all-quarters']
+    enum: ['mtd', 'qtd', 'ytd', 'all-quarters', 'custom']
   }],
-  active: {
+  frequency: {
+    type: String,
+    enum: ['daily', 'weekly', 'monthly'],
+    required: true,
+    default: 'weekly'
+  },
+  timeEST: {
+    type: String,
+    required: true,
+    default: '09:00'
+  },
+  isActive: {
     type: Boolean,
     default: true
   },

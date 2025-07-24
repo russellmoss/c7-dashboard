@@ -74,6 +74,19 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
     );
   }
 
+  // Defensive: default all arrays to [] if missing
+  const {
+    strengths = [],
+    opportunities = [],
+    weaknesses = [],
+    threats = [],
+    staffPraise = [],
+    staffCoaching = [],
+    recommendations = [],
+    generatedAt = '',
+    error
+  } = insights;
+
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleString();
@@ -90,10 +103,10 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
           <h2 className="text-lg font-semibold">AI Insights</h2>
           <div className="flex items-center text-xs text-slate-500 mt-1">
             <Clock className="h-3 w-3 mr-1" />
-            Generated: {formatDate(insights.generatedAt)}
+            Generated: {formatDate(generatedAt)}
           </div>
         </div>
-        {insights.error && (
+        {error && (
           <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-semibold ml-2">Limited Analysis</span>
         )}
       </div>
@@ -107,8 +120,8 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
               <h4 className="font-semibold text-green-700">Strengths</h4>
             </div>
             <div className="space-y-1">
-              {insights.strengths.length > 0 ? (
-                insights.strengths.map((strength, idx) => (
+              {strengths.length > 0 ? (
+                strengths.map((strength, idx) => (
                   <div key={idx} className="text-sm text-slate-700 bg-green-50 p-2 rounded border-l-2 border-green-200">
                     {strength}
                   </div>
@@ -126,8 +139,8 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
               <h4 className="font-semibold text-blue-700">Opportunities</h4>
             </div>
             <div className="space-y-1">
-              {insights.opportunities.length > 0 ? (
-                insights.opportunities.map((opportunity, idx) => (
+              {opportunities.length > 0 ? (
+                opportunities.map((opportunity, idx) => (
                   <div key={idx} className="text-sm text-slate-700 bg-blue-50 p-2 rounded border-l-2 border-blue-200">
                     {opportunity}
                   </div>
@@ -145,8 +158,8 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
               <h4 className="font-semibold text-amber-700">Areas for Improvement</h4>
             </div>
             <div className="space-y-1">
-              {insights.weaknesses.length > 0 ? (
-                insights.weaknesses.map((weakness, idx) => (
+              {weaknesses.length > 0 ? (
+                weaknesses.map((weakness, idx) => (
                   <div key={idx} className="text-sm text-slate-700 bg-amber-50 p-2 rounded border-l-2 border-amber-200">
                     {weakness}
                   </div>
@@ -164,8 +177,8 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
               <h4 className="font-semibold text-red-700">Concerns</h4>
             </div>
             <div className="space-y-1">
-              {insights.threats.length > 0 ? (
-                insights.threats.map((threat, idx) => (
+              {threats.length > 0 ? (
+                threats.map((threat, idx) => (
                   <div key={idx} className="text-sm text-slate-700 bg-red-50 p-2 rounded border-l-2 border-red-200">
                     {threat}
                   </div>
@@ -181,20 +194,20 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
         <div className="my-4 border-t border-slate-200" />
 
         {/* Staff Performance */}
-        {(insights.staffPraise.length > 0 || insights.staffCoaching.length > 0) && (
+        {(staffPraise.length > 0 || staffCoaching.length > 0) && (
           <div className="space-y-3">
             <div className="flex items-center">
               <Users className="h-4 w-4 text-wine-600 mr-2" />
               <h4 className="font-semibold text-wine-700">Staff Performance</h4>
             </div>
             
-            {insights.staffPraise.length > 0 && (
+            {staffPraise.length > 0 && (
               <div className="space-y-2">
                 <h5 className="text-sm font-medium text-green-700 flex items-center">
                   <CheckCircle className="h-3 w-3 mr-1" />
                   Recognition
                 </h5>
-                {insights.staffPraise.map((praise, idx) => (
+                {staffPraise.map((praise, idx) => (
                   <div key={idx} className="text-sm bg-green-50 p-3 rounded border-l-2 border-green-200">
                     <p className="font-medium">{praise.name}</p>
                     <p className="text-slate-700">{praise.reason}</p>
@@ -212,13 +225,13 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
               </div>
             )}
 
-            {insights.staffCoaching.length > 0 && (
+            {staffCoaching.length > 0 && (
               <div className="space-y-2">
                 <h5 className="text-sm font-medium text-amber-700 flex items-center">
                   <Target className="h-3 w-3 mr-1" />
                   Development Opportunities
                 </h5>
-                {insights.staffCoaching.map((coaching, idx) => (
+                {staffCoaching.map((coaching, idx) => (
                   <div key={idx} className="text-sm bg-amber-50 p-3 rounded border-l-2 border-amber-200">
                     <p className="font-medium">{coaching.name}</p>
                     <p className="text-slate-700">{coaching.reason}</p>
@@ -248,8 +261,8 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
             <h4 className="font-semibold text-wine-700">Recommendations</h4>
           </div>
           <div className="space-y-1">
-            {insights.recommendations.length > 0 ? (
-              insights.recommendations.map((recommendation, idx) => (
+            {recommendations.length > 0 ? (
+              recommendations.map((recommendation, idx) => (
                 <div key={idx} className="text-sm text-slate-700 bg-wine-50 p-2 rounded border-l-2 border-wine-200">
                   <span className="font-medium text-wine-800">{idx + 1}.</span> {recommendation}
                 </div>
@@ -260,7 +273,7 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
           </div>
         </div>
 
-        {insights.error && (
+        {error && (
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
             <div className="flex items-center">
               <AlertTriangle className="h-4 w-4 text-yellow-600 mr-2" />

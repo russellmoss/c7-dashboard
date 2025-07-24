@@ -3,12 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
-import { StaffTable } from '@/components/dashboard/StaffTable';
+import { StaffTable, useSortableTable } from '@/components/dashboard/StaffTable';
 import { RefreshButton } from '@/components/dashboard/RefreshButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, Calendar, TrendingUp, Wine, Crown, Users } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/dashboard/AIInsightsPanel';
+import PDFExportButton from '@/components/dashboard/PDFExportButton';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+const AIChat = dynamic(() => import('@/components/ai-assistant/AIChat'), { ssr: false });
 
 export default function MTDDashboard() {
   const [data, setData] = useState<any>(null);
@@ -54,6 +57,41 @@ export default function MTDDashboard() {
     fetchData();
   }, [fetchData]);
 
+  const current = data?.data?.current;
+  const yoy = data?.data?.yearOverYear;
+  const staff = current?.associatePerformance ? 
+    Object.entries(current.associatePerformance).map(([name, perf]: any) => ({
+      name,
+      orders: perf.orders,
+      guests: perf.guests,
+      revenue: perf.revenue,
+      bottles: perf.bottles,
+      clubSignups: perf.clubSignups,
+      wineBottleConversionRate: perf.wineBottleConversionRate,
+      clubConversionRate: perf.clubConversionRate,
+      wineBottleConversionGoalVariance: perf.wineBottleConversionGoalVariance,
+      clubConversionGoalVariance: perf.clubConversionGoalVariance,
+    })) : [];
+  const praise = data?.insights?.staffPraise || [];
+  const coaching = data?.insights?.staffCoaching || [];
+  const serviceTypeAnalysis = current?.serviceTypeAnalysis;
+  const experienceTypes = ['tasting', 'dining', 'retail', 'byTheGlass'];
+  const experienceRows = experienceTypes.map((type) => ({
+    type: type.replace('byTheGlass', 'By The Glass'),
+    ...(serviceTypeAnalysis?.[type] || {}),
+  }));
+  const experienceColumns = [
+    { key: 'type', label: 'Type' },
+    { key: 'orders', label: 'Orders', isNumeric: true },
+    { key: 'guests', label: 'Guests', isNumeric: true },
+    { key: 'bottles', label: 'Bottles', isNumeric: true },
+    { key: 'revenue', label: 'Revenue', isNumeric: true },
+    { key: 'bottleConversionRate', label: 'Bottle Conv. Rate', isNumeric: true },
+    { key: 'clubConversionRate', label: 'Club Conv. Rate', isNumeric: true },
+    { key: 'aov', label: 'AOV', isNumeric: true },
+  ];
+  const { sortedData: sortedExperienceRows, sortKey: expSortKey, sortOrder: expSortOrder, handleSort: handleExpSort } = useSortableTable(experienceRows, experienceColumns);
+
   if (loading) {
     return <div className="text-center p-10">Loading MTD Dashboard...</div>;
   }
@@ -72,23 +110,6 @@ export default function MTDDashboard() {
       </div>
     );
   }
-
-  const current = data?.data?.current;
-  const yoy = data?.data?.yearOverYear;
-  const staff = current?.associatePerformance ? 
-    Object.entries(current.associatePerformance).map(([name, perf]: any) => ({
-      name,
-      orders: perf.orders,
-      revenue: perf.revenue,
-      bottles: perf.bottles,
-      clubSignups: perf.clubSignups,
-      wineBottleConversionRate: perf.wineBottleConversionRate,
-      clubConversionRate: perf.clubConversionRate,
-      wineBottleConversionGoalVariance: perf.wineBottleConversionGoalVariance,
-      clubConversionGoalVariance: perf.clubConversionGoalVariance,
-    })) : [];
-  const praise = data?.insights?.staffPraise || [];
-  const coaching = data?.insights?.staffCoaching || [];
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -110,7 +131,10 @@ export default function MTDDashboard() {
             </div>
           </div>
         </div>
-        <RefreshButton periodType="mtd" onRefreshComplete={fetchData} />
+        <div className="flex gap-2">
+          <PDFExportButton periodType="mtd" />
+          <RefreshButton periodType="mtd" onRefreshComplete={fetchData} />
+        </div>
       </div>
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -119,24 +143,61 @@ export default function MTDDashboard() {
           <KPICard title="Club Conversion" value={`${yoy?.clubConversionRate?.current}%`} goal={yoy?.clubConversionRate?.goal} goalVariance={yoy?.clubConversionRate?.goalVariance} icon={<Crown />} />
           <KPICard title="Total Guests" value={yoy?.guests?.current?.toLocaleString()} change={yoy?.guests?.change} icon={<Users />} />
       </div>
-      {/* Charts and Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Revenue Chart */}
-        <div className="lg:col-span-2">
-          <RevenueChart data={current} />
+      {/* Experience Type Breakdown */}
+      {serviceTypeAnalysis && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-2 text-wine-700">Experience Type Breakdown</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-xs border rounded-lg bg-white">
+              <thead>
+                <tr className="bg-wine-50">
+                  {experienceColumns.map((col) => (
+                    <th
+                      key={col.key as string}
+                      onClick={() => handleExpSort(col.key as any)}
+                      className="px-3 py-2 text-left cursor-pointer select-none group"
+                    >
+                      <span className="flex items-center">
+                        {col.label}
+                        {expSortKey === col.key && (
+                          <span className="ml-1 text-xs">{expSortOrder === 'asc' ? '▲' : '▼'}</span>
+                        )}
+                      </span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedExperienceRows.map((row, idx) => (
+                  <tr key={row.type || idx} className="border-t">
+                    <td className="px-3 py-2 font-medium capitalize">{row.type}</td>
+                    <td className="px-3 py-2 text-right">{row.orders ?? '-'}</td>
+                    <td className="px-3 py-2 text-right">{row.guests ?? '-'}</td>
+                    <td className="px-3 py-2 text-right">{row.bottles ?? '-'}</td>
+                    <td className="px-3 py-2 text-right">{row.revenue != null ? `$${row.revenue.toLocaleString()}` : '-'}</td>
+                    <td className="px-3 py-2 text-right">{row.bottleConversionRate != null ? `${row.bottleConversionRate}%` : '-'}</td>
+                    <td className="px-3 py-2 text-right">{row.clubConversionRate != null ? `${row.clubConversionRate}%` : '-'}</td>
+                    <td className="px-3 py-2 text-right">{row.aov != null ? `$${row.aov}` : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-        {/* AI Insights Panel */}
+      )}
+      {/* Charts and Insights */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div>
-          <AIInsightsPanel 
-            insights={insights}
-            loading={loading}
-          />
+          <AIInsightsPanel insights={insights} loading={loading} />
+        </div>
+        <div>
+          <AIChat />
         </div>
       </div>
       {/* Staff Table */}
       <div className="mt-10">
         <h2 className="text-xl font-semibold mb-4 text-wine-700">Staff Performance</h2>
-        <StaffTable staff={staff} praise={praise} coaching={coaching} />
+        <StaffTable staff={staff} />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 export interface KPIData {
   _id?: string;
-  periodType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters';
+  periodType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters' | 'custom';
   generatedAt: string;
   year: number;
   data: KPIReport;
@@ -9,6 +9,8 @@ export interface KPIData {
   updatedAt: Date;
   executionTime?: number;
   status: 'generating' | 'completed' | 'failed';
+  startDate?: string; // For custom reports
+  endDate?: string; // For custom reports
 }
 
 export interface KPIReport {
@@ -144,7 +146,7 @@ export interface StaffFeedback {
 
 export interface CronJobLog {
   _id?: string;
-  jobType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters';
+  jobType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters' | 'custom';
   status: 'running' | 'completed' | 'failed';
   startTime: Date;
   endTime?: Date;
@@ -152,13 +154,19 @@ export interface CronJobLog {
   error?: string;
   dataGenerated?: boolean;
   recordsProcessed?: number;
+  startDate?: string; // For custom reports
+  endDate?: string; // For custom reports
 }
 
 export interface EmailSubscription {
   _id?: string;
+  name: string;
   email: string;
   subscribedReports: ('mtd' | 'qtd' | 'ytd' | 'all-quarters')[];
-  active: boolean;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  timeEST: string;
+  isActive: boolean;
   createdAt: Date;
+  updatedAt: Date;
   unsubscribeToken?: string;
 }

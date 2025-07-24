@@ -12,34 +12,47 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[API] /api/kpi/generate POST called');
     const body = await request.json();
-    const { periodType } = body;
+    const { periodType, startDate, endDate } = body;
     console.log(`[API] Requested periodType: ${periodType}`);
     
-    if (!['mtd', 'qtd', 'ytd', 'all-quarters'].includes(periodType)) {
+    if (!['mtd', 'qtd', 'ytd', 'all-quarters', 'custom'].includes(periodType)) {
       console.log('[API] Invalid period type');
       return NextResponse.json({ error: 'Invalid period type' }, { status: 400 });
     }
+
+    // For custom period type, validate start and end dates
+    if (periodType === 'custom') {
+      if (!startDate || !endDate) {
+        return NextResponse.json({ error: 'Start date and end date are required for custom reports' }, { status: 400 });
+      }
+      if (new Date(startDate) > new Date(endDate)) {
+        return NextResponse.json({ error: 'Start date must be before end date' }, { status: 400 });
+      }
+    }
     
-    if (runningJobs.has(periodType)) {
-      console.log(`[API] ${periodType} generation already in progress`);
+    const jobKey = periodType === 'custom' ? `${periodType}-${startDate}-${endDate}` : periodType;
+    
+    if (runningJobs.has(jobKey)) {
+      console.log(`[API] ${jobKey} generation already in progress`);
       return NextResponse.json({ error: `${periodType} generation already in progress` }, { status: 409 });
     }
     
-    runningJobs.add(periodType);
+    runningJobs.add(jobKey);
     
     // Don't await - let it run in background and return immediately
-    generateKPIDataAndInsights(periodType).finally(() => {
-      runningJobs.delete(periodType);
+    generateKPIDataAndInsights(periodType, startDate, endDate).finally(() => {
+      runningJobs.delete(jobKey);
     });
     
     const estimatedTimes = {
       'mtd': '8-10 minutes',
       'qtd': '1-2 minutes', 
       'ytd': '5-8 minutes',
-      'all-quarters': '15-20 minutes'
+      'all-quarters': '15-20 minutes',
+      'custom': '3-5 minutes'
     };
     
-    console.log(`[API] Generation started for ${periodType}`);
+    console.log(`[API] Generation started for ${jobKey}`);
     return NextResponse.json({
       success: true,
       message: `${periodType.toUpperCase()} generation started`,
@@ -52,7 +65,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function generateKPIDataAndInsights(periodType: string) {
+async function generateKPIDataAndInsights(periodType: string, startDate?: string, endDate?: string) {
   console.log(`[GEN] Starting generation for ${periodType}`);
   const startTime = Date.now();
   let cronLog;
@@ -60,16 +73,30 @@ async function generateKPIDataAndInsights(periodType: string) {
   try {
     await connectToDatabase();
     console.log('[GEN] Connected to MongoDB');
-    // Create job log
-    cronLog = await CronJobLogModel.create({
+    
+    // Create job log with custom fields if needed
+    const logData: any = {
       jobType: periodType,
       status: 'running',
       startTime: new Date(startTime)
-    });
+    };
+    
+    if (periodType === 'custom') {
+      logData.startDate = startDate;
+      logData.endDate = endDate;
+    }
+    
+    cronLog = await CronJobLogModel.create(logData);
     console.log('[GEN] Cron job log created');
+    
     // Run the KPI script
     const scriptPath = path.join(process.cwd(), 'src/scripts/optimized-kpi-dashboard.js');
-    const command = `node "${scriptPath}" ${periodType}`;
+    let command = `node "${scriptPath}" ${periodType}`;
+    
+    if (periodType === 'custom') {
+      command = `node "${scriptPath}" ${periodType} "${startDate}" "${endDate}"`;
+    }
+    
     console.log(`[GEN] Executing: ${command}`);
     const { stdout, stderr } = await execAsync(command, {
       timeout: 1800000, // 30 minute timeout
@@ -88,7 +115,7 @@ async function generateKPIDataAndInsights(periodType: string) {
     });
     console.log('[GEN] Cron job log updated to completed');
     // Generate AI insights
-    await generateAIInsights(periodType);
+    await generateAIInsights(periodType, startDate, endDate);
     console.log('[GEN] AI insights generation finished');
   } catch (error: any) {
     const executionTime = Date.now() - startTime;
@@ -105,15 +132,23 @@ async function generateKPIDataAndInsights(periodType: string) {
   }
 }
 
-async function generateAIInsights(periodType: string) {
+async function generateAIInsights(periodType: string, startDate?: string, endDate?: string) {
   try {
     console.log(`[AI] Generating AI insights for ${periodType}...`);
+    
     // Find the latest completed KPI data
-    const latestData = await KPIDataModel.findOne({
+    const query: any = {
       periodType,
       year: new Date().getFullYear(),
       status: 'completed'
-    }).sort({ createdAt: -1 });
+    };
+    
+    if (periodType === 'custom') {
+      query.startDate = startDate;
+      query.endDate = endDate;
+    }
+    
+    const latestData = await KPIDataModel.findOne(query).sort({ createdAt: -1 });
     if (!latestData) {
       console.warn(`[AI] No KPI data found for ${periodType} to generate insights`);
       return;

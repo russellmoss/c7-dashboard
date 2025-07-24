@@ -631,7 +631,7 @@ function getDefinitions() {
 //endregion
 
 // --- MONGODB SAVE FUNCTION ---
-async function saveKPIDataToMongoDB(kpiData, periodType) {
+async function saveKPIDataToMongoDB(kpiData, periodType, startDate = null, endDate = null) {
     let retries = 0;
     const maxRetries = 3;
     while (retries < maxRetries) {
@@ -646,6 +646,7 @@ async function saveKPIDataToMongoDB(kpiData, periodType) {
                 year: kpiData.year || new Date().getFullYear(),
                 data: kpiData,
                 insights,
+                status: 'completed',
                 metrics: {
                     yearOverYear: kpiData.yearOverYear,
                     current: {
@@ -666,9 +667,23 @@ async function saveKPIDataToMongoDB(kpiData, periodType) {
                     }
                 }
             };
+
+            // Add custom date fields if provided
+            if (periodType === 'custom' && startDate && endDate) {
+                dataDocument.startDate = startDate;
+                dataDocument.endDate = endDate;
+            }
+
+            // Build query for upsert
+            const query = { periodType, year: dataDocument.year };
+            if (periodType === 'custom' && startDate && endDate) {
+                query.startDate = startDate;
+                query.endDate = endDate;
+            }
+
             // Upsert the data
             await KPIDataModel.findOneAndUpdate(
-                { periodType, year: dataDocument.year },
+                query,
                 dataDocument,
                 { upsert: true, new: true }
             );
@@ -921,6 +936,13 @@ async function runAllQuartersReport(testMode = false) {
             displayTestResults(allQuartersReport, 'all-quarters');
         } else {
             await saveKPIDataToMongoDB(allQuartersReport, 'all-quarters');
+            // Fetch the saved document with insights
+            await connectToDatabase();
+            const { KPIDataModel } = require('../lib/models-cjs.js');
+            const saved = await KPIDataModel.findOne({ periodType: 'all-quarters', year: baseDate.getFullYear() }).sort({ createdAt: -1 });
+            if (saved && saved.insights) {
+                allQuartersReport.insights = saved.insights;
+            }
             exportToJson(allQuartersReport);
         }
         log.magenta(`\nScript finished in ${(duration / 1000).toFixed(2)} seconds`);
@@ -993,6 +1015,60 @@ async function runReport(periodType = 'mtd', testMode = false) {
     }
 }
 
+async function runCustomDateRangeReport(startDateStr, endDateStr, testMode = false) {
+    log.header("🍷 MILEA ESTATE VINEYARD - CUSTOM DATE RANGE KPI DASHBOARD (OPTIMIZED + MongoDB)");
+    log.cyan("=========================================================");
+    const startTime = new Date();
+    const startDate = new Date(startDateStr);
+    const endDate = new Date(endDateStr);
+
+    if (startDate > endDate) {
+        log.error("Start date must be before end date.");
+        return;
+    }
+
+    log.info(`Custom Date Range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
+    log.step("STEP 1: FETCHING DATA FROM COMMERCE7 API");
+    const { allOrders, clubMemberships } = await fetchAllDataParallel({
+        current: { start: startDate, end: endDate, label: `${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}` },
+        previous: { start: new Date(startDate.getTime() - (endDate.getTime() - startDate.getTime())), end: new Date(startDate.getTime() - 1), label: `${startDate.toLocaleDateString()} (Same period)` }
+    });
+
+    if (allOrders.length === 0) {
+        log.error("❌ CRITICAL ERROR: The API returned 0 orders for the specified date range. Cannot continue.");
+        return;
+    }
+
+    log.step("STEP 2: CALCULATING KPIS FOR BOTH PERIODS");
+    const [currentKPIs, previousKPIs] = await Promise.all([
+        calculateKPIsForPeriod(allOrders, clubMemberships, startDate, endDate, `${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`),
+        calculateKPIsForPeriod(allOrders, clubMemberships, new Date(startDate.getTime() - (endDate.getTime() - startDate.getTime())), new Date(startDate.getTime() - 1), `${startDate.toLocaleDateString()} (Same period)`)
+    ]);
+
+    const yoyComparison = calculateYoYChanges(currentKPIs, previousKPIs);
+    const finalReport = {
+        generatedAt: startTime.toISOString(),
+        periodType: 'custom',
+        definitions: getDefinitions(),
+        current: currentKPIs,
+        previous: previousKPIs,
+        yearOverYear: yoyComparison
+    };
+
+    log.step("STEP 3: DISPLAYING SUMMARY & EXPORTING TO JSON" + (testMode ? "" : " & MONGODB"));
+    if (testMode) {
+        displayTestResults(finalReport, 'custom');
+    } else {
+        displayComparativeSummary(finalReport);
+        await saveKPIDataToMongoDB(finalReport, 'custom', startDateStr, endDateStr);
+    }
+    exportToJson(finalReport);
+    const endTime = new Date();
+    const duration = endTime - startTime;
+    log.magenta(`\nScript finished at ${endTime.toLocaleString()} (Duration: ${(duration / 1000).toFixed(2)} seconds)`);
+    log.cyan("=========================================================");
+}
+
 // Add this test function to verify output structure
 function verifyDataStructure(data) {
     const required = [
@@ -1044,28 +1120,65 @@ const args = process.argv.slice(2);
 const periodType = args[0] || 'mtd';
 const testMode = args.includes('--test') || args.includes('-t');
 
-// Validate period type
-const basicPeriods = ['mtd', 'ytd', 'qtd', 'month', 'quarter', 'year', 'fullyear', 'all-quarters'];
-const isSpecificPeriod = periodType.includes(':');
-
-if (!isSpecificPeriod && !basicPeriods.includes(periodType)) {
-    log.error(`Invalid period type: ${periodType}`);
-    log.info(`Valid options are:`);
-    log.info(`  Basic: ${basicPeriods.join(', ')}`);
-    log.info(`  Specific months: month:1 through month:12`);
-    log.info(`  Specific quarters: quarter:1 through quarter:4`);
-    log.info(`  Specific years: year:2024, year:2025, etc.`);
-    log.info(`\nOptions:`);
-    log.info(`  --test, -t    Run in test mode (no MongoDB save)`);
-    process.exit(1);
-}
-
-// Run the report
-runReport(periodType, testMode).then(() => {
-    if (!testMode) {
-        mongoose.connection.close();
+// Handle custom date range
+if (periodType === 'custom') {
+    const startDate = args[1];
+    const endDate = args[2];
+    
+    if (!startDate || !endDate) {
+        log.error('Custom date range requires start and end dates');
+        log.info('Usage: node script.js custom "2024-01-01" "2024-01-31"');
+        process.exit(1);
     }
-}).catch(error => {
-    log.error("Script failed:", error);
-    process.exit(1);
-});
+    
+    // Validate date format
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+    
+    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+        log.error('Invalid date format. Use YYYY-MM-DD format');
+        process.exit(1);
+    }
+    
+    if (startDateObj > endDateObj) {
+        log.error('Start date must be before end date');
+        process.exit(1);
+    }
+    
+    // Run custom date range report
+    runCustomDateRangeReport(startDate, endDate, testMode).then(() => {
+        if (!testMode) {
+            mongoose.connection.close();
+        }
+    }).catch(error => {
+        log.error("Script failed:", error);
+        process.exit(1);
+    });
+} else {
+    // Validate period type for standard reports
+    const basicPeriods = ['mtd', 'ytd', 'qtd', 'month', 'quarter', 'year', 'fullyear', 'all-quarters'];
+    const isSpecificPeriod = periodType.includes(':');
+
+    if (!isSpecificPeriod && !basicPeriods.includes(periodType)) {
+        log.error(`Invalid period type: ${periodType}`);
+        log.info(`Valid options are:`);
+        log.info(`  Basic: ${basicPeriods.join(', ')}`);
+        log.info(`  Specific months: month:1 through month:12`);
+        log.info(`  Specific quarters: quarter:1 through quarter:4`);
+        log.info(`  Specific years: year:2024, year:2025, etc.`);
+        log.info(`  Custom: custom "start-date" "end-date"`);
+        log.info(`\nOptions:`);
+        log.info(`  --test, -t    Run in test mode (no MongoDB save)`);
+        process.exit(1);
+    }
+
+    // Run the standard report
+    runReport(periodType, testMode).then(() => {
+        if (!testMode) {
+            mongoose.connection.close();
+        }
+    }).catch(error => {
+        log.error("Script failed:", error);
+        process.exit(1);
+    });
+}

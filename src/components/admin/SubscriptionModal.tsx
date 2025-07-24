@@ -107,6 +107,8 @@ export default function SubscriptionModal({
   const [adminSuccess, setAdminSuccess] = useState('');
   const [showAdminPassword, setShowAdminPassword] = useState(false);
 
+  console.log('MTD SMS Dashboard:', formData.smsCoaching?.staffMembers?.[0]?.dashboards?.find(d => d.periodType === 'mtd'));
+
   useEffect(() => {
     if (subscription) {
       // Ensure smsCoaching.staffMembers is always an array with one entry (if present)
@@ -362,16 +364,45 @@ export default function SubscriptionModal({
           <Label>Staff Name (for SMS coaching)</Label>
           <Select
             value={formData.smsCoaching?.staffMembers?.[0]?.name ?? ''}
-            onValueChange={value => setFormData(prev => ({
-              ...prev,
-              smsCoaching: {
-                isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
-                phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
-                staffMembers: value ? [{ id: '', name: value, phoneNumber: '', enabled: true, isActive: true, dashboards: [] }] : [],
-                coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
-                customMessage: prev.smsCoaching?.customMessage ?? '',
-              }
-            }))}
+            onValueChange={value => setFormData(prev => {
+              // Type-safe period types
+              const periodTypes: DashboardSchedule['periodType'][] = ['mtd', 'qtd', 'ytd', 'all-quarters'];
+              const defaultDashboards: DashboardSchedule[] = periodTypes.map(periodType => ({
+                periodType,
+                frequency: 'weekly',
+                timeEST: '09:00',
+                dayOfWeek: 0,
+                weekOfMonth: 1,
+                dayOfMonth: 1,
+                weekStart: 1,
+                monthOfQuarter: 1,
+                monthOfYear: 1,
+                isActive: true,
+                includeMetrics: {
+                  wineConversionRate: true,
+                  clubConversionRate: true,
+                  goalVariance: true,
+                  overallPerformance: true
+                }
+              }));
+              return {
+                ...prev,
+                smsCoaching: {
+                  ...prev.smsCoaching,
+                  isActive: !!prev.smsCoaching?.isActive,
+                  phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
+                  coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                  staffMembers: value ? [{
+                    id: '',
+                    name: value,
+                    phoneNumber: '',
+                    enabled: true,
+                    isActive: true,
+                    dashboards: defaultDashboards
+                  }] : [],
+                }
+              };
+            })}
             required={formData.smsCoaching?.isActive ?? false}
           >
             {(availableStaffByReport.mtd ?? []).map(name => (
@@ -811,23 +842,35 @@ export default function SubscriptionModal({
                             <Select
                               value={String(dashboard.dayOfWeek ?? 0)}
                               onValueChange={value => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  smsCoaching: {
-                                    isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
-                                    phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
-                                    staffMembers: [{
-                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
-                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
-                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
-                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
-                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
-                                      dashboards: dashboards
-                                    }],
-                                    coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
-                                    customMessage: prev.smsCoaching?.customMessage ?? ''
-                                  }
-                                }));
+                                setFormData(prev => {
+                                  const staff = prev.smsCoaching?.staffMembers?.[0];
+                                  if (!staff) return prev;
+                                  let dashboards = staff.dashboards ?? [];
+                                  console.log('SMS Monthly DayOfWeek handler: dashboards before', dashboards, 'selected value', value, 'key', key);
+                                  dashboards = dashboards.map(d =>
+                                    d.periodType === key
+                                      ? { ...d, dayOfWeek: Number(value) }
+                                      : d
+                                  );
+                                  console.log('SMS Monthly DayOfWeek handler: dashboards after', dashboards);
+                                  return {
+                                    ...prev,
+                                    smsCoaching: {
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
+                                      staffMembers: [{
+                                        id: staff.id ?? '',
+                                        name: staff.name ?? '',
+                                        phoneNumber: staff.phoneNumber ?? '',
+                                        enabled: typeof staff.enabled === 'boolean' ? staff.enabled : false,
+                                        isActive: typeof staff.isActive === 'boolean' ? staff.isActive : false,
+                                        dashboards
+                                      }],
+                                      coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                      customMessage: prev.smsCoaching?.customMessage ?? ''
+                                    }
+                                  };
+                                });
                               }}
                             >
                               {daysOfWeek.map((d, i) => (
@@ -960,23 +1003,34 @@ export default function SubscriptionModal({
                             <Select
                               value={String(dashboard.dayOfWeek ?? 0)}
                               onValueChange={value => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  smsCoaching: {
-                                    isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
-                                    phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
-                                    staffMembers: [{
-                                      id: prev.smsCoaching?.staffMembers?.[0]?.id ?? '',
-                                      name: prev.smsCoaching?.staffMembers?.[0]?.name ?? '',
-                                      phoneNumber: prev.smsCoaching?.staffMembers?.[0]?.phoneNumber ?? '',
-                                      enabled: typeof prev.smsCoaching?.staffMembers?.[0]?.enabled === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.enabled : false,
-                                      isActive: typeof prev.smsCoaching?.staffMembers?.[0]?.isActive === 'boolean' ? prev.smsCoaching?.staffMembers?.[0]?.isActive : false,
-                                      dashboards: dashboards
-                                    }],
-                                    coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
-                                    customMessage: prev.smsCoaching?.customMessage ?? ''
-                                  }
-                                }));
+                                setFormData(prev => {
+                                  const staff = prev.smsCoaching?.staffMembers?.[0];
+                                  if (!staff) return prev;
+                                  // Fix: Define dashboards BEFORE using it
+                                  let dashboards = staff.dashboards ?? [];
+                                  dashboards = dashboards.map(d =>
+                                    d.periodType === key
+                                      ? { ...d, dayOfWeek: Number(value) }
+                                      : d
+                                  );
+                                  return {
+                                    ...prev,
+                                    smsCoaching: {
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
+                                      staffMembers: [{
+                                        id: staff.id ?? '',
+                                        name: staff.name ?? '',
+                                        phoneNumber: staff.phoneNumber ?? '',
+                                        enabled: typeof staff.enabled === 'boolean' ? staff.enabled : false,
+                                        isActive: typeof staff.isActive === 'boolean' ? staff.isActive : false,
+                                        dashboards: dashboards // Now dashboards is defined
+                                      }],
+                                      coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                                      customMessage: prev.smsCoaching?.customMessage ?? ''
+                                    }
+                                  };
+                                });
                               }}
                             >
                               {daysOfWeek.map((d, i) => (

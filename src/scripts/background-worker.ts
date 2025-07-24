@@ -5,7 +5,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 import dotenv from 'dotenv';
-dotenv.config({ path: path.resolve(__dirname, '../../.env.local') });
+dotenv.config(); // loads .env if present
+dotenv.config({ path: '.env.local', override: true }); // loads .env.local if present, overrides .env
 
 // Now import everything else
 import cron from 'node-cron';
@@ -15,7 +16,7 @@ import chalk from 'chalk';
 import express from 'express';
 import { EmailSubscriptionModel, CronJobLogModel } from '../lib/models-cjs.js';
 import { EmailService } from '../lib/email-service.js';
-import { SMSService } from '../lib/sms-service.js';
+import { SMSService } from '../lib/sms-service.node.js';
 import type { EmailSubscription, KPIData } from '@/types/kpi';
 import type { KPIDashboardData } from '../lib/email-templates.js';
 

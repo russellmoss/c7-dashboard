@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { EmailTemplates, KPIDashboardData } from './email-templates';
+import { EmailTemplates, KPIDashboardData } from './email-templates.js';
 import PQueue from 'p-queue';
 
 function getResendInstance() {

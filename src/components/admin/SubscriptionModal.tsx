@@ -111,57 +111,26 @@ export default function SubscriptionModal({
 
   useEffect(() => {
     if (subscription) {
-      // Ensure smsCoaching.staffMembers is always an array with one entry (if present)
-      let staffMembers: StaffMemberCoaching[] = [];
-      if (subscription.smsCoaching && Array.isArray(subscription.smsCoaching.staffMembers) && subscription.smsCoaching.staffMembers.length > 0) {
-        staffMembers = [subscription.smsCoaching.staffMembers[0]];
-      }
-      setFormData(prev => ({
-        ...prev,
-        name: subscription.name,
-        email: subscription.email,
-        subscribedReports: (subscription.subscribedReports ?? []) as ReportKey[],
+      setFormData({
+        ...subscription,
+        name: subscription.name || '',
+        email: subscription.email || '',
+        subscribedReports: subscription.subscribedReports || [],
         reportSchedules: {
-          mtd: subscription.reportSchedules.mtd || {
-            frequency: 'weekly',
-            timeEST: '09:00',
-            dayOfWeek: 3,
-            isActive: true
-          },
-          qtd: subscription.reportSchedules.qtd || {
-            frequency: 'monthly',
-            timeEST: '09:00',
-            weekOfMonth: 1,
-            dayOfWeek: 3,
-            isActive: true
-          },
-          ytd: subscription.reportSchedules.ytd || {
-            frequency: 'quarterly',
-            timeEST: '09:00',
-            monthOfQuarter: 1,
-            weekOfMonth: 1,
-            dayOfWeek: 3,
-            isActive: true
-          },
-          'all-quarters': subscription.reportSchedules['all-quarters'] || {
-            frequency: 'monthly',
-            timeEST: '09:00',
-            dayOfMonth: 1,
-            isActive: true
-          }
+          mtd: subscription.reportSchedules?.mtd || { frequency: 'weekly', timeEST: '09:00', dayOfWeek: 3, isActive: true },
+          qtd: subscription.reportSchedules?.qtd || { frequency: 'monthly', timeEST: '09:00', weekOfMonth: 1, dayOfWeek: 3, isActive: true },
+          ytd: subscription.reportSchedules?.ytd || { frequency: 'quarterly', timeEST: '09:00', monthOfQuarter: 1, weekOfMonth: 1, dayOfWeek: 3, isActive: true },
+          'all-quarters': subscription.reportSchedules?.['all-quarters'] || { frequency: 'monthly', timeEST: '09:00', dayOfMonth: 1, isActive: true }
         },
         smsCoaching: {
           isActive: subscription.smsCoaching?.isActive ?? false,
           phoneNumber: subscription.smsCoaching?.phoneNumber ?? '',
-          staffMembers,
+          staffMembers: subscription.smsCoaching?.staffMembers ?? [],
           coachingStyle: subscription.smsCoaching?.coachingStyle ?? 'balanced',
           customMessage: subscription.smsCoaching?.customMessage ?? ''
         },
-        isActive: subscription.isActive,
-        createdAt: subscription.createdAt,
-        updatedAt: subscription.updatedAt,
-        unsubscribeToken: subscription.unsubscribeToken
-      }));
+        isActive: subscription.isActive ?? true,
+      });
     }
   }, [subscription]);
 
@@ -365,41 +334,34 @@ export default function SubscriptionModal({
           <Select
             value={formData.smsCoaching?.staffMembers?.[0]?.name ?? ''}
             onValueChange={value => setFormData(prev => {
-              // Type-safe period types
-              const periodTypes: DashboardSchedule['periodType'][] = ['mtd', 'qtd', 'ytd', 'all-quarters'];
-              const defaultDashboards: DashboardSchedule[] = periodTypes.map(periodType => ({
-                periodType,
-                frequency: 'weekly',
-                timeEST: '09:00',
-                dayOfWeek: 0,
-                weekOfMonth: 1,
-                dayOfMonth: 1,
-                weekStart: 1,
-                monthOfQuarter: 1,
-                monthOfYear: 1,
+              const staffMembers: StaffMemberCoaching[] = value ? [{
+                id: '',
+                name: value,
+                phoneNumber: '',
+                enabled: true,
                 isActive: true,
-                includeMetrics: {
-                  wineConversionRate: true,
-                  clubConversionRate: true,
-                  goalVariance: true,
-                  overallPerformance: true
-                }
-              }));
+                dashboards: reportKeys.map(periodType => ({
+                  periodType,
+                  frequency: 'weekly',
+                  timeEST: '09:00',
+                  isActive: true,
+                  includeMetrics: {
+                    wineConversionRate: true,
+                    clubConversionRate: true,
+                    goalVariance: true,
+                    overallPerformance: true
+                  }
+                }))
+              }] : [];
+
               return {
                 ...prev,
                 smsCoaching: {
-                  ...prev.smsCoaching,
-                  isActive: !!prev.smsCoaching?.isActive,
-                  phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
-                  coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
-                  staffMembers: value ? [{
-                    id: '',
-                    name: value,
-                    phoneNumber: '',
-                    enabled: true,
-                    isActive: true,
-                    dashboards: defaultDashboards
-                  }] : [],
+                  isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                  phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                  coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                  customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
+                  staffMembers,
                 }
               };
             })}
@@ -419,8 +381,10 @@ export default function SubscriptionModal({
               ...prev,
               smsCoaching: {
                 isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
-                phoneNumber: e.target.value,
-                staffMembers: prev.smsCoaching?.staffMembers?.map(staff => ({
+                phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
+                staffMembers: Array.isArray(prev.smsCoaching?.staffMembers) ? prev.smsCoaching.staffMembers.map(staff => ({
                   ...staff,
                   id: staff.id ?? '',
                   name: staff.name ?? '',
@@ -428,9 +392,7 @@ export default function SubscriptionModal({
                   enabled: typeof staff.enabled === 'boolean' ? staff.enabled : false,
                   isActive: typeof staff.isActive === 'boolean' ? staff.isActive : false,
                   dashboards: staff.dashboards ?? []
-                })) ?? [],
-                coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
-                customMessage: prev.smsCoaching?.customMessage ?? '',
+                })) : [],
               }
             }))}
             placeholder="e.g. +15555555555"
@@ -618,8 +580,10 @@ export default function SubscriptionModal({
                 ...prev,
                 smsCoaching: {
                   isActive: e.target.checked,
-                  phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
-                  staffMembers: prev.smsCoaching?.staffMembers?.map(staff => ({
+                  phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                  coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                  customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
+                  staffMembers: Array.isArray(prev.smsCoaching?.staffMembers) ? prev.smsCoaching.staffMembers.map(staff => ({
                     ...staff,
                     id: staff.id ?? '',
                     name: staff.name ?? '',
@@ -627,9 +591,7 @@ export default function SubscriptionModal({
                     enabled: typeof staff.enabled === 'boolean' ? staff.enabled : false,
                     isActive: typeof staff.isActive === 'boolean' ? staff.isActive : false,
                     dashboards: staff.dashboards ?? []
-                  })) ?? [],
-                  coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
-                  customMessage: prev.smsCoaching?.customMessage ?? '',
+                  })) : [],
                 }
               }))}
             />
@@ -653,30 +615,16 @@ export default function SubscriptionModal({
                           setFormData(prev => {
                             const staff = prev.smsCoaching?.staffMembers?.[0];
                             if (!staff) return prev;
-                            let dashboards = staff.dashboards ?? [];
+                            let dashboards = staff.dashboards || [];
                             if (e.target.checked) {
                               if (!dashboards.find(d => d.periodType === key)) {
-                                dashboards = [
-                                  ...dashboards,
-                                  {
-                                    periodType: key,
-                                    frequency: 'weekly',
-                                    timeEST: '09:00',
-                                    dayOfWeek: 0,
-                                    weekOfMonth: 1,
-                                    dayOfMonth: 1,
-                                    weekStart: 1,
-                                    monthOfQuarter: 1,
-                                    monthOfYear: 1,
-                                    isActive: true,
-                                    includeMetrics: {
-                                      wineConversionRate: true,
-                                      clubConversionRate: true,
-                                      goalVariance: true,
-                                      overallPerformance: true
-                                    }
-                                  }
-                                ];
+                                dashboards.push({
+                                  periodType: key,
+                                  frequency: 'weekly',
+                                  timeEST: '09:00',
+                                  isActive: true,
+                                  includeMetrics: { wineConversionRate: true, clubConversionRate: true, goalVariance: true, overallPerformance: true }
+                                });
                               }
                             } else {
                               dashboards = dashboards.filter(d => d.periodType !== key);
@@ -684,7 +632,10 @@ export default function SubscriptionModal({
                             return {
                               ...prev,
                               smsCoaching: {
-                                ...prev.smsCoaching,
+                                isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                 staffMembers: [{
                                   ...staff,
                                   dashboards
@@ -716,6 +667,10 @@ export default function SubscriptionModal({
                                 ...prev,
                                 smsCoaching: {
                                   ...prev.smsCoaching,
+                                  isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                  phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                  coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                  customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                   staffMembers: [{
                                     ...staff,
                                     dashboards
@@ -749,6 +704,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -780,6 +739,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -811,6 +774,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -841,6 +808,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -872,6 +843,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -903,6 +878,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -931,6 +910,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -962,6 +945,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -984,7 +971,7 @@ export default function SubscriptionModal({
                                   const staff = prev.smsCoaching?.staffMembers?.[0];
                                   if (!staff) return prev;
                                   // Fix: Define dashboards BEFORE using it
-                                  let dashboards = staff.dashboards ?? [];
+                                  let dashboards = staff.dashboards || [];
                                   dashboards = dashboards.map(d =>
                                     d.periodType === key
                                       ? { ...d, dayOfWeek: Number(value) }
@@ -994,6 +981,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -1025,6 +1016,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -1051,6 +1046,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -1086,6 +1085,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -1119,6 +1122,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -1146,6 +1153,10 @@ export default function SubscriptionModal({
                                     ...prev,
                                     smsCoaching: {
                                       ...prev.smsCoaching,
+                                      isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
+                                      phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                                      coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
+                                      customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
                                       staffMembers: [{
                                         ...staff,
                                         dashboards
@@ -1175,18 +1186,10 @@ export default function SubscriptionModal({
               ...prev,
               smsCoaching: {
                 isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
-                phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
-                staffMembers: prev.smsCoaching?.staffMembers?.map(staff => ({
-                  ...staff,
-                  id: staff.id ?? '',
-                  name: staff.name ?? '',
-                  phoneNumber: staff.phoneNumber ?? '',
-                  enabled: typeof staff.enabled === 'boolean' ? staff.enabled : false,
-                  isActive: typeof staff.isActive === 'boolean' ? staff.isActive : false,
-                  dashboards: staff.dashboards ?? []
-                })) ?? [],
-                coachingStyle: value as any,
-                customMessage: prev.smsCoaching?.customMessage ?? '',
+                phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                coachingStyle: value as SMSCoaching['coachingStyle'],
+                customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
+                staffMembers: Array.isArray(prev.smsCoaching?.staffMembers) ? prev.smsCoaching.staffMembers : [],
               }
             }))}
           >
@@ -1204,18 +1207,10 @@ export default function SubscriptionModal({
               ...prev,
               smsCoaching: {
                 isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
-                phoneNumber: prev.smsCoaching?.phoneNumber ?? '',
-                staffMembers: prev.smsCoaching?.staffMembers?.map(staff => ({
-                  ...staff,
-                  id: staff.id ?? '',
-                  name: staff.name ?? '',
-                  phoneNumber: staff.phoneNumber ?? '',
-                  enabled: typeof staff.enabled === 'boolean' ? staff.enabled : false,
-                  isActive: typeof staff.isActive === 'boolean' ? staff.isActive : false,
-                  dashboards: staff.dashboards ?? []
-                })) ?? [],
-                coachingStyle: prev.smsCoaching?.coachingStyle ?? 'balanced',
+                phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
+                coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
                 customMessage: e.target.value,
+                staffMembers: Array.isArray(prev.smsCoaching?.staffMembers) ? prev.smsCoaching.staffMembers : [],
               }
             }))}
             placeholder="Enter custom message"

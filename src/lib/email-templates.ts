@@ -1,4 +1,4 @@
-import { EmailSubscription } from './email-service';
+import type { EmailSubscription } from '../types/email.js';
 
 export interface KPIDashboardData {
   periodType: string;

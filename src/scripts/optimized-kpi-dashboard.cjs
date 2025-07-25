@@ -10,9 +10,9 @@ const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
 const mongoose = require('mongoose');
-const { connectToDatabase } = require('../lib/mongodb-cjs.js');
-const { KPIDataModel } = require('../lib/models-cjs.js');
-const ai = require('../lib/ai-insights-cjs.js');
+const { connectToDatabase } = require('../lib/mongodb-cjs.cjs');
+const { KPIDataModel, CronJobLogModel, EmailSubscriptionModel } = require('../lib/models-cjs.cjs');
+const ai = require('../lib/ai-insights-cjs.cjs');
 const generateInsights = ai.generateInsights;
 
 // --- (All gold standard config, helpers, and logic from root optimized-kpi-dashboard.js) ---
@@ -938,7 +938,7 @@ async function runAllQuartersReport(testMode = false) {
             await saveKPIDataToMongoDB(allQuartersReport, 'all-quarters');
             // Fetch the saved document with insights
             await connectToDatabase();
-            const { KPIDataModel } = require('../lib/models-cjs.js');
+            const { KPIDataModel } = require('../lib/models-cjs.cjs');
             const saved = await KPIDataModel.findOne({ periodType: 'all-quarters', year: baseDate.getFullYear() }).sort({ createdAt: -1 });
             if (saved && saved.insights) {
                 allQuartersReport.insights = saved.insights;

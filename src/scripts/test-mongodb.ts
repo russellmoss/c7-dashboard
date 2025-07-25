@@ -1,4 +1,4 @@
-import { testConnection } from '../lib/mongodb';
+import { testConnection } from '../lib/mongodb.js';
 
 (async () => {
   const ok = await testConnection();

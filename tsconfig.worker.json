@@ -1,18 +1,34 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "ES2022",
+    "module": "NodeNext",
     "target": "ES2022",
-    "moduleResolution": "node",
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": false
   },
-  "include": ["src/scripts/**/*", "src/lib/**/*"],
-  "exclude": ["src/app/**/*", "src/pages/**/*", "src/components/**/*"]
+  "noEmit": false,
+  "include": [
+    "src/scripts/background-worker.ts",
+    "src/scripts/test-sms.ts",
+    "src/scripts/test-email-service.ts",
+    "src/scripts/init-db.ts",
+    "src/scripts/hello.ts",
+    "src/lib/email-service.ts",
+    "src/lib/models.ts",
+    "src/lib/email-templates.ts",
+    "src/lib/sms/sms-worker.worker.ts",
+    "src/lib/sms/base.ts"
+  ],
+  "exclude": [
+    "src/app/**/*",
+    "src/pages/**/*",
+    "src/components/**/*",
+    "src/lib/sms/sms-worker.next.ts"
+  ]
 } 

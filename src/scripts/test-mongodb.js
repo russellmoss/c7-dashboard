@@ -1,5 +1,5 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local') });
-const { connectToDatabase } = require('../lib/mongodb-cjs.js');
+const { connectToDatabase } = require('../lib/mongodb-cjs.cjs');
 
 (async () => {
   try {

@@ -1,7 +1,7 @@
 // Fix MongoDB indexes for custom reports
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local') });
 const mongoose = require('mongoose');
-const { connectToDatabase } = require('../lib/mongodb-cjs.js');
+const { connectToDatabase } = require('../lib/mongodb-cjs.cjs');
 
 async function fixIndexes() {
   try {

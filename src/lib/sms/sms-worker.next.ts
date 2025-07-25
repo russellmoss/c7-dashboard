@@ -1,4 +1,6 @@
-import { TwilioSmsService } from './base.js';
+import { TwilioSmsService, baseDebug } from './base';
+
+console.log('[DEBUG] baseDebug:', baseDebug);
 
 let smsService: TwilioSmsService | null = null;
 

@@ -4,7 +4,7 @@ import { resolve } from 'path';
 // Load environment variables
 config({ path: resolve(process.cwd(), '.env.local') });
 
-import { getSmsService } from '../lib/sms/worker.js';
+import { getSmsService } from '../lib/sms/sms-worker.worker.js';
 
 async function testSms() {
   console.log('=== SMS Service Test ===');

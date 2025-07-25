@@ -1,5 +1,5 @@
-const { connectToDatabase } = require('../lib/mongodb-cjs.js');
-const { KPIDataModel, CronJobLogModel, EmailSubscriptionModel } = require('../lib/models-cjs.js');
+const { connectToDatabase } = require('../lib/mongodb-cjs.cjs');
+const { KPIDataModel, CronJobLogModel, EmailSubscriptionModel } = require('../lib/models-cjs.cjs');
 
 async function initDB() {
   await connectToDatabase();

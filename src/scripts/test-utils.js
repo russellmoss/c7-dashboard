@@ -1,6 +1,6 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local') });
-const { connectToDatabase } = require('../lib/mongodb-cjs.js');
-const { KPIDataModel, CronJobLogModel, EmailSubscriptionModel } = require('../lib/models-cjs.js');
+const { connectToDatabase } = require('../lib/mongodb-cjs.cjs');
+const { KPIDataModel, CronJobLogModel, EmailSubscriptionModel } = require('../lib/models-cjs.cjs');
 
 async function run() {
   await connectToDatabase();

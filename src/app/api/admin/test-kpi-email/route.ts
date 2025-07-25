@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { EmailService } from '@/lib/email-service';
+import { EmailService } from '@/email/email-service';
 import { EmailTemplates, KPIDashboardData } from '@/lib/email-templates';
 import { Resend } from 'resend';
 import { connectToDatabase } from '@/lib/mongodb';

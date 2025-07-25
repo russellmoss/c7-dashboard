@@ -1,5 +1,7 @@
 import twilio from 'twilio';
 
+export const baseDebug = 'base-runtime-value';
+
 export interface SmsService {
   sendSms(to: string, body: string): Promise<boolean>;
   isInitialized(): boolean;

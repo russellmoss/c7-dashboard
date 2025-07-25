@@ -1,5 +1,5 @@
-import { connectToDatabase } from '../lib/mongodb';
-import { KPIDataModel, CronJobLogModel, EmailSubscriptionModel } from '../lib/models';
+import { connectToDatabase } from '../lib/mongodb.js';
+import { KPIDataModel, CronJobLogModel, EmailSubscriptionModel } from '../lib/models.js';
 
 async function initDB() {
   await connectToDatabase();

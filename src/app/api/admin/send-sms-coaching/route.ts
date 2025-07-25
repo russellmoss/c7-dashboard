@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { KPIDataModel, EmailSubscriptionModel } from '@/lib/models';
-import { SMSService, StaffPerformance } from '@/lib/sms-service';
+import { getSmsService, sendSms, generateCoachingMessage } from '@/lib/sms/sms-worker.next';
 import { StaffMemberCoaching, SMSCoaching } from '@/types/sms';
 
 function levenshtein(a: string, b: string): number {
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Convert performance data to StaffPerformance format
-      const staffData: StaffPerformance = {
+      const staffData = {
         name: matchedName,
         wineBottleConversionRate: performance.wineBottleConversionRate,
         clubConversionRate: performance.clubConversionRate,
@@ -131,12 +131,8 @@ export async function POST(request: NextRequest) {
       };
 
       // Send SMS
-      const success = await SMSService.sendCoachingSMS(
-        subscription.smsCoaching.phoneNumber,
-        staffData,
-        subscription.smsCoaching,
-        periodType
-      );
+      const message = await generateCoachingMessage(staffData, subscription.smsCoaching, periodType);
+      const success = await sendSms(subscription.smsCoaching.phoneNumber, message);
 
       results.push({
         staffName: staffMember.name,

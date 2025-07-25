@@ -1,8 +1,8 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local') });
 const fs = require('fs');
 const path = require('path');
-const { connectToDatabase } = require('../lib/mongodb-cjs.js');
-const { KPIDataModel } = require('../lib/models-cjs.js');
+const { connectToDatabase } = require('../lib/mongodb-cjs.cjs');
+const { KPIDataModel } = require('../lib/models-cjs.cjs');
 
 function deepCompare(obj1, obj2, pathPrefix = '') {
   const diffs = [];

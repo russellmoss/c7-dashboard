@@ -1,4 +1,4 @@
-import { DashboardSchedule, StaffMemberCoaching, SMSCoaching, CoachingSMSHistory } from '@/types/sms';
+import { DashboardSchedule, StaffMemberCoaching, SMSCoaching, CoachingSMSHistory } from './sms.js';
 
 export interface KPIData {
   _id?: string;

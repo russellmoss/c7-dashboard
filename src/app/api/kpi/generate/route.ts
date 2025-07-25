@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { CronJobLogModel, KPIDataModel } from '@/lib/models';
+import { generateInsights } from '@/lib/ai-insights';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
@@ -90,7 +91,7 @@ async function generateKPIDataAndInsights(periodType: string, startDate?: string
     console.log('[GEN] Cron job log created');
     
     // Run the KPI script
-    const scriptPath = path.join(process.cwd(), 'src/scripts/optimized-kpi-dashboard.js');
+    const scriptPath = path.join(process.cwd(), 'src/scripts/optimized-kpi-dashboard.cjs');
     let command = `node "${scriptPath}" ${periodType}`;
     
     if (periodType === 'custom') {
@@ -153,8 +154,6 @@ async function generateAIInsights(periodType: string, startDate?: string, endDat
       console.warn(`[AI] No KPI data found for ${periodType} to generate insights`);
       return;
     }
-    // Import the AI insights function
-    const { generateInsights } = require('@/lib/ai-insights-cjs.js');
     console.log('[AI] Calling generateInsights...');
     const insights = await generateInsights(latestData.data);
     console.log('[AI] Insights generated:', insights);

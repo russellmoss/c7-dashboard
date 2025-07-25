@@ -12,11 +12,22 @@ import moment from 'moment-timezone';
 import mongoose from 'mongoose';
 import chalk from 'chalk';
 import express from 'express';
-import { EmailSubscriptionModel, CronJobLogModel } from '../lib/models-cjs.js';
+import { EmailSubscriptionModel, CronJobLogModel } from '../lib/models.js';
 import { EmailService } from '../lib/email-service.js';
-import { getSmsService, sendSms, generateCoachingMessage } from '../lib/sms/worker.js';
-import type { EmailSubscription, KPIData } from '@/types/kpi';
+import { getSmsService, sendSms, generateCoachingMessage } from '../lib/sms/sms-worker.worker.js';
+
+console.log('[DEBUG] getSmsService:', typeof getSmsService);
+console.log('[DEBUG] EmailService:', typeof EmailService);
+
+import type { EmailSubscription, KPIData } from '../types/kpi.js';
 import type { KPIDashboardData } from '../lib/email-templates.js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { join, dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const scriptPath = join(__dirname, 'optimized-kpi-dashboard.js');
 
 // Logging
 const log = {
@@ -197,7 +208,7 @@ async function processScheduledJobs() {
     try {
         await ensureConnection();
         // Require models only after connection is ensured
-        const { EmailSubscriptionModel, KPIDataModel } = await import('../lib/models-cjs.js');
+        const { EmailSubscriptionModel, KPIDataModel } = await import('../lib/models.js');
         log.info('Mongoose connection state after ensureConnection: ' + mongoose.connection.readyState);
         const now = new Date();
         const subs = await EmailSubscriptionModel.find({ isActive: true }).lean() as unknown as EmailSubscription[];
@@ -211,6 +222,10 @@ async function processScheduledJobs() {
                         const schedule = sub.reportSchedules[reportKey];
                         if (schedule && schedule.isActive && isJobDueNow(schedule, now)) {
                             const jobKey = `email_${reportKey}_${sub.email}`;
+                            if (hasJobExecutedRecently(jobKey)) {
+                                log.info(`Skipping duplicate email for ${jobKey}`);
+                                continue;
+                            }
                             const kpiData = await KPIDataModel.findOne({ periodType: reportKey, status: 'completed' }).sort({ createdAt: -1 }).lean() as KPIData | null;
                             if (!kpiData || !kpiData.data) {
                                 log.warn(`No KPI data for ${reportKey} for ${sub.email}`);
@@ -221,6 +236,22 @@ async function processScheduledJobs() {
                               return allowedFrequencies.includes(f as any) ? (f as typeof allowedFrequencies[number]) : 'weekly';
                             }
                             const frequency = toAllowedFrequency(sub.reportSchedules?.[reportKey]?.frequency);
+                            // Before sending the email, add a debug log and safe check
+                            log.info('kpiData.data for email: ' + JSON.stringify(kpiData.data, null, 2));
+                            const report = kpiData.data; // KPIReport
+                            const kpiDashboardData = {
+                              periodType: report.periodType,
+                              periodLabel: report.current.periodLabel,
+                              dateRange: report.current.dateRange,
+                              overallMetrics: report.current.overallMetrics,
+                              yearOverYear: report.yearOverYear,
+                              associatePerformance: report.current.associatePerformance,
+                              insights: kpiData.insights, // or report.insights if present
+                            };
+                            if (!kpiDashboardData.dateRange || !kpiDashboardData.periodLabel) {
+                              log.error('KPI data missing required fields for email: ' + JSON.stringify(kpiDashboardData, null, 2));
+                              continue;
+                            }
                             await EmailService.sendKPIDashboard(
                               {
                                 name: sub.name,
@@ -230,7 +261,7 @@ async function processScheduledJobs() {
                                 timeEST: sub.reportSchedules?.[reportKey]?.timeEST ?? '09:00',
                                 isActive: sub.isActive,
                               },
-                              kpiData.data as unknown as KPIDashboardData
+                              kpiDashboardData
                             );
                             markJobExecuted(jobKey);
                             log.success(`Sent ${reportKey} email report to ${sub.email}`);
@@ -252,6 +283,10 @@ async function processScheduledJobs() {
                         try {
                             if (dashboard.isActive && isJobDueNow(dashboard, now)) {
                                 const jobKey = `sms_${dashboard.periodType}_${staff.name}`;
+                                if (hasJobExecutedRecently(jobKey)) {
+                                    log.info(`Skipping duplicate SMS for ${jobKey}`);
+                                    continue;
+                                }
                                 const kpiData = await KPIDataModel.findOne({ periodType: dashboard.periodType, status: 'completed' }).sort({ createdAt: -1 }).lean() as KPIData | null;
                                 if (!kpiData?.data?.current?.associatePerformance) {
                                     log.warn(`No KPI data for ${dashboard.periodType} SMS to ${staff.name}`);
@@ -329,16 +364,13 @@ async function executeKPIJob(periodType: string) {
         await ensureConnection();
         
         log.info(`Starting ${periodType.toUpperCase()} KPI generation...`);
-        const CronJobLogModel = await import('../lib/models-cjs.js').then(m => m.CronJobLogModel);
+        const CronJobLogModel = await import('../lib/models.js').then(m => m.CronJobLogModel);
         const cronLog = await CronJobLogModel.create({
             jobType: periodType,
             status: 'running',
             startTime: new Date(startTime)
         });
-        const { exec } = require('child_process');
-        const { promisify } = require('util');
         const execAsync = promisify(exec);
-        const scriptPath = require('path').join(__dirname, 'optimized-kpi-dashboard.js');
         const command = `node "${scriptPath}" ${periodType}`;
         const { stdout, stderr } = await execAsync(command, {
             timeout: 1800000,
@@ -429,7 +461,8 @@ function setupCronJobs() {
     cron.schedule('0 2 * * *', () => executeKPIJob('ytd'), { timezone: 'America/New_York', name: 'ytd-generation' });
     cron.schedule('0 3 * * *', () => executeKPIJob('qtd'), { timezone: 'America/New_York', name: 'qtd-generation' });
     cron.schedule('0 4 * * *', () => executeKPIJob('all-quarters'), { timezone: 'America/New_York', name: 'all-quarters-generation' });
-    cron.schedule('* * * * *', async () => {
+    // Change from every minute to every 10 seconds for testing
+    cron.schedule('*/10 * * * * *', async () => {
         log.info('Scheduled communications cron triggered');
         try {
             await processScheduledJobs();
@@ -474,8 +507,6 @@ async function startWorker() {
         log.info('🚀 Starting Milea Estate KPI Background Worker...');
         await ensureConnection();
         // Require models after connecting to MongoDB
-        const { KPIDataModel, EmailSubscriptionModel, CronJobLogModel } = await import('../lib/models-cjs.js');
-        log.success('📊 MongoDB connection established');
         setupCronJobs();
         setupHealthMonitoring();
         log.success('✅ Worker started successfully and waiting for scheduled jobs...');

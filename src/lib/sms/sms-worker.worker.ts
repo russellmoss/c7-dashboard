@@ -91,40 +91,61 @@ export async function generateCoachingMessage(
   periodType: string
 ): Promise<string> {
   console.log('[DEBUG] generateCoachingMessage called with performance:', JSON.stringify(performance, null, 2));
-  
+
   // Extract first name from staff member name
   const firstName = performance.name ? performance.name.split(' ')[0] : 'there';
-  
+
   // Format conversion rates
-  const wineConversion = typeof performance.wineBottleConversionRate === 'number' 
-    ? performance.wineBottleConversionRate.toFixed(1) 
+  const wineConversion = typeof performance.wineBottleConversionRate === 'number'
+    ? performance.wineBottleConversionRate.toFixed(1)
     : performance.wineBottleConversionRate;
-  const clubConversion = typeof performance.clubConversionRate === 'number' 
-    ? performance.clubConversionRate.toFixed(1) 
+  const clubConversion = typeof performance.clubConversionRate === 'number'
+    ? performance.clubConversionRate.toFixed(1)
     : performance.clubConversionRate;
-  
-  console.log('[DEBUG] Formatted conversion rates - wine:', wineConversion, 'club:', clubConversion);
-  
-  const prompt = `Staff member's KPIs:
-${JSON.stringify(performance, null, 2)}
 
-SALES & RAPPORT TECHNIQUES:
-${SALES_TECHNIQUES_TEXT}
+  // Fetch last 3 archived SMS messages for this staff/period
+  let lastMessagesText = '';
+  let usedStrategiesText = '';
+  try {
+    // @ts-ignore
+    const models = await import('../lib/models.js');
+    const lastMessages: Array<{ coachingMessage: string }> = await models.CoachingSMSHistoryModel.find({
+      staffName: performance.name,
+      phoneNumber: config.phoneNumber,
+      periodType
+    }).sort({ sentAt: -1 }).limit(3).lean();
+    if (lastMessages.length > 0) {
+      lastMessagesText = '\n\nHere are the last 3 coaching SMS messages sent to this staff member for this period:';
+      let usedStrategies: string[] = [];
+      lastMessages.forEach((msg: { coachingMessage: string }, idx: number) => {
+        lastMessagesText += `\nPrevious message #${idx + 1}: ${msg.coachingMessage}`;
+        // Simple keyword extraction for strategies (expand as needed)
+        const lower = msg.coachingMessage.toLowerCase();
+        if (lower.includes('priming') || lower.includes('prime')) usedStrategies.push('priming');
+        if (lower.includes('mention club') || lower.includes('seed club')) usedStrategies.push('mentioning or seeding club early');
+        if (lower.includes('rapport')) usedStrategies.push('rapport building');
+        if (lower.includes('assumptive')) usedStrategies.push('assumptive closing');
+        if (lower.includes('farewell glass')) usedStrategies.push('farewell glass');
+        if (lower.includes('value') || lower.includes('discount')) usedStrategies.push('emphasizing value/discounts');
+        if (lower.includes('story') || lower.includes('storytelling')) usedStrategies.push('storytelling');
+        if (lower.includes('flight')) usedStrategies.push('flight suggestion');
+        if (lower.includes('review card')) usedStrategies.push('review card');
+        if (lower.includes('personalize')) usedStrategies.push('personalization');
+        // Add more as needed
+      });
+      if (usedStrategies.length > 0) {
+        usedStrategiesText = '\n\nThe following strategies/tips have already been used recently: ' + Array.from(new Set(usedStrategies)).join(', ') + '. DO NOT use these again. Pick a new, unique strategy or tip.';
+      }
+    }
+  } catch (err) {
+    console.error('[DEBUG] Error fetching last 3 SMS messages for Claude prompt:', err);
+  }
 
-Write a personalized, actionable SMS to ${firstName}, referencing their performance and suggesting 2-3 specific things to try next shift. 
+  const exampleMessage = `Hi {firstName}! 📊\n\n{PERIOD_LABEL} Performance:\n🍷 Wine Conversion: {wineConversion}% (Goal: 53%)\n👥 Club Conversion: {clubConversion}% (Goal: 6%)\n💰 Revenue: ${'{revenue}'}\n\nGreat job on exceeding your wine conversion goal! Your {wineConversion}% rate shows you're effectively guiding guests to bottle purchases. This skill is translating into solid revenue numbers for the month so far.\n\nHowever, there's an opportunity to boost your club conversion rate. You're currently at {clubConversion}%, which is below the 6% goal. Let's focus on improving this area:\n\n💡 Tip: Try the "priming" technique early in guest interactions. When introducing flight options, casually mention: "Oh, I love that you're interested in a flight. Many of these wines are favorites among our club members." This plants the seed for club membership and creates a natural segue to discuss benefits later in the tasting.\n\nRemember, club members often become our most loyal customers and best advocates. By improving your club conversion rate, you'll not only meet your goals but also cultivate long-term relationships that benefit both the guests and the vineyard.\n\nKeep up the excellent work with bottle sales, and let's see if we can bring that same magic to club sign-ups! 🌟🍷\n\nKeep up the great work! 🍷`;
 
-IMPORTANT REQUIREMENTS:
-1. Start with a genuine compliment about their performance
-2. ALWAYS include their specific metrics in the message: "Your wine bottle conversion rate is ${wineConversion}% (goal: 53%) and club conversion rate is ${clubConversion}% (goal: 6%)"
-3. Provide 2-3 specific, actionable coaching suggestions based on the techniques provided
-4. End with an encouraging compliment about their potential
-5. Be encouraging and motivating throughout
-6. Use their first name: ${firstName}
-7. Keep it conversational and supportive
-8. Make sure to mention both conversion rates and their goals in the message
+  const prompt = `Staff member's KPIs:\n${JSON.stringify(performance, null, 2)}\n\nSALES & RAPPORT TECHNIQUES:\n${SALES_TECHNIQUES_TEXT}\n${lastMessagesText}\n${usedStrategiesText}\n
+IMPORTANT FORMATTING & STYLE REQUIREMENTS:\n- Use a beautiful, friendly, supportive, and encouraging tone.\n- Use relevant emojis for wine, club, revenue, and encouragement.\n- Start with a friendly greeting using the staff member's first name and an emoji.\n- Show the performance metrics as a block with emojis (🍷, 👥, 💰), including goals.\n- Give a compliment, then a coaching tip, then an encouraging close, all with a positive, supportive tone.\n- Use section headers, bullet points, and clear formatting.\n- DO NOT repeat the same advice, strategy, or tip as the last 3 messages or the strategies listed above.\n- Keep the message concise, actionable, and motivating.\n\nEXAMPLE FORMAT (use as a template, but personalize for this staff member and their data):\n${exampleMessage}\n\nNow, write a personalized, actionable SMS to ${firstName}, referencing their performance and suggesting 2-3 specific things to try next shift.\n\nIMPORTANT REQUIREMENTS:\n1. Start with a genuine compliment about their performance\n2. ALWAYS include their specific metrics in the message: "Your wine bottle conversion rate is ${wineConversion}% (goal: 53%) and club conversion rate is ${clubConversion}% (goal: 6%)"\n3. Provide 2-3 specific, actionable coaching suggestions based on the techniques provided\n4. End with an encouraging compliment about their potential\n5. Be encouraging and motivating throughout\n6. Use their first name: ${firstName}\n7. Keep it conversational and supportive\n8. Make sure to mention both conversion rates and their goals in the message\n\nStructure: Compliment → Include both conversion rates with goals → Coaching → Compliment`;
 
-Structure: Compliment → Include both conversion rates with goals → Coaching → Compliment`;
-  
   console.log('[DEBUG] Sending prompt to Claude:', prompt);
   const response = await callClaude(prompt);
   console.log('[DEBUG] Claude response:', response);

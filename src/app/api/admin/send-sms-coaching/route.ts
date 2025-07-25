@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { KPIDataModel, EmailSubscriptionModel } from '@/lib/models';
+import { KPIDataModel, EmailSubscriptionModel, CoachingSMSHistoryModel } from '@/lib/models';
 import { getSmsService, sendSms, generateCoachingMessage } from '@/lib/sms/sms-worker.next';
 import { StaffMemberCoaching, SMSCoaching } from '@/types/sms';
 
@@ -133,6 +133,17 @@ export async function POST(request: NextRequest) {
       // Send SMS
       const message = await generateCoachingMessage(staffData, subscription.smsCoaching, periodType);
       const success = await sendSms(subscription.smsCoaching.phoneNumber, message);
+
+      // Archive the sent SMS if successful
+      if (success) {
+        await CoachingSMSHistoryModel.create({
+          staffName: staffMember.name,
+          phoneNumber: subscription.smsCoaching.phoneNumber,
+          periodType,
+          coachingMessage: message,
+          sentAt: new Date()
+        });
+      }
 
       results.push({
         staffName: staffMember.name,

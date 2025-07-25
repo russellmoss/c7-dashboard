@@ -327,6 +327,15 @@ async function processScheduledJobs() {
                               smsBody
                             );
                             if (smsSent) {
+                                // Archive the sent SMS
+                                const models = await import('../lib/models.js');
+                                await models.CoachingSMSHistoryModel.create({
+                                    staffName: staff.name,
+                                    phoneNumber: sub.smsCoaching.phoneNumber,
+                                    periodType: dashboard.periodType,
+                                    coachingMessage: smsBody,
+                                    sentAt: new Date()
+                                });
                                 markJobExecuted(jobKey);
                                 log.success(`Sent SMS to ${sub.smsCoaching.phoneNumber} for ${staff.name} (${dashboard.periodType}) at ${dashboard.timeEST || '09:00'}`);
                             } else {

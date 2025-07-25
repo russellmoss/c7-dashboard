@@ -34,7 +34,7 @@ export default function MTDDashboard() {
       const result = await response.json();
       console.log('[MTD] API Response:', result);
       setData(result);
-      setLastUpdated(new Date());
+      setLastUpdated(result.data?.generatedAt ? new Date(result.data.generatedAt) : null);
       // Extract and set insights for the panel
       if (result.data?.insights) {
         setInsights(result.data.insights);

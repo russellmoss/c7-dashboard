@@ -119,7 +119,7 @@ export default function CustomDashboard() {
       }
       const result = await response.json();
       setData(result);
-      setLastUpdated(new Date());
+      setLastUpdated(result.data?.generatedAt ? new Date(result.data.generatedAt) : null);
     } catch (error) {
       setError('Failed to fetch data');
     } finally {

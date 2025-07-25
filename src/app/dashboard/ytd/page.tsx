@@ -31,7 +31,7 @@ export default function YTDDashboard() {
       }
       const result = await response.json();
       setData(result);
-      setLastUpdated(new Date());
+      setLastUpdated(result.data?.generatedAt ? new Date(result.data.generatedAt) : null);
       if (result.data?.insights) {
         setInsights(result.data.insights);
       } else {

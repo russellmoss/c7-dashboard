@@ -31,7 +31,7 @@ export default function AllQuartersDashboard() {
       }
       const result = await response.json();
       setData(result);
-      setLastUpdated(new Date(result.lastUpdated));
+      setLastUpdated(result.data?.generatedAt ? new Date(result.data.generatedAt) : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {

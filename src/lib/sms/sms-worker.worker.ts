@@ -81,7 +81,7 @@ export async function callClaude(prompt: string): Promise<string> {
     throw new Error(`Claude API error: ${response.status} ${errText}`);
   }
   const data = await response.json();
-  return data.content?.[0]?.text || 'No response from Claude.';
+  return (data as any).content?.[0]?.text || 'No response from Claude.';
 }
 
 // --- Coaching message generation logic using Claude ---
@@ -90,8 +90,45 @@ export async function generateCoachingMessage(
   config: any,
   periodType: string
 ): Promise<string> {
-  const prompt = `Staff member's KPIs:\n${JSON.stringify(performance, null, 2)}\n\nSALES & RAPPORT TECHNIQUES:\n${SALES_TECHNIQUES_TEXT}\n\nWrite a personalized, actionable SMS to the staff member, referencing their performance and suggesting 2-3 specific things to try next shift. Be encouraging and specific. Do not limit the length.`;
-  return await callClaude(prompt);
+  console.log('[DEBUG] generateCoachingMessage called with performance:', JSON.stringify(performance, null, 2));
+  
+  // Extract first name from staff member name
+  const firstName = performance.name ? performance.name.split(' ')[0] : 'there';
+  
+  // Format conversion rates
+  const wineConversion = typeof performance.wineBottleConversionRate === 'number' 
+    ? performance.wineBottleConversionRate.toFixed(1) 
+    : performance.wineBottleConversionRate;
+  const clubConversion = typeof performance.clubConversionRate === 'number' 
+    ? performance.clubConversionRate.toFixed(1) 
+    : performance.clubConversionRate;
+  
+  console.log('[DEBUG] Formatted conversion rates - wine:', wineConversion, 'club:', clubConversion);
+  
+  const prompt = `Staff member's KPIs:
+${JSON.stringify(performance, null, 2)}
+
+SALES & RAPPORT TECHNIQUES:
+${SALES_TECHNIQUES_TEXT}
+
+Write a personalized, actionable SMS to ${firstName}, referencing their performance and suggesting 2-3 specific things to try next shift. 
+
+IMPORTANT REQUIREMENTS:
+1. Start with a genuine compliment about their performance
+2. ALWAYS include their specific metrics in the message: "Your wine bottle conversion rate is ${wineConversion}% (goal: 53%) and club conversion rate is ${clubConversion}% (goal: 6%)"
+3. Provide 2-3 specific, actionable coaching suggestions based on the techniques provided
+4. End with an encouraging compliment about their potential
+5. Be encouraging and motivating throughout
+6. Use their first name: ${firstName}
+7. Keep it conversational and supportive
+8. Make sure to mention both conversion rates and their goals in the message
+
+Structure: Compliment → Include both conversion rates with goals → Coaching → Compliment`;
+  
+  console.log('[DEBUG] Sending prompt to Claude:', prompt);
+  const response = await callClaude(prompt);
+  console.log('[DEBUG] Claude response:', response);
+  return response;
 }
 
 function buildMetricsString(performance: any, config: any): string {

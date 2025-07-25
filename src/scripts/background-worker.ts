@@ -121,6 +121,7 @@ async function createPersistentConnection() {
 function isJobDueNow(schedule: any, now: Date) {
     try {
         const estNow = moment.tz(now, 'America/New_York');
+        log.info(`[DEBUG] isJobDueNow: UTC now: ${now.toISOString()}, EST now: ${estNow.format()}, schedule.timeEST: ${schedule.timeEST}`);
         const hour = estNow.hour();
         const minute = estNow.minute();
         const dayOfWeek = estNow.day();
@@ -209,19 +210,23 @@ async function processScheduledJobs() {
         await ensureConnection();
         // Require models only after connection is ensured
         const { EmailSubscriptionModel, KPIDataModel } = await import('../lib/models.js');
-        log.info('Mongoose connection state after ensureConnection: ' + mongoose.connection.readyState);
         const now = new Date();
+        const estNow = moment.tz(now, 'America/New_York');
+        log.info(`[DEBUG] UTC now: ${now.toISOString()}, EST now: ${estNow.format()}`);
+        log.info('Mongoose connection state after ensureConnection: ' + mongoose.connection.readyState);
         const subs = await EmailSubscriptionModel.find({ isActive: true }).lean() as unknown as EmailSubscription[];
         log.info(`Processing scheduled jobs for ${subs.length} active subscriptions`);
         
         for (const sub of subs) {
+            log.info(`[DEBUG] Processing subscription: ${sub.email}, hasSmsCoaching: ${!!sub.smsCoaching}, smsCoachingActive: ${sub.smsCoaching?.isActive}, staffMembersCount: ${sub.smsCoaching?.staffMembers?.length || 0}`);
             // Email Reports
             if (sub.subscribedReports && sub.reportSchedules) {
                 for (const reportKey of sub.subscribedReports) {
                     try {
                         const schedule = sub.reportSchedules[reportKey];
                         if (schedule && schedule.isActive && isJobDueNow(schedule, now)) {
-                            const jobKey = `email_${reportKey}_${sub.email}`;
+                            // Include scheduled time in job key to allow multiple times per day
+                            const jobKey = `email_${reportKey}_${sub.email}_${schedule.timeEST || '09:00'}`;
                             if (hasJobExecutedRecently(jobKey)) {
                                 log.info(`Skipping duplicate email for ${jobKey}`);
                                 continue;
@@ -280,39 +285,52 @@ async function processScheduledJobs() {
             if (sub.smsCoaching && sub.smsCoaching.isActive && sub.smsCoaching.staffMembers) {
                 for (const staff of sub.smsCoaching.staffMembers) {
                     for (const dashboard of staff.dashboards || []) {
+                        log.info(`[DEBUG] Checking SMS schedule: staff=${staff.name}, staffActive=${staff.isActive}, dashboardActive=${dashboard.isActive}, periodType=${dashboard.periodType}, timeEST=${dashboard.timeEST}`);
                         try {
-                            if (dashboard.isActive && isJobDueNow(dashboard, now)) {
-                                const jobKey = `sms_${dashboard.periodType}_${staff.name}`;
-                                if (hasJobExecutedRecently(jobKey)) {
-                                    log.info(`Skipping duplicate SMS for ${jobKey}`);
-                                    continue;
-                                }
-                                const kpiData = await KPIDataModel.findOne({ periodType: dashboard.periodType, status: 'completed' }).sort({ createdAt: -1 }).lean() as KPIData | null;
-                                if (!kpiData?.data?.current?.associatePerformance) {
-                                    log.warn(`No KPI data for ${dashboard.periodType} SMS to ${staff.name}`);
-                                    continue;
-                                }
-                                const staffPerf = kpiData.data.current.associatePerformance[staff.name];
-                                if (!staffPerf) {
-                                    log.warn(`No performance data for ${staff.name} in ${dashboard.periodType}`);
-                                    continue;
-                                }
-                                // For SMS body generation, use the logic from the new sms/base.ts or move generateCoachingMessage there if needed.
-                                const smsBody = await generateCoachingMessage(
-                                  { ...staffPerf, name: staff.name },
-                                  sub.smsCoaching,
-                                  dashboard.periodType
-                                );
-                                const smsSent = await sendSms(
-                                  sub.smsCoaching.phoneNumber,
-                                  smsBody
-                                );
-                                if (smsSent) {
-                                    markJobExecuted(jobKey);
-                                    log.success(`Sent SMS to ${sub.smsCoaching.phoneNumber} for ${staff.name} (${dashboard.periodType})`);
-                                } else {
-                                    log.error(`Failed to send SMS to ${sub.smsCoaching.phoneNumber} for ${staff.name} (${dashboard.periodType})`);
-                                }
+                            if (!staff.isActive) {
+                                log.info(`[DEBUG] Skipping staff ${staff.name} (inactive)`);
+                                continue;
+                            }
+                            if (!dashboard.isActive) {
+                                log.info(`[DEBUG] Skipping dashboard for ${staff.name} (${dashboard.periodType}) at ${dashboard.timeEST} (inactive)`);
+                                continue;
+                            }
+                            if (!isJobDueNow(dashboard, now)) {
+                                log.info(`[DEBUG] Not due now: staff=${staff.name}, periodType=${dashboard.periodType}, timeEST=${dashboard.timeEST}`);
+                                continue;
+                            }
+                            // Include scheduled time in job key to allow multiple times per day
+                            const jobKey = `sms_${dashboard.periodType}_${staff.name}_${dashboard.timeEST || '09:00'}`;
+                            if (hasJobExecutedRecently(jobKey)) {
+                                log.info(`Skipping duplicate SMS for ${jobKey}`);
+                                continue;
+                            }
+                            const kpiData = await KPIDataModel.findOne({ periodType: dashboard.periodType, status: 'completed' }).sort({ createdAt: -1 }).lean() as KPIData | null;
+                            if (!kpiData?.data?.current?.associatePerformance) {
+                                log.warn(`No KPI data for ${dashboard.periodType} SMS to ${staff.name}`);
+                                continue;
+                            }
+                            const staffPerf = kpiData.data.current.associatePerformance[staff.name];
+                            if (!staffPerf) {
+                                log.warn(`No performance data for ${staff.name} in ${dashboard.periodType}`);
+                                continue;
+                            }
+                            log.info(`[DEBUG] Staff performance data for ${staff.name}: ${JSON.stringify(staffPerf, null, 2)}`);
+                            // For SMS body generation, use the logic from the new sms/base.ts or move generateCoachingMessage there if needed.
+                            const smsBody = await generateCoachingMessage(
+                              { ...staffPerf, name: staff.name },
+                              sub.smsCoaching,
+                              dashboard.periodType
+                            );
+                            const smsSent = await sendSms(
+                              sub.smsCoaching.phoneNumber,
+                              smsBody
+                            );
+                            if (smsSent) {
+                                markJobExecuted(jobKey);
+                                log.success(`Sent SMS to ${sub.smsCoaching.phoneNumber} for ${staff.name} (${dashboard.periodType}) at ${dashboard.timeEST || '09:00'}`);
+                            } else {
+                                log.error(`Failed to send SMS to ${sub.smsCoaching.phoneNumber} for ${staff.name} (${dashboard.periodType})`);
                             }
                         }
                         catch (err: unknown) {

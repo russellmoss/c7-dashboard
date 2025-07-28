@@ -9,18 +9,6 @@ const nextConfig = {
   trailingSlash: false,
   // Disable static optimization
   staticPageGenerationTimeout: 0,
-  // Force all pages to be dynamic
-  async generateStaticParams() {
-    return [];
-  },
-  // Disable static exports
-  async exportPathMap() {
-    return {};
-  },
-  // Force dynamic rendering for all routes
-  async rewrites() {
-    return [];
-  },
   // Add headers to prevent static generation
   async headers() {
     return [
@@ -46,10 +34,6 @@ const nextConfig = {
   // Disable image optimization
   images: {
     unoptimized: true,
-  },
-  // Disable static file serving
-  async redirects() {
-    return [];
   },
 };
 

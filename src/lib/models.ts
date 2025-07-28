@@ -659,7 +659,7 @@ export const KPIDataModel: Model<KPIData> =
   mongoose.models.KPIData || mongoose.model("KPIData", KPIDataSchema);
 export const CronJobLogModel: Model<CronJobLog> =
   mongoose.models.CronJobLog || mongoose.model("CronJobLog", CronJobLogSchema);
-export const EmailSubscriptionModel: Model<EmailSubscription> =
+export const EmailSubscriptionModel: Model<EmailSubscriptionDoc> =
   mongoose.models.EmailSubscription ||
   mongoose.model("EmailSubscription", EmailSubscriptionSchema);
 export const CoachingSMSHistoryModel: Model<CoachingSMSHistory> =

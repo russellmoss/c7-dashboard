@@ -2,19 +2,24 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Prevent API routes from being called during build time
-  if (process.env.NODE_ENV === 'production' && request.nextUrl.pathname.startsWith('/api/')) {
-    // Add headers to prevent caching of API routes
-    const response = NextResponse.next();
-    response.headers.set('Cache-Control', 'no-store, must-revalidate');
-    return response;
-  }
-
-  return NextResponse.next();
+  // Prevent static generation and add dynamic headers
+  const response = NextResponse.next();
+  
+  // Add headers to prevent static generation and caching
+  response.headers.set('Cache-Control', 'no-store, must-revalidate, no-cache, private');
+  response.headers.set('Pragma', 'no-cache');
+  response.headers.set('Expires', '0');
+  response.headers.set('Surrogate-Control', 'no-store');
+  response.headers.set('X-Accel-Buffering', 'no');
+  
+  // Force dynamic rendering
+  response.headers.set('X-Next-Dynamic', '1');
+  
+  return response;
 }
 
 export const config = {
   matcher: [
-    '/api/:path*',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }; 

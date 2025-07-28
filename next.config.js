@@ -3,12 +3,18 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     serverComponentsExternalPackages: ['mongoose'],
+    // Disable static generation completely
+    staticPageGenerationTimeout: 0,
+    // Force dynamic rendering
+    dynamicParams: true,
+    // Disable static optimization
+    optimizePackageImports: [],
   },
   // Completely disable static generation
   output: 'standalone',
   trailingSlash: false,
-  // Disable static optimization
-  staticPageGenerationTimeout: 0,
+  // Disable all static optimization
+  swcMinify: false,
   // Add headers to prevent static generation
   async headers() {
     return [
@@ -34,6 +40,16 @@ const nextConfig = {
   // Disable image optimization
   images: {
     unoptimized: true,
+  },
+  // Disable static file serving
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+      };
+    }
+    return config;
   },
 };
 

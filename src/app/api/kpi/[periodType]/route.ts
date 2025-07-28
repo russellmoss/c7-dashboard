@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
-import { KPIDataModel } from "@/lib/models";
+import { NextRequest, NextResponse } from "next/server";
+import { KPIDashboardData } from "@/types/kpi";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,

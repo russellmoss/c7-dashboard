@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
+import { NextRequest, NextResponse } from "next/server";
 import { EmailSubscriptionModel } from "@/lib/models";
 
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {

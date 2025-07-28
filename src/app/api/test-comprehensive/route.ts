@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { comprehensiveTestingService } from "@/lib/comprehensive-testing";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     console.log(

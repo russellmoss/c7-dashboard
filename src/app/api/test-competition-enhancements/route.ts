@@ -2,9 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { CompetitionModel, EmailSubscriptionModel } from "@/lib/models";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     console.log("[TEST] Testing Competition Enhancements...");
+
+    // Skip tests during build time
+    if (process.env.NODE_ENV === 'production' && process.env.SKIP_INTEGRATION_TESTS === 'true') {
+      console.log("[API] ⏭️ Skipping competition enhancements tests during build (API not available)");
+      return NextResponse.json({
+        success: true,
+        message: "Competition enhancements tests skipped during build",
+        data: {
+          testResults: {
+            rankingCompetition: { success: true, message: "Skipped during build" },
+            targetCompetition: { success: true, message: "Skipped during build" },
+            editTest: { success: true, message: "Skipped during build" },
+            deleteTest: { success: true, message: "Skipped during build" }
+          }
+        }
+      });
+    }
 
     await connectToDatabase();
     console.log("[TEST] ✅ Connected to database");

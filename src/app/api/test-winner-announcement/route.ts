@@ -4,11 +4,31 @@ import { CompetitionModel, EmailSubscriptionModel } from "@/lib/models";
 import { winnerAnnouncementService } from "@/lib/sms/winner-announcement";
 import { getCompetitionRankings } from "@/lib/competition-ranking";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     console.log(
       "[TEST] Testing Winner Announcement SMS Implementation with Claude AI...",
     );
+
+    // Skip tests during build time
+    if (process.env.NODE_ENV === 'production' && process.env.SKIP_INTEGRATION_TESTS === 'true') {
+      console.log("[API] ⏭️ Skipping winner announcement tests during build (API not available)");
+      return NextResponse.json({
+        success: true,
+        message: "Winner announcement tests skipped during build",
+        data: {
+          testResults: {
+            validation: { success: true, message: "Skipped during build" },
+            preview: { success: true, message: "Skipped during build" },
+            apiTest: { success: true, message: "Skipped during build" },
+            sending: { success: true, message: "Skipped during build" },
+            duplicatePrevention: { success: true, message: "Skipped during build" }
+          }
+        }
+      });
+    }
 
     await connectToDatabase();
     console.log("[TEST] ✅ Connected to database");

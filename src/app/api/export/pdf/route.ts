@@ -3,6 +3,8 @@ import puppeteer from "puppeteer";
 import { connectToDatabase } from "@/lib/mongodb";
 import { KPIDataModel } from "@/lib/models";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

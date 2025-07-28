@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { archiveManagementService } from "@/lib/archive-management";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

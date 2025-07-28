@@ -1,4 +1,4 @@
-import { TwilioSmsService, baseDebug } from './base.js';
+import { TwilioSmsService, baseDebug } from './base';
 import fetch from 'node-fetch';
 
 console.log('[DEBUG] baseDebug:', baseDebug);

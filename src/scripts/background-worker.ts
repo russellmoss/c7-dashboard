@@ -12,15 +12,15 @@ import moment from 'moment-timezone';
 import mongoose from 'mongoose';
 import chalk from 'chalk';
 import express from 'express';
-import { EmailSubscriptionModel, CronJobLogModel } from '../lib/models.js';
-import { EmailService } from '../lib/email-service.js';
-import { getSmsService, sendSms, generateCoachingMessage } from '../lib/sms/sms-worker.worker.js';
+import { EmailSubscriptionModel, CronJobLogModel } from '../lib/models';
+import { EmailService } from '../lib/email-service';
+import { getSmsService, sendSms, generateCoachingMessage } from '../lib/sms/sms-worker.worker';
 
 console.log('[DEBUG] getSmsService:', typeof getSmsService);
 console.log('[DEBUG] EmailService:', typeof EmailService);
 
-import type { EmailSubscription, KPIData } from '../types/kpi.js';
-import type { KPIDashboardData } from '../lib/email-templates.js';
+import type { EmailSubscription, KPIData } from '../types/kpi';
+import type { KPIDashboardData } from '../lib/email-templates';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join, dirname } from 'path';
@@ -230,7 +230,7 @@ async function processCompetitionSMS(CompetitionModel: any, now: Date) {
                     
                     log.info(`[COMPETITION] Sending welcome SMS for competition: ${competition.name}`);
                     
-                    const { WelcomeSmsService } = await import('../lib/sms/welcome-sms.js');
+                    const { WelcomeSmsService } = await import('../lib/sms/welcome-sms');
                     const welcomeSmsService = new WelcomeSmsService();
                     
                     await welcomeSmsService.sendWelcomeSms(competition._id.toString());
@@ -250,7 +250,7 @@ async function processCompetitionSMS(CompetitionModel: any, now: Date) {
                         if (notification.scheduledAt <= now && !notification.sent) {
                             log.info(`[COMPETITION] Sending progress SMS for competition: ${competition.name}`);
                             
-                            const { ProgressSmsService } = await import('../lib/sms/progress-sms.js');
+                            const { ProgressSmsService } = await import('../lib/sms/progress-sms');
                             const progressSmsService = new ProgressSmsService();
                             
                             await progressSmsService.sendProgressSms(competition._id.toString());
@@ -275,7 +275,7 @@ async function processCompetitionSMS(CompetitionModel: any, now: Date) {
                     
                     log.info(`[COMPETITION] Sending winner announcement for competition: ${competition.name}`);
                     
-                    const { WinnerAnnouncementService } = await import('../lib/sms/winner-announcement.js');
+                    const { WinnerAnnouncementService } = await import('../lib/sms/winner-announcement');
                     const winnerAnnouncementService = new WinnerAnnouncementService();
                     
                     await winnerAnnouncementService.sendWinnerAnnouncement(competition._id.toString());

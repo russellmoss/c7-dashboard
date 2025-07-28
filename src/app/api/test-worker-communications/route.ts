@@ -8,10 +8,31 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { WelcomeSmsService } from "@/lib/sms/welcome-sms";
 import { ProgressSmsService } from "@/lib/sms/progress-sms";
 
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
     console.log(`[API] POST /api/test-worker-communications`);
+
+    // Skip communications tests during build time
+    if (process.env.NODE_ENV === 'production' && process.env.SKIP_INTEGRATION_TESTS === 'true') {
+      console.log("[API] ⏭️ Skipping communications tests during build (API not available)");
+      return NextResponse.json({
+        success: true,
+        message: "Communications tests skipped during build",
+        data: {
+          testType: "all",
+          forceSend: false,
+          startTime: new Date().toISOString(),
+          emailResults: null,
+          smsResults: null,
+          competitionResults: null,
+          endTime: new Date().toISOString(),
+          finalQueueStats: null
+        }
+      });
+    }
+
     await connectToDatabase();
 
     const body = await request.json();
@@ -290,6 +311,21 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     console.log(`[API] GET /api/test-worker-communications`);
+
+    // Skip communications tests during build time
+    if (process.env.NODE_ENV === 'production' && process.env.SKIP_INTEGRATION_TESTS === 'true') {
+      console.log("[API] ⏭️ Skipping communications tests during build (API not available)");
+      return NextResponse.json({
+        success: true,
+        data: {
+          emailSubscribers: 0,
+          smsSubscribers: 0,
+          activeCompetitions: 0,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
     await connectToDatabase();
 
     // Get communication statistics

@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "NEXT_DISABLE_STATIC_GENERATION=true NEXT_DISABLE_OPTIMIZATION=true NEXT_DISABLE_CACHE=true NEXT_DISABLE_STATIC_EXPORT=true next build --no-lint",
-    "build:windows": "set NEXT_DISABLE_STATIC_GENERATION=true && set NEXT_DISABLE_OPTIMIZATION=true && set NEXT_DISABLE_CACHE=true && set NEXT_DISABLE_STATIC_EXPORT=true && next build --no-lint",
+    "build": "SKIP_INTEGRATION_TESTS=true NEXT_DISABLE_STATIC_GENERATION=true NEXT_DISABLE_OPTIMIZATION=true NEXT_DISABLE_CACHE=true NEXT_DISABLE_STATIC_EXPORT=true next build --no-lint",
+    "build:windows": "set SKIP_INTEGRATION_TESTS=true && set NEXT_DISABLE_STATIC_GENERATION=true && set NEXT_DISABLE_OPTIMIZATION=true && set NEXT_DISABLE_CACHE=true && set NEXT_DISABLE_STATIC_EXPORT=true && next build --no-lint",
     "build:worker": "tsc -p tsconfig.worker.json",
     "build:all": "npm run build && npm run build:worker",
     "start": "next start",

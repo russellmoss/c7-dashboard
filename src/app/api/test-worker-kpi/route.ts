@@ -6,6 +6,8 @@ import { fileURLToPath } from "url";
 import { connectToDatabase } from "@/lib/mongodb";
 import { CronJobLogModel } from "@/lib/models";
 
+export const dynamic = 'force-dynamic';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const scriptPath = join(
@@ -18,6 +20,30 @@ const execAsync = promisify(exec);
 export async function POST(request: NextRequest) {
   try {
     console.log(`[API] POST /api/test-worker-kpi`);
+
+    // Skip KPI tests during build time
+    if (process.env.NODE_ENV === 'production' && process.env.SKIP_INTEGRATION_TESTS === 'true') {
+      console.log("[API] ⏭️ Skipping KPI tests during build (API not available)");
+      return NextResponse.json({
+        success: true,
+        message: "KPI tests skipped during build",
+        data: {
+          periodType: "mtd",
+          testMode: true,
+          startTime: new Date().toISOString(),
+          scriptPath,
+          command: `node "${scriptPath}" mtd`,
+          execution: {
+            success: true,
+            stdout: "Skipped during build",
+            stderr: null,
+            executionTime: "0.00s",
+          },
+          logEntry: "mock-log-id",
+        }
+      });
+    }
+
     await connectToDatabase();
 
     const body = await request.json();
@@ -124,6 +150,20 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     console.log(`[API] GET /api/test-worker-kpi`);
+
+    // Skip KPI tests during build time
+    if (process.env.NODE_ENV === 'production' && process.env.SKIP_INTEGRATION_TESTS === 'true') {
+      console.log("[API] ⏭️ Skipping KPI tests during build (API not available)");
+      return NextResponse.json({
+        success: true,
+        data: {
+          scriptPath,
+          scriptExists: false,
+          recentLogs: [],
+        },
+      });
+    }
+
     await connectToDatabase();
 
     // Get recent KPI job logs

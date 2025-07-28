@@ -5,9 +5,29 @@ import { WelcomeSmsService } from "@/lib/sms/welcome-sms";
 import { ProgressSmsService } from "@/lib/sms/progress-sms";
 import { WinnerAnnouncementService } from "@/lib/sms/winner-announcement";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     console.log(`[API] GET /api/test-worker-competition-sms`);
+
+    // Skip SMS tests during build time
+    if (process.env.NODE_ENV === 'production' && process.env.SKIP_INTEGRATION_TESTS === 'true') {
+      console.log("[API] ⏭️ Skipping SMS tests during build (API not available)");
+      return NextResponse.json({
+        success: true,
+        message: "SMS tests skipped during build",
+        data: {
+          competitions: [],
+          summary: {
+            totalCompetitions: 0,
+            processedCompetitions: 0,
+            totalSmsSent: 0,
+            totalErrors: 0
+          }
+        }
+      });
+    }
 
     await connectToDatabase();
 

@@ -6,10 +6,10 @@ import moment from "moment-timezone";
 import mongoose from "mongoose";
 import chalk from "chalk";
 import express from "express";
-import { EmailService } from "../lib/email-service";
-import { getSmsService } from "../lib/sms/client";
+import { EmailService } from "../lib/email-service.js";
+import { getSmsService } from "../lib/sms/client.js";
 
-import type { EmailSubscription, KPIData } from "../types/kpi";
+import type { EmailSubscription, KPIData } from "../types/kpi.js";
 
 import { exec } from "child_process";
 import { promisify } from "util";

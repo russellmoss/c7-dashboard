@@ -144,11 +144,19 @@ export default function AdminDashboard() {
           subscribedReports: updatedSubscription.subscribedReports,
           reportSchedules: updatedSubscription.reportSchedules,
           smsCoaching: updatedSubscription.smsCoaching,
-          isActive: updatedSubscription.isActive
+          isActive: updatedSubscription.isActive,
+          personalizedGoals: updatedSubscription.personalizedGoals
         })
       });
 
       if (response.ok) {
+        // Fetch the updated subscription to get the latest data from the server
+        const updatedResponse = await fetch(`/api/admin/subscriptions/${updatedSubscription._id}`);
+        if (updatedResponse.ok) {
+          const freshSubscription = await updatedResponse.json();
+          // Update the modal subscription with fresh data
+          setModalSubscription(freshSubscription);
+        }
         fetchSubscriptions();
         setIsModalOpen(false);
         setModalSubscription(null);
@@ -301,11 +309,21 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-pink-50">
-      <div className="p-6 flex items-center">
-        <a href="/" className="inline-flex items-center px-4 py-2 rounded bg-wine-600 text-white hover:bg-wine-700 transition font-semibold text-sm shadow mr-4">
-          Home
-        </a>
-        <h1 className="text-2xl font-bold text-wine-900">Subscription Management System</h1>
+      <div className="p-6 flex items-center justify-between">
+        <div className="flex items-center">
+          <a href="/" className="inline-flex items-center px-4 py-2 rounded bg-wine-600 text-white hover:bg-wine-700 transition font-semibold text-sm shadow mr-4">
+            Home
+          </a>
+          <h1 className="text-2xl font-bold text-wine-900">Admin Dashboard</h1>
+        </div>
+        <div className="flex space-x-4">
+          <a href="/admin" className="inline-flex items-center px-4 py-2 rounded bg-wine-600 text-white hover:bg-wine-700 transition font-semibold text-sm shadow">
+            📧 Subscriptions
+          </a>
+          <a href="/admin/competitions" className="inline-flex items-center px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition font-semibold text-sm shadow">
+            🏆 Competitions
+          </a>
+        </div>
       </div>
       <div className="max-w-5xl mx-auto p-4">
         {/* Header */}

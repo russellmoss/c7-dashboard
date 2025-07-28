@@ -85,6 +85,7 @@ export interface AssociateMetrics {
   nonClubGuests: number;
   wineBottleConversionGoalVariance: number | string;
   clubConversionGoalVariance: number | string;
+  aov: number;
 }
 
 export interface ServiceTypeMetrics {
@@ -176,6 +177,11 @@ export interface EmailSubscription {
   createdAt: Date;
   updatedAt: Date;
   unsubscribeToken?: string;
+  personalizedGoals?: {
+    bottleConversionRate?: { value?: number; enabled?: boolean };
+    clubConversionRate?: { value?: number; enabled?: boolean };
+    aov?: { value?: number; enabled?: boolean };
+  };
 }
 
 export interface ReportSchedule {

@@ -100,13 +100,20 @@ export default function AllQuartersDashboard() {
         {Object.entries(quarters).map(([quarter, qData]: any) => {
           const comparison = quarterComparisons[quarter];
           const current = qData.current;
-          const staff = current?.associatePerformance
-            ? Object.entries(current.associatePerformance).map(([name, perf]: any) => ({
-                name,
-                guests: perf.guests,
-                ...perf,
-              }))
-            : [];
+          const staff = qData?.associatePerformance ?
+            Object.entries(qData.associatePerformance).map(([name, perf]: any) => ({
+              name,
+              orders: perf.orders,
+              guests: perf.guests,
+              revenue: perf.revenue,
+              bottles: perf.bottles,
+              clubSignups: perf.clubSignups,
+              wineBottleConversionRate: perf.wineBottleConversionRate,
+              clubConversionRate: perf.clubConversionRate,
+              wineBottleConversionGoalVariance: perf.wineBottleConversionGoalVariance,
+              clubConversionGoalVariance: perf.clubConversionGoalVariance,
+              aov: perf.aov, // <-- Pass AOV
+            })) : [];
           const quarterInsights = insights?.[quarter] || insights || null;
           return (
             <div key={quarter} className="border rounded-lg p-4 bg-white shadow-sm">

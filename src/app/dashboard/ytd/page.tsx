@@ -64,6 +64,7 @@ export default function YTDDashboard() {
       clubConversionRate: perf.clubConversionRate,
       wineBottleConversionGoalVariance: perf.wineBottleConversionGoalVariance,
       clubConversionGoalVariance: perf.clubConversionGoalVariance,
+      aov: perf.aov, // <-- Pass AOV
     })) : [];
   const serviceTypeAnalysis = current?.serviceTypeAnalysis;
   const experienceTypes = ['tasting', 'dining', 'retail', 'byTheGlass'];

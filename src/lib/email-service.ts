@@ -1,7 +1,8 @@
 import { Resend } from 'resend';
-import { EmailTemplates, KPIDashboardData } from './email-templates.js';
+import { EmailTemplates, KPIDashboardData } from './email-templates';
+import { connectToDatabase } from './mongodb';
+import type { EmailSubscription } from '../types/email';
 import PQueue from 'p-queue';
-import type { EmailSubscription } from '../types/email.js';
 
 function getResendInstance() {
   const key = process.env.RESEND_API_KEY;

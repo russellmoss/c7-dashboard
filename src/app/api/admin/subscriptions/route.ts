@@ -17,7 +17,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, subscribedReports, reportSchedules, smsCoaching } = body;
+    const { name, email, subscribedReports, reportSchedules, smsCoaching, personalizedGoals } = body;
 
     // Validate required fields
     if (!name || !email || !subscribedReports || !reportSchedules) {
@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
       subscribedReports,
       reportSchedules,
       smsCoaching,
-      isActive: true
+      isActive: true,
+      ...(typeof personalizedGoals !== 'undefined' ? { personalizedGoals } : {})
     });
 
     await subscription.save();

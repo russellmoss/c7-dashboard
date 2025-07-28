@@ -71,6 +71,7 @@ export default function MTDDashboard() {
       clubConversionRate: perf.clubConversionRate,
       wineBottleConversionGoalVariance: perf.wineBottleConversionGoalVariance,
       clubConversionGoalVariance: perf.clubConversionGoalVariance,
+      aov: perf.aov, // <-- Pass AOV
     })) : [];
   const praise = data?.insights?.staffPraise || [];
   const coaching = data?.insights?.staffCoaching || [];

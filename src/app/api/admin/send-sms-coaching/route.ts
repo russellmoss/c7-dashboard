@@ -127,11 +127,12 @@ export async function POST(request: NextRequest) {
         orders: performance.orders,
         guests: performance.guests,
         revenue: performance.revenue,
-        bottles: performance.bottles
+        bottles: performance.bottles,
+        aov: performance.aov
       };
 
-      // Send SMS
-      const message = await generateCoachingMessage(staffData, subscription.smsCoaching, periodType);
+      // Send SMS with personal goals
+      const message = await generateCoachingMessage(staffData, subscription.smsCoaching, periodType, subscription.personalizedGoals);
       const success = await sendSms(subscription.smsCoaching.phoneNumber, message);
 
       // Archive the sent SMS if successful

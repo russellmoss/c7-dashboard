@@ -28,7 +28,7 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { name, email, subscribedReports, reportSchedules, smsCoaching } = body;
+    const { name, email, subscribedReports, reportSchedules, smsCoaching, personalizedGoals } = body;
 
     // Validate required fields
     if (!name || !email || !subscribedReports || !reportSchedules) {
@@ -46,9 +46,14 @@ export async function PUT(
       return NextResponse.json({ error: 'Email already subscribed' }, { status: 400 });
     }
 
+    const updatePayload: any = { name, email, subscribedReports, reportSchedules, smsCoaching };
+    if (typeof personalizedGoals !== 'undefined') {
+      updatePayload.personalizedGoals = personalizedGoals;
+    }
+
     const subscription = await EmailSubscriptionModel.findByIdAndUpdate(
       params.id,
-      { name, email, subscribedReports, reportSchedules, smsCoaching },
+      updatePayload,
       { new: true, runValidators: true }
     );
 

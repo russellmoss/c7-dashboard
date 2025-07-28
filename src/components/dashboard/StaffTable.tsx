@@ -13,6 +13,7 @@ interface Staff {
   clubConversionRate?: number;
   wineBottleConversionGoalVariance?: number;
   clubConversionGoalVariance?: number;
+  aov?: number; // <-- NEW FIELD
 }
 interface StaffFeedback {
   name: string;
@@ -83,6 +84,7 @@ const staffColumns: { key: keyof Staff; label: string; isNumeric?: boolean }[] =
   { key: 'clubSignups', label: 'Club Signups', isNumeric: true },
   { key: 'wineBottleConversionRate', label: 'Wine Conv. Rate', isNumeric: true },
   { key: 'clubConversionRate', label: 'Club Conv. Rate', isNumeric: true },
+  { key: 'aov', label: 'AOV', isNumeric: true }, // <-- NEW COLUMN
 ];
 
 export function StaffTable({ staff }: { staff: Staff[] }) {
@@ -160,6 +162,9 @@ export function StaffTable({ staff }: { staff: Staff[] }) {
                       {s.clubConversionGoalVariance >= 0 ? `▲ ${s.clubConversionGoalVariance}%` : `▼ ${Math.abs(s.clubConversionGoalVariance)}%`}
                     </span>
                   )}
+                </TableCell>
+                <TableCell>
+                  <span>{s.aov != null ? `$${s.aov.toLocaleString()}` : '-'}</span>
                 </TableCell>
               </TableRow>
             ))

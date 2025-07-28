@@ -139,20 +139,20 @@ export default function CustomDashboard() {
   const insights = data?.insights;
 
   // Prepare staff data
-  const staff = current?.associatePerformance
-    ? Object.entries(current.associatePerformance).map(([name, perf]: any) => ({
-        name,
-        orders: perf.orders,
-        guests: perf.guests,
-        revenue: perf.revenue,
-        bottles: perf.bottles,
-        clubSignups: perf.clubSignups,
-        wineBottleConversionRate: perf.wineBottleConversionRate,
-        clubConversionRate: perf.clubConversionRate,
-        wineBottleConversionGoalVariance: perf.wineBottleConversionGoalVariance,
-        clubConversionGoalVariance: perf.clubConversionGoalVariance,
-      }))
-    : [];
+  const staff = current?.associatePerformance ? 
+    Object.entries(current.associatePerformance).map(([name, perf]: any) => ({
+      name,
+      orders: perf.orders,
+      guests: perf.guests,
+      revenue: perf.revenue,
+      bottles: perf.bottles,
+      clubSignups: perf.clubSignups,
+      wineBottleConversionRate: perf.wineBottleConversionRate,
+      clubConversionRate: perf.clubConversionRate,
+      wineBottleConversionGoalVariance: perf.wineBottleConversionGoalVariance,
+      clubConversionGoalVariance: perf.clubConversionGoalVariance,
+      aov: perf.aov, // <-- Pass AOV
+    })) : [];
 
   // Prepare experience breakdown data
   const serviceTypeAnalysis = current?.serviceTypeAnalysis;

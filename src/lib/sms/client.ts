@@ -1,4 +1,4 @@
-import { TwilioSmsService } from './base.js';
+import { TwilioSmsService } from './base';
 
 let smsService: TwilioSmsService | null = null;
 

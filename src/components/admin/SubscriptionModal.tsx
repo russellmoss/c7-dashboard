@@ -53,7 +53,12 @@ export default function SubscriptionModal({
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
-    unsubscribeToken: ''
+    unsubscribeToken: '',
+    personalizedGoals: {
+      bottleConversionRate: { enabled: false, value: undefined },
+      clubConversionRate: { enabled: false, value: undefined },
+      aov: { enabled: false, value: undefined }
+    }
   });
 
   const [availableStaffByReport, setAvailableStaffByReport] = useState<Record<ReportKey, string[]>>({
@@ -130,6 +135,11 @@ export default function SubscriptionModal({
           customMessage: subscription.smsCoaching?.customMessage ?? ''
         },
         isActive: subscription.isActive ?? true,
+        personalizedGoals: subscription.personalizedGoals || {
+          bottleConversionRate: { enabled: false, value: undefined },
+          clubConversionRate: { enabled: false, value: undefined },
+          aov: { enabled: false, value: undefined }
+        }
       });
     }
   }, [subscription]);
@@ -173,7 +183,36 @@ export default function SubscriptionModal({
     e.preventDefault();
     setAdminError('');
     setAdminSuccess('');
+    // Ensure all goal values are numbers or null, never undefined
+    const safeGoals = {
+      bottleConversionRate: {
+        enabled: !!formData.personalizedGoals?.bottleConversionRate?.enabled,
+        value:
+          formData.personalizedGoals?.bottleConversionRate?.value === undefined ||
+          (typeof formData.personalizedGoals?.bottleConversionRate?.value === 'string' && formData.personalizedGoals?.bottleConversionRate?.value === '')
+            ? null
+            : Number(formData.personalizedGoals?.bottleConversionRate?.value)
+      },
+      clubConversionRate: {
+        enabled: !!formData.personalizedGoals?.clubConversionRate?.enabled,
+        value:
+          formData.personalizedGoals?.clubConversionRate?.value === undefined ||
+          (typeof formData.personalizedGoals?.clubConversionRate?.value === 'string' && formData.personalizedGoals?.clubConversionRate?.value === '')
+            ? null
+            : Number(formData.personalizedGoals?.clubConversionRate?.value)
+      },
+      aov: {
+        enabled: !!formData.personalizedGoals?.aov?.enabled,
+        value:
+          formData.personalizedGoals?.aov?.value === undefined ||
+          (typeof formData.personalizedGoals?.aov?.value === 'string' && formData.personalizedGoals?.aov?.value === '')
+            ? null
+            : Number(formData.personalizedGoals?.aov?.value)
+      }
+    };
+    
     if (subscription) {
+      // Existing subscriber (PUT)
       const dataToSave = {
         _id: subscription._id,
         name: formData.name || '',
@@ -181,14 +220,19 @@ export default function SubscriptionModal({
         phone: formData.smsCoaching?.phoneNumber || '',
         subscribedReports: formData.subscribedReports || [],
         reportSchedules: formData.reportSchedules || {},
-        smsCoaching: formData.smsCoaching,
+        smsCoaching: {
+          ...formData.smsCoaching,
+          phoneNumber: formData.smsCoaching?.phoneNumber || '',
+        },
         isActive: formData.isActive ?? true,
         createdAt: formData.createdAt || new Date(),
         updatedAt: new Date(),
         unsubscribeToken: subscription.unsubscribeToken,
         admin: isAdmin,
-        adminPassword: isAdmin ? adminPassword : undefined
+        adminPassword: isAdmin ? adminPassword : undefined,
+        personalizedGoals: safeGoals
       };
+      console.log('Saving subscription:', dataToSave);
       if (isAdmin && adminPassword) {
         // Call Supabase user creation API
         try {
@@ -212,6 +256,28 @@ export default function SubscriptionModal({
           setAdminError(err.message || 'Failed to create user');
         }
       }
+      onSave(dataToSave as EmailSubscription);
+    } else {
+      // New subscriber (POST)
+      const dataToSave = {
+        name: formData.name || '',
+        email: formData.email || '',
+        phone: formData.smsCoaching?.phoneNumber || '',
+        subscribedReports: formData.subscribedReports || [],
+        reportSchedules: formData.reportSchedules || {},
+        smsCoaching: {
+          ...formData.smsCoaching,
+          phoneNumber: formData.smsCoaching?.phoneNumber || '',
+        },
+        isActive: formData.isActive ?? true,
+        createdAt: formData.createdAt || new Date(),
+        updatedAt: new Date(),
+        unsubscribeToken: formData.unsubscribeToken,
+        admin: isAdmin,
+        adminPassword: isAdmin ? adminPassword : undefined,
+        personalizedGoals: safeGoals
+      };
+      console.log('Saving new subscription:', dataToSave);
       onSave(dataToSave as EmailSubscription);
     }
   };
@@ -380,20 +446,9 @@ export default function SubscriptionModal({
             onChange={e => setFormData(prev => ({
               ...prev,
               smsCoaching: {
-                isActive: typeof prev.smsCoaching?.isActive === 'boolean' ? prev.smsCoaching.isActive : false,
-                phoneNumber: typeof prev.smsCoaching?.phoneNumber === 'string' ? prev.smsCoaching.phoneNumber : '',
-                coachingStyle: typeof prev.smsCoaching?.coachingStyle === 'string' ? prev.smsCoaching.coachingStyle : 'balanced',
-                customMessage: typeof prev.smsCoaching?.customMessage === 'string' ? prev.smsCoaching.customMessage : '',
-                staffMembers: Array.isArray(prev.smsCoaching?.staffMembers) ? prev.smsCoaching.staffMembers.map(staff => ({
-                  ...staff,
-                  id: staff.id ?? '',
-                  name: staff.name ?? '',
-                  phoneNumber: staff.phoneNumber ?? '',
-                  enabled: typeof staff.enabled === 'boolean' ? staff.enabled : false,
-                  isActive: typeof staff.isActive === 'boolean' ? staff.isActive : false,
-                  dashboards: staff.dashboards ?? []
-                })) : [],
-              }
+                ...prev.smsCoaching,
+                phoneNumber: e.target.value
+              } as typeof prev.smsCoaching // ensure type safety
             }))}
             placeholder="e.g. +15555555555"
             required={formData.smsCoaching?.isActive ?? false}
@@ -1215,6 +1270,138 @@ export default function SubscriptionModal({
             }))}
             placeholder="Enter custom message"
           />
+        </div>
+
+        {/* Personal Goals Section */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold mb-2">Personal Goals</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Bottle Conversion Rate Goal */}
+            <div className="border rounded p-4 flex flex-col items-start">
+              <label className="flex items-center space-x-2 mb-2">
+                <input
+                  type="checkbox"
+                  checked={!!formData.personalizedGoals?.bottleConversionRate?.enabled}
+                  onChange={e => setFormData(prev => ({
+                    ...prev,
+                    personalizedGoals: {
+                      ...prev.personalizedGoals,
+                      bottleConversionRate: {
+                        ...prev.personalizedGoals?.bottleConversionRate,
+                        enabled: e.target.checked
+                      }
+                    }
+                  }))}
+                  className="rounded"
+                />
+                <span className="text-sm font-medium">Bottle Conversion Rate Goal</span>
+              </label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step={0.1}
+                value={formData.personalizedGoals?.bottleConversionRate?.value ?? ''}
+                onChange={e => setFormData(prev => ({
+                  ...prev,
+                  personalizedGoals: {
+                    ...prev.personalizedGoals,
+                    bottleConversionRate: {
+                      ...prev.personalizedGoals?.bottleConversionRate,
+                      value: e.target.value === '' ? undefined : Number(e.target.value)
+                    }
+                  }
+                }))}
+                disabled={!formData.personalizedGoals?.bottleConversionRate?.enabled}
+                placeholder="%"
+                className="w-full"
+              />
+              <span className="text-xs text-gray-500 mt-1">0-100%</span>
+            </div>
+            {/* Club Conversion Rate Goal */}
+            <div className="border rounded p-4 flex flex-col items-start">
+              <label className="flex items-center space-x-2 mb-2">
+                <input
+                  type="checkbox"
+                  checked={!!formData.personalizedGoals?.clubConversionRate?.enabled}
+                  onChange={e => setFormData(prev => ({
+                    ...prev,
+                    personalizedGoals: {
+                      ...prev.personalizedGoals,
+                      clubConversionRate: {
+                        ...prev.personalizedGoals?.clubConversionRate,
+                        enabled: e.target.checked
+                      }
+                    }
+                  }))}
+                  className="rounded"
+                />
+                <span className="text-sm font-medium">Club Conversion Rate Goal</span>
+              </label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step={0.1}
+                value={formData.personalizedGoals?.clubConversionRate?.value ?? ''}
+                onChange={e => setFormData(prev => ({
+                  ...prev,
+                  personalizedGoals: {
+                    ...prev.personalizedGoals,
+                    clubConversionRate: {
+                      ...prev.personalizedGoals?.clubConversionRate,
+                      value: e.target.value === '' ? undefined : Number(e.target.value)
+                    }
+                  }
+                }))}
+                disabled={!formData.personalizedGoals?.clubConversionRate?.enabled}
+                placeholder="%"
+                className="w-full"
+              />
+              <span className="text-xs text-gray-500 mt-1">0-100%</span>
+            </div>
+            {/* AOV Goal */}
+            <div className="border rounded p-4 flex flex-col items-start">
+              <label className="flex items-center space-x-2 mb-2">
+                <input
+                  type="checkbox"
+                  checked={!!formData.personalizedGoals?.aov?.enabled}
+                  onChange={e => setFormData(prev => ({
+                    ...prev,
+                    personalizedGoals: {
+                      ...prev.personalizedGoals,
+                      aov: {
+                        ...prev.personalizedGoals?.aov,
+                        enabled: e.target.checked
+                      }
+                    }
+                  }))}
+                  className="rounded"
+                />
+                <span className="text-sm font-medium">Average Order Value Goal</span>
+              </label>
+              <Input
+                type="number"
+                min={0}
+                step={0.01}
+                value={formData.personalizedGoals?.aov?.value ?? ''}
+                onChange={e => setFormData(prev => ({
+                  ...prev,
+                  personalizedGoals: {
+                    ...prev.personalizedGoals,
+                    aov: {
+                      ...prev.personalizedGoals?.aov,
+                      value: e.target.value === '' ? undefined : Number(e.target.value)
+                    }
+                  }
+                }))}
+                disabled={!formData.personalizedGoals?.aov?.enabled}
+                placeholder="$"
+                className="w-full"
+              />
+              <span className="text-xs text-gray-500 mt-1">Positive number</span>
+            </div>
+          </div>
         </div>
 
         {/* Save/Delete/Send Buttons */}

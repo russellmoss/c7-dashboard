@@ -204,16 +204,119 @@ async function ensureConnection() {
     }
 }
 
+// Process competition SMS scheduling
+async function processCompetitionSMS(CompetitionModel: any, now: Date) {
+    try {
+        log.info('[COMPETITION] Processing competition SMS scheduling...');
+        
+        // Find active competitions without populating (we'll handle subscribers separately)
+        const activeCompetitions = await CompetitionModel.find({ 
+            status: 'active',
+            $or: [
+                { 'welcomeMessage.sendAt': { $lte: now, $ne: null } },
+                { 'progressNotifications.scheduledAt': { $lte: now } },
+                { 'winnerAnnouncement.scheduledAt': { $lte: now } }
+            ]
+        }).lean();
+        
+        log.info(`[COMPETITION] Found ${activeCompetitions.length} competitions with scheduled SMS`);
+        
+        for (const competition of activeCompetitions) {
+            try {
+                // Process welcome message
+                if (competition.welcomeMessage?.sendAt && 
+                    competition.welcomeMessage.sendAt <= now && 
+                    !competition.welcomeMessage.sent) {
+                    
+                    log.info(`[COMPETITION] Sending welcome SMS for competition: ${competition.name}`);
+                    
+                    const { WelcomeSmsService } = await import('../lib/sms/welcome-sms.js');
+                    const welcomeSmsService = new WelcomeSmsService();
+                    
+                    await welcomeSmsService.sendWelcomeSms(competition._id.toString());
+                    
+                    // Mark as sent
+                    await CompetitionModel.findByIdAndUpdate(competition._id, {
+                        'welcomeMessage.sent': true,
+                        'welcomeMessage.sentAt': now
+                    });
+                    
+                    log.success(`[COMPETITION] ✅ Welcome SMS sent for: ${competition.name}`);
+                }
+                
+                // Process progress notifications
+                if (competition.progressNotifications && competition.progressNotifications.length > 0) {
+                    for (const notification of competition.progressNotifications) {
+                        if (notification.scheduledAt <= now && !notification.sent) {
+                            log.info(`[COMPETITION] Sending progress SMS for competition: ${competition.name}`);
+                            
+                            const { ProgressSmsService } = await import('../lib/sms/progress-sms.js');
+                            const progressSmsService = new ProgressSmsService();
+                            
+                            await progressSmsService.sendProgressSms(competition._id.toString());
+                            
+                            // Mark as sent
+                            await CompetitionModel.findByIdAndUpdate(competition._id, {
+                                'progressNotifications.$[elem].sent': true,
+                                'progressNotifications.$[elem].sentAt': now
+                            }, {
+                                arrayFilters: [{ 'elem.id': notification.id }]
+                            });
+                            
+                            log.success(`[COMPETITION] ✅ Progress SMS sent for: ${competition.name}`);
+                        }
+                    }
+                }
+                
+                // Process winner announcement
+                if (competition.winnerAnnouncement?.scheduledAt && 
+                    competition.winnerAnnouncement.scheduledAt <= now && 
+                    !competition.winnerAnnouncement.sent) {
+                    
+                    log.info(`[COMPETITION] Sending winner announcement for competition: ${competition.name}`);
+                    
+                    const { WinnerAnnouncementService } = await import('../lib/sms/winner-announcement.js');
+                    const winnerAnnouncementService = new WinnerAnnouncementService();
+                    
+                    await winnerAnnouncementService.sendWinnerAnnouncement(competition._id.toString());
+                    
+                    // Mark as sent
+                    await CompetitionModel.findByIdAndUpdate(competition._id, {
+                        'winnerAnnouncement.sent': true,
+                        'winnerAnnouncement.sentAt': now
+                    });
+                    
+                    log.success(`[COMPETITION] ✅ Winner announcement sent for: ${competition.name}`);
+                }
+                
+            } catch (error: any) {
+                log.error(`[COMPETITION] Error processing SMS for competition ${competition.name}: ${error.message}`);
+            }
+        }
+        
+    } catch (error: any) {
+        log.error(`[COMPETITION] Error in processCompetitionSMS: ${error.message}`);
+    }
+}
+
 // Robust job processing with individual error handling
 async function processScheduledJobs() {
     try {
         await ensureConnection();
         // Require models only after connection is ensured
-        const { EmailSubscriptionModel, KPIDataModel } = await import('../lib/models.js');
+        const { EmailSubscriptionModel, KPIDataModel, CompetitionModel } = await import('../lib/models.js');
+        
+        // Ensure all models are registered
+        await import('../lib/models.js');
+        
         const now = new Date();
         const estNow = moment.tz(now, 'America/New_York');
         log.info(`[DEBUG] UTC now: ${now.toISOString()}, EST now: ${estNow.format()}`);
         log.info('Mongoose connection state after ensureConnection: ' + mongoose.connection.readyState);
+        
+        // Process competition SMS scheduling
+        await processCompetitionSMS(CompetitionModel, now);
+        
         const subs = await EmailSubscriptionModel.find({ isActive: true }).lean() as unknown as EmailSubscription[];
         log.info(`Processing scheduled jobs for ${subs.length} active subscriptions`);
         
@@ -320,7 +423,8 @@ async function processScheduledJobs() {
                             const smsBody = await generateCoachingMessage(
                               { ...staffPerf, name: staff.name },
                               sub.smsCoaching,
-                              dashboard.periodType
+                              dashboard.periodType,
+                              sub.personalizedGoals
                             );
                             const smsSent = await sendSms(
                               sub.smsCoaching.phoneNumber,
@@ -484,12 +588,20 @@ async function gracefulShutdown() {
 
 // Cron jobs
 function setupCronJobs() {
+    // KPI Data Generation - Daily at specific times
     cron.schedule('0 1 * * *', () => executeKPIJob('mtd'), { timezone: 'America/New_York', name: 'mtd-generation' });
     cron.schedule('0 2 * * *', () => executeKPIJob('ytd'), { timezone: 'America/New_York', name: 'ytd-generation' });
     cron.schedule('0 3 * * *', () => executeKPIJob('qtd'), { timezone: 'America/New_York', name: 'qtd-generation' });
     cron.schedule('0 4 * * *', () => executeKPIJob('all-quarters'), { timezone: 'America/New_York', name: 'all-quarters-generation' });
-    // Change from every minute to every 10 seconds for testing
-    cron.schedule('*/10 * * * * *', async () => {
+    
+    // Scheduled Communications - Every 5 minutes
+    // This interval is optimal because:
+    // - Handles timezone edge cases (server vs. EST)
+    // - Catches jobs that might be slightly delayed
+    // - Good for real-time competition updates
+    // - Minimal resource usage (lightweight job checking)
+    // - Prevents jobs from being missed due to timing issues
+    cron.schedule('*/5 * * * *', async () => {
         log.info('Scheduled communications cron triggered');
         try {
             await processScheduledJobs();

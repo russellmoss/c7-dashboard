@@ -556,6 +556,13 @@ function calculateKPIsForPeriod(orders, clubMemberships, startDate, endDate, per
         
         assoc.clubConversionGoalVariance = (assoc.clubConversionRate !== 'n/a' && assoc.clubConversionRate !== 0) ? 
             round(assoc.clubConversionRate - PERFORMANCE_GOALS.clubConversionRate, 2) : 'n/a';
+        // --- NEW: Calculate AOV for this associate ---
+        const staffOrders = revenueOrders.filter(order =>
+            order.salesAssociate?.name === name && !isReturnOrRefund(order)
+        );
+        const staffOrderCount = staffOrders.length;
+        const staffRevenue = staffOrders.reduce((sum, order) => sum + getOrderRevenue(order), 0);
+        assoc.aov = staffOrderCount > 0 ? round((staffRevenue / 100) / staffOrderCount, 2) : 0;
     }
 
     Object.keys(overallMetrics).forEach(key => {
@@ -1112,6 +1119,15 @@ function verifyDataStructure(data) {
     } else {
         log.success('✅ All required fields present in output structure');
     }
+}
+
+// Helper to determine if an order is a return/refund
+function isReturnOrRefund(order) {
+    if ('isReturn' in order && order.isReturn) return true;
+    if ('isRefund' in order && order.isRefund) return true;
+    if ('status' in order && typeof order.status === 'string' && order.status.toLowerCase().includes('return')) return true;
+    if (getOrderRevenue(order) < 0) return true;
+    return false;
 }
 
 // --- RUN THE SCRIPT ---

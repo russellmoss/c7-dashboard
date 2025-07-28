@@ -19,8 +19,6 @@
   "noEmit": false,
   "include": [
     "src/scripts/background-worker.ts",
-    "src/scripts/test-sms.ts",
-    "src/scripts/test-email-service.ts",
     "src/scripts/init-db.ts",
     "src/scripts/hello.ts",
     "src/lib/email-service.ts",
@@ -33,6 +31,14 @@
     "src/app/**/*",
     "src/pages/**/*",
     "src/components/**/*",
-    "src/lib/sms/sms-worker.next.ts"
+    "src/lib/sms/sms-worker.next.ts",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/test-*.ts",
+    "**/test-*.js",
+    "src/scripts/test-*.ts",
+    "src/scripts/test-*.js",
+    "src/scripts/test-utils.js",
+    "src/scripts/validate-data.js"
   ]
 }

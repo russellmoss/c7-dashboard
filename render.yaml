@@ -1,17 +1,42 @@
 services:
-  # Web Service (Next.js App)
+  # Web Service (Next.js Frontend)
   - type: web
     name: milea-estate-dashboard
     env: node
     plan: starter
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    nodeVersion: "18.20.0"
+    buildCommand: |
+      echo "🚀 Starting Next.js frontend build..."
+      NODE_ENV=production npm install
+      NODE_ENV=production SKIP_INTEGRATION_TESTS=true CI=true npm run build:render
+      npm run verify:render
+      echo "✅ Frontend build completed successfully"
+    startCommand: NODE_ENV=production npm start
     healthCheckPath: /api/health
     envVars:
+      # Production Environment
       - key: NODE_ENV
         value: production
+      - key: CI
+        value: "true"
+      
+      # Next.js Build Configuration
+      - key: SKIP_INTEGRATION_TESTS
+        value: "true"
+      - key: NEXT_DISABLE_STATIC_GENERATION
+        value: "true"
+      - key: NEXT_DISABLE_OPTIMIZATION
+        value: "true"
+      - key: NEXT_DISABLE_CACHE
+        value: "true"
+      - key: NEXT_DISABLE_STATIC_EXPORT
+        value: "true"
+      
+      # Database Configuration
       - key: MONGODB_URI
         sync: false
+      
+      # External Services
       - key: TWILIO_ACCOUNT_SID
         sync: false
       - key: TWILIO_AUTH_TOKEN
@@ -26,18 +51,34 @@ services:
         sync: false
     autoDeploy: true
 
-  # Background Worker Service
+  # Background Worker Service (Node.js Backend)
   - type: worker
     name: milea-estate-worker
     env: node
     plan: starter
-    buildCommand: npm install && npm run build:worker
-    startCommand: npm run start:worker
+    nodeVersion: "18.20.0"
+    buildCommand: |
+      echo "🔧 Starting backend worker build..."
+      NODE_ENV=production npm install
+      NODE_ENV=production SKIP_INTEGRATION_TESTS=true CI=true npm run build:worker:prod
+      echo "✅ Backend worker build completed successfully"
+    startCommand: NODE_ENV=production npm run start:worker
     envVars:
+      # Production Environment
       - key: NODE_ENV
         value: production
+      - key: CI
+        value: "true"
+      
+      # Test Configuration (Skip tests during deployment)
+      - key: SKIP_INTEGRATION_TESTS
+        value: "true"
+      
+      # Database Configuration
       - key: MONGODB_URI
         sync: false
+      
+      # External Services
       - key: TWILIO_ACCOUNT_SID
         sync: false
       - key: TWILIO_AUTH_TOKEN
@@ -51,6 +92,11 @@ services:
       - key: JWT_SECRET
         sync: false
     autoDeploy: true
-# Cron Jobs (handled by worker service)
-# The worker service runs cron jobs every 5 minutes for communications
-# and daily at 1-4 AM EST for KPI generation
+
+# Deployment Notes:
+# - Frontend: Next.js app with dynamic rendering, no static generation
+# - Backend: Node.js worker with cron jobs for communications and KPI generation
+# - Database: MongoDB Atlas with persistent connections
+# - External Services: Twilio (SMS), Resend (Email), Anthropic (AI)
+# - Build Process: Tests skipped during production builds
+# - Health Checks: Frontend health check at /api/health

@@ -1,4 +1,5 @@
 import twilio from 'twilio';
+import { QueueManager } from '../queue-manager';
 
 export const baseDebug = 'base-runtime-value';
 
@@ -46,13 +47,19 @@ export class TwilioSmsService implements SmsService {
     }
 
     try {
-      const message = await this.client.messages.create({
-        body,
-        to,
-        from: process.env.TWILIO_PHONE_NUMBER!
+      // Use centralized queue manager for rate limiting
+      const result = await QueueManager.queueSms(async () => {
+        console.log(`[TwilioSmsService] Sending SMS to ${to} (queued)`);
+        const message = await this.client!.messages.create({
+          body,
+          to,
+          from: process.env.TWILIO_PHONE_NUMBER!
+        });
+        console.log(`[TwilioSmsService] SMS sent successfully: ${message.sid}`);
+        return true;
       });
-      console.log(`[TwilioSmsService] SMS sent: ${message.sid}`);
-      return true;
+      
+      return result;
     } catch (error) {
       console.error('[TwilioSmsService] Send failed:', error);
       return false;

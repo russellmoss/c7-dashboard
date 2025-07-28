@@ -2,16 +2,13 @@ import { Resend } from 'resend';
 import { EmailTemplates, KPIDashboardData } from './email-templates';
 import { connectToDatabase } from './mongodb';
 import type { EmailSubscription } from '../types/email';
-import PQueue from 'p-queue';
+import { QueueManager } from './queue-manager';
 
 function getResendInstance() {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error('RESEND_API_KEY is not set');
   return new Resend(key);
 }
-
-// Rate limit: 1 email/sec
-export const emailQueue = new PQueue({ interval: 1000, intervalCap: 1 });
 
 export class EmailService {
   static async sendKPIDashboard(subscription: EmailSubscription, kpiData: KPIDashboardData) {
@@ -23,8 +20,11 @@ export class EmailService {
         subject: `Milea Estate Vineyard - ${kpiData.periodType.toUpperCase()} KPI Report`,
         html: emailContent,
       };
+      
       let data: any, error: any;
-      await emailQueue.add(async () => {
+      
+      // Use centralized queue manager for rate limiting
+      await QueueManager.queueEmail(async () => {
         try {
           const resend = getResendInstance();
           const result = await resend.emails.send(emailData);
@@ -34,6 +34,7 @@ export class EmailService {
           throw err;
         }
       });
+      
       if (error) {
         console.error('Error sending KPI email:', error);
         throw new Error(`Failed to send email: ${error?.message || String(error)}`);
@@ -71,13 +72,19 @@ export class EmailService {
           </p>
         </div>
       `;
-      const resend = getResendInstance();
-      const { data, error } = await resend.emails.send({
-        from: 'Milea Estate Vineyard <onboarding@resend.dev>',
-        to: [subscription.email],
-        subject: 'Test Email - KPI Dashboard System',
-        html: testEmailContent,
+      
+      // Use centralized queue manager for rate limiting
+      const result = await QueueManager.queueEmail(async () => {
+        const resend = getResendInstance();
+        return await resend.emails.send({
+          from: 'Milea Estate Vineyard <onboarding@resend.dev>',
+          to: [subscription.email],
+          subject: 'Test Email - KPI Dashboard System',
+          html: testEmailContent,
+        });
       });
+      
+      const { data, error } = result;
       if (error) {
         console.error('Resend error:', error);
         throw new Error(`Failed to send email: ${error.message}`);

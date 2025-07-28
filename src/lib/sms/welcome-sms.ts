@@ -124,8 +124,15 @@ export class WelcomeSmsService {
       errors: []
     };
 
-    for (const subscriber of smsData.enrolledSubscribers) {
+    console.log(`[WelcomeSmsService] 📱 Sending welcome SMS to ${smsData.enrolledSubscribers.length} subscribers`);
+
+    // Process subscribers with a small delay between each to prevent overwhelming the API
+    for (let i = 0; i < smsData.enrolledSubscribers.length; i++) {
+      const subscriber = smsData.enrolledSubscribers[i];
+      
       try {
+        console.log(`[WelcomeSmsService] 📤 Sending to ${subscriber.name} (${i + 1}/${smsData.enrolledSubscribers.length})`);
+        
         const message = this.formatWelcomeMessage(smsData, subscriber.name);
         const success = await this.smsService.sendSms(subscriber.smsCoaching.phoneNumber, message);
         
@@ -137,6 +144,12 @@ export class WelcomeSmsService {
           results.errors.push(`Failed to send SMS to ${subscriber.name}`);
           console.error(`[WelcomeSmsService] ❌ Failed to send SMS to ${subscriber.name}`);
         }
+        
+        // Add a small delay between messages to prevent rate limiting
+        if (i < smsData.enrolledSubscribers.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+        }
+        
       } catch (error: any) {
         results.failedCount++;
         results.errors.push(`Error sending SMS to ${subscriber.name}: ${error.message}`);
@@ -144,6 +157,7 @@ export class WelcomeSmsService {
       }
     }
 
+    console.log(`[WelcomeSmsService] 📊 Batch complete: ${results.sentCount} sent, ${results.failedCount} failed`);
     return results;
   }
 

@@ -3,18 +3,10 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     serverComponentsExternalPackages: ['mongoose'],
-    // Disable static generation completely
-    staticPageGenerationTimeout: 0,
-    // Force dynamic rendering
-    dynamicParams: true,
-    // Disable static optimization
-    optimizePackageImports: [],
   },
   // Completely disable static generation
   output: 'standalone',
   trailingSlash: false,
-  // Disable all static optimization
-  swcMinify: false,
   // Add headers to prevent static generation
   async headers() {
     return [

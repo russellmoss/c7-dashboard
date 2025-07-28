@@ -1,12 +1,38 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+
+interface StaffInsight {
+  staffName: string;
+  totalCompetitions: number;
+  totalWins: number;
+  winRate: number;
+  averageRank: number;
+  performanceTrend: "increasing" | "decreasing" | "stable";
+  favoriteType: string;
+  effectivenessScore: number;
+}
+
+interface CompetitionInsight {
+  competitionName: string;
+  type: string;
+  dashboard: string;
+  participants: number;
+  completionRate: number;
+  averageRank: number;
+  effectivenessScore: number;
+}
 
 interface CompetitionAnalytics {
   overview: {
@@ -95,7 +121,7 @@ interface CompetitionTypeAnalytics {
     secondPlace: number;
     thirdPlace: number;
   };
-  performanceTrend: 'increasing' | 'decreasing' | 'stable';
+  performanceTrend: "increasing" | "decreasing" | "stable";
   effectivenessScore: number;
 }
 
@@ -109,7 +135,7 @@ interface DashboardAnalytics {
   averageCompletionRate: number;
   participationRate: number;
   mostPopularType: string;
-  performanceTrend: 'increasing' | 'decreasing' | 'stable';
+  performanceTrend: "increasing" | "decreasing" | "stable";
   effectivenessScore: number;
 }
 
@@ -122,7 +148,7 @@ interface StaffPerformanceAnalytics {
   bestRank: number;
   winRate: number;
   participationRate: number;
-  performanceTrend: 'increasing' | 'decreasing' | 'stable';
+  performanceTrend: "increasing" | "decreasing" | "stable";
   favoriteType: string;
   favoriteDashboard: string;
   effectivenessScore: number;
@@ -135,10 +161,10 @@ interface StaffPerformanceAnalytics {
 }
 
 interface AnalyticsInsight {
-  type: 'trend' | 'anomaly' | 'opportunity' | 'warning';
+  type: "trend" | "anomaly" | "opportunity" | "warning";
   title: string;
   description: string;
-  impact: 'high' | 'medium' | 'low';
+  impact: "high" | "medium" | "low";
   recommendation: string;
 }
 
@@ -146,12 +172,12 @@ export default function AnalyticsDashboard() {
   const [analytics, setAnalytics] = useState<CompetitionAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    type: '',
-    dashboard: '',
-    staffMember: '',
-    status: 'all',
-    startDate: '',
-    endDate: ''
+    type: "",
+    dashboard: "",
+    staffMember: "",
+    status: "all",
+    startDate: "",
+    endDate: "",
   });
 
   // Fetch analytics data
@@ -161,12 +187,13 @@ export default function AnalyticsDashboard() {
 
       // Build query parameters
       const params = new URLSearchParams();
-      if (filters.type) params.append('type', filters.type);
-      if (filters.dashboard) params.append('dashboard', filters.dashboard);
-      if (filters.staffMember) params.append('staffMember', filters.staffMember);
-      if (filters.status !== 'all') params.append('status', filters.status);
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate) params.append('endDate', filters.endDate);
+      if (filters.type) params.append("type", filters.type);
+      if (filters.dashboard) params.append("dashboard", filters.dashboard);
+      if (filters.staffMember)
+        params.append("staffMember", filters.staffMember);
+      if (filters.status !== "all") params.append("status", filters.status);
+      if (filters.startDate) params.append("startDate", filters.startDate);
+      if (filters.endDate) params.append("endDate", filters.endDate);
 
       const response = await fetch(`/api/analytics/competitions?${params}`);
       const data = await response.json();
@@ -175,7 +202,7 @@ export default function AnalyticsDashboard() {
         setAnalytics(data.data);
       }
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+      console.error("Error fetching analytics:", error);
     } finally {
       setLoading(false);
     }
@@ -188,47 +215,60 @@ export default function AnalyticsDashboard() {
   // Helper functions
   const getTypeLabel = (type: string) => {
     const labels = {
-      bottleConversion: '🍷 Bottle Conversion',
-      clubConversion: '👥 Club Conversion',
-      aov: '💰 Average Order Value'
+      bottleConversion: "🍷 Bottle Conversion",
+      clubConversion: "👥 Club Conversion",
+      aov: "💰 Average Order Value",
     };
     return labels[type as keyof typeof labels] || type;
   };
 
   const getDashboardLabel = (dashboard: string) => {
     const labels = {
-      mtd: 'Month-to-Date',
-      qtd: 'Quarter-to-Date',
-      ytd: 'Year-to-Date'
+      mtd: "Month-to-Date",
+      qtd: "Quarter-to-Date",
+      ytd: "Year-to-Date",
     };
     return labels[dashboard as keyof typeof labels] || dashboard;
   };
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
-      case 'increasing': return '📈';
-      case 'decreasing': return '📉';
-      default: return '➡️';
+      case "increasing":
+        return "📈";
+      case "decreasing":
+        return "📉";
+      default:
+        return "➡️";
     }
   };
 
   const getInsightIcon = (type: string) => {
     switch (type) {
-      case 'trend': return '📊';
-      case 'anomaly': return '⚠️';
-      case 'opportunity': return '🎯';
-      case 'warning': return '🚨';
-      default: return 'ℹ️';
+      case "trend":
+        return "📊";
+      case "anomaly":
+        return "⚠️";
+      case "opportunity":
+        return "🎯";
+      case "warning":
+        return "🚨";
+      default:
+        return "ℹ️";
     }
   };
 
   const getInsightColor = (type: string) => {
     switch (type) {
-      case 'trend': return 'bg-blue-100 text-blue-800';
-      case 'anomaly': return 'bg-yellow-100 text-yellow-800';
-      case 'opportunity': return 'bg-green-100 text-green-800';
-      case 'warning': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "trend":
+        return "bg-blue-100 text-blue-800";
+      case "anomaly":
+        return "bg-yellow-100 text-yellow-800";
+      case "opportunity":
+        return "bg-green-100 text-green-800";
+      case "warning":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -243,7 +283,9 @@ export default function AnalyticsDashboard() {
   if (!analytics) {
     return (
       <div className="p-6">
-        <div className="text-center text-red-600">Failed to load analytics data</div>
+        <div className="text-center text-red-600">
+          Failed to load analytics data
+        </div>
       </div>
     );
   }
@@ -253,10 +295,15 @@ export default function AnalyticsDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
-          <a href="/admin" className="inline-flex items-center px-4 py-2 rounded bg-wine-600 text-white hover:bg-wine-700 transition font-semibold text-sm shadow mr-4">
+          <a
+            href="/admin"
+            className="inline-flex items-center px-4 py-2 rounded bg-wine-600 text-white hover:bg-wine-700 transition font-semibold text-sm shadow mr-4"
+          >
             ← Back to Admin
           </a>
-          <h1 className="text-2xl font-bold text-wine-900">📊 Competition Analytics Dashboard</h1>
+          <h1 className="text-2xl font-bold text-wine-900">
+            📊 Competition Analytics Dashboard
+          </h1>
         </div>
       </div>
 
@@ -268,24 +315,42 @@ export default function AnalyticsDashboard() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Competition Type</label>
-              <Select value={filters.type} onValueChange={(value) => setFilters(prev => ({ ...prev, type: value }))}>
+              <label className="block text-sm font-medium mb-2">
+                Competition Type
+              </label>
+              <Select
+                value={filters.type}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, type: value }))
+                }
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="All Types" />
+                  <SelectValue>All Types</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Types</SelectItem>
-                  <SelectItem value="bottleConversion">🍷 Bottle Conversion</SelectItem>
-                  <SelectItem value="clubConversion">👥 Club Conversion</SelectItem>
+                  <SelectItem value="bottleConversion">
+                    🍷 Bottle Conversion
+                  </SelectItem>
+                  <SelectItem value="clubConversion">
+                    👥 Club Conversion
+                  </SelectItem>
                   <SelectItem value="aov">💰 Average Order Value</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Dashboard</label>
-              <Select value={filters.dashboard} onValueChange={(value) => setFilters(prev => ({ ...prev, dashboard: value }))}>
+              <label className="block text-sm font-medium mb-2">
+                Dashboard
+              </label>
+              <Select
+                value={filters.dashboard}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, dashboard: value }))
+                }
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="All Dashboards" />
+                  <SelectValue>All Dashboards</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Dashboards</SelectItem>
@@ -297,9 +362,14 @@ export default function AnalyticsDashboard() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Status</label>
-              <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
+              <Select
+                value={filters.status}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, status: value }))
+                }
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>All Statuses</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
@@ -309,11 +379,15 @@ export default function AnalyticsDashboard() {
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Start Date</label>
+              <label className="block text-sm font-medium mb-2">
+                Start Date
+              </label>
               <Input
                 type="date"
                 value={filters.startDate}
-                onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, startDate: e.target.value }))
+                }
               />
             </div>
             <div>
@@ -321,15 +395,24 @@ export default function AnalyticsDashboard() {
               <Input
                 type="date"
                 value={filters.endDate}
-                onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, endDate: e.target.value }))
+                }
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Staff Member</label>
+              <label className="block text-sm font-medium mb-2">
+                Staff Member
+              </label>
               <Input
                 placeholder="Filter by staff member..."
                 value={filters.staffMember}
-                onChange={(e) => setFilters(prev => ({ ...prev, staffMember: e.target.value }))}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    staffMember: e.target.value,
+                  }))
+                }
               />
             </div>
           </div>
@@ -340,34 +423,50 @@ export default function AnalyticsDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Competitions</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Total Competitions
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics.overview.totalCompetitions}</div>
+            <div className="text-2xl font-bold">
+              {analytics.overview.totalCompetitions}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Participants</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Total Participants
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics.overview.totalParticipants}</div>
+            <div className="text-2xl font-bold">
+              {analytics.overview.totalParticipants}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Winners</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Total Winners
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics.overview.totalWinners}</div>
+            <div className="text-2xl font-bold">
+              {analytics.overview.totalWinners}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Avg Completion Rate</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Avg Completion Rate
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics.overview.averageCompletionRate}%</div>
+            <div className="text-2xl font-bold">
+              {analytics.overview.averageCompletionRate}%
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -379,9 +478,15 @@ export default function AnalyticsDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>{getTypeLabel(type)}</span>
-                <Badge className={data.effectivenessScore >= 80 ? 'bg-green-100 text-green-800' : 
-                                 data.effectivenessScore >= 60 ? 'bg-yellow-100 text-yellow-800' : 
-                                 'bg-red-100 text-red-800'}>
+                <Badge
+                  className={
+                    data.effectivenessScore >= 80
+                      ? "bg-green-100 text-green-800"
+                      : data.effectivenessScore >= 60
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-red-100 text-red-800"
+                  }
+                >
                   {data.effectivenessScore}/100
                 </Badge>
               </CardTitle>
@@ -393,20 +498,29 @@ export default function AnalyticsDashboard() {
                   <span className="font-medium">{data.count}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Avg Participants:</span>
-                  <span className="font-medium">{data.averageParticipants}</span>
+                  <span className="text-sm text-gray-600">
+                    Avg Participants:
+                  </span>
+                  <span className="font-medium">
+                    {data.averageParticipants}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Avg Winners:</span>
                   <span className="font-medium">{data.averageWinners}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Participation Rate:</span>
+                  <span className="text-sm text-gray-600">
+                    Participation Rate:
+                  </span>
                   <span className="font-medium">{data.participationRate}%</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Trend:</span>
-                  <span className="font-medium">{getTrendIcon(data.performanceTrend)} {data.performanceTrend}</span>
+                  <span className="font-medium">
+                    {getTrendIcon(data.performanceTrend)}{" "}
+                    {data.performanceTrend}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -416,44 +530,67 @@ export default function AnalyticsDashboard() {
 
       {/* Performance by Dashboard */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {Object.entries(analytics.performance.byDashboard).map(([dashboard, data]) => (
-          <Card key={dashboard}>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>{getDashboardLabel(dashboard)}</span>
-                <Badge className={data.effectivenessScore >= 80 ? 'bg-green-100 text-green-800' : 
-                                 data.effectivenessScore >= 60 ? 'bg-yellow-100 text-yellow-800' : 
-                                 'bg-red-100 text-red-800'}>
-                  {data.effectivenessScore}/100
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Competitions:</span>
-                  <span className="font-medium">{data.count}</span>
+        {Object.entries(analytics.performance.byDashboard).map(
+          ([dashboard, data]) => (
+            <Card key={dashboard}>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>{getDashboardLabel(dashboard)}</span>
+                  <Badge
+                    className={
+                      data.effectivenessScore >= 80
+                        ? "bg-green-100 text-green-800"
+                        : data.effectivenessScore >= 60
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
+                    }
+                  >
+                    {data.effectivenessScore}/100
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Competitions:</span>
+                    <span className="font-medium">{data.count}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">
+                      Avg Participants:
+                    </span>
+                    <span className="font-medium">
+                      {data.averageParticipants}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">
+                      Most Popular Type:
+                    </span>
+                    <span className="font-medium">
+                      {getTypeLabel(data.mostPopularType)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">
+                      Participation Rate:
+                    </span>
+                    <span className="font-medium">
+                      {data.participationRate}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Trend:</span>
+                    <span className="font-medium">
+                      {getTrendIcon(data.performanceTrend)}{" "}
+                      {data.performanceTrend}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Avg Participants:</span>
-                  <span className="font-medium">{data.averageParticipants}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Most Popular Type:</span>
-                  <span className="font-medium">{getTypeLabel(data.mostPopularType)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Participation Rate:</span>
-                  <span className="font-medium">{data.participationRate}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Trend:</span>
-                  <span className="font-medium">{getTrendIcon(data.performanceTrend)} {data.performanceTrend}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ),
+        )}
       </div>
 
       {/* Staff Performance */}
@@ -468,12 +605,20 @@ export default function AnalyticsDashboard() {
                 <div key={staff.staffName} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-3">
-                      <Badge className="bg-blue-100 text-blue-800">#{index + 1}</Badge>
+                      <Badge className="bg-blue-100 text-blue-800">
+                        #{index + 1}
+                      </Badge>
                       <h3 className="font-semibold">{staff.staffName}</h3>
                     </div>
-                    <Badge className={staff.effectivenessScore >= 80 ? 'bg-green-100 text-green-800' : 
-                                     staff.effectivenessScore >= 60 ? 'bg-yellow-100 text-yellow-800' : 
-                                     'bg-red-100 text-red-800'}>
+                    <Badge
+                      className={
+                        staff.effectivenessScore >= 80
+                          ? "bg-green-100 text-green-800"
+                          : staff.effectivenessScore >= 60
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                      }
+                    >
                       {staff.effectivenessScore}/100
                     </Badge>
                   </div>
@@ -492,7 +637,10 @@ export default function AnalyticsDashboard() {
                     </div>
                     <div>
                       <span className="text-gray-600">Trend:</span>
-                      <div className="font-medium">{getTrendIcon(staff.performanceTrend)} {staff.performanceTrend}</div>
+                      <div className="font-medium">
+                        {getTrendIcon(staff.performanceTrend)}{" "}
+                        {staff.performanceTrend}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -512,11 +660,17 @@ export default function AnalyticsDashboard() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Overall:</span>
-                <span className="font-medium">{analytics.effectiveness.participationRates.overall}%</span>
+                <span className="font-medium">
+                  {analytics.effectiveness.participationRates.overall}%
+                </span>
               </div>
-              {Object.entries(analytics.effectiveness.participationRates.byType).map(([type, rate]) => (
+              {Object.entries(
+                analytics.effectiveness.participationRates.byType,
+              ).map(([type, rate]) => (
                 <div key={type} className="flex justify-between">
-                  <span className="text-sm text-gray-600">{getTypeLabel(type)}:</span>
+                  <span className="text-sm text-gray-600">
+                    {getTypeLabel(type)}:
+                  </span>
                   <span className="font-medium">{rate}%</span>
                 </div>
               ))}
@@ -531,15 +685,27 @@ export default function AnalyticsDashboard() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Welcome SMS:</span>
-                <span className="font-medium">{analytics.effectiveness.completionRates.welcomeMessage}%</span>
+                <span className="font-medium">
+                  {analytics.effectiveness.completionRates.welcomeMessage}%
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Progress SMS:</span>
-                <span className="font-medium">{analytics.effectiveness.completionRates.progressNotifications}%</span>
+                <span className="font-medium">
+                  {
+                    analytics.effectiveness.completionRates
+                      .progressNotifications
+                  }
+                  %
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Winner Announcement:</span>
-                <span className="font-medium">{analytics.effectiveness.completionRates.winnerAnnouncement}%</span>
+                <span className="text-sm text-gray-600">
+                  Winner Announcement:
+                </span>
+                <span className="font-medium">
+                  {analytics.effectiveness.completionRates.winnerAnnouncement}%
+                </span>
               </div>
               <Separator />
               <div className="flex justify-between font-semibold">
@@ -562,7 +728,9 @@ export default function AnalyticsDashboard() {
               {analytics.insights.trends.map((insight, index) => (
                 <div key={index} className="border rounded-lg p-4">
                   <div className="flex items-start space-x-3">
-                    <div className="text-2xl">{getInsightIcon(insight.type)}</div>
+                    <div className="text-2xl">
+                      {getInsightIcon(insight.type)}
+                    </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
                         <h4 className="font-semibold">{insight.title}</h4>
@@ -570,8 +738,12 @@ export default function AnalyticsDashboard() {
                           {insight.impact} impact
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">{insight.description}</p>
-                      <p className="text-sm font-medium text-blue-600">💡 {insight.recommendation}</p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {insight.description}
+                      </p>
+                      <p className="text-sm font-medium text-blue-600">
+                        💡 {insight.recommendation}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -589,16 +761,18 @@ export default function AnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {analytics.insights.recommendations.map((recommendation, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <span className="text-blue-600">•</span>
-                  <span className="text-sm">{recommendation}</span>
-                </div>
-              ))}
+              {analytics.insights.recommendations.map(
+                (recommendation, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <span className="text-blue-600">•</span>
+                    <span className="text-sm">{recommendation}</span>
+                  </div>
+                ),
+              )}
             </div>
           </CardContent>
         </Card>
       )}
     </div>
   );
-} 
+}

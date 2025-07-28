@@ -1,22 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
-import { CompetitionModel, EmailSubscriptionModel } from '@/lib/models';
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb";
+import { CompetitionModel, EmailSubscriptionModel } from "@/lib/models";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const status = searchParams.get("status");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
-    console.log(`[API] GET /api/competitions - status: ${status}, page: ${page}, limit: ${limit}`);
+    console.log(
+      `[API] GET /api/competitions - status: ${status}, page: ${page}, limit: ${limit}`,
+    );
 
     await connectToDatabase();
 
     // Build query based on status filter
     const query: any = {};
-    if (status && status !== 'all') {
+    if (status && status !== "all") {
       query.status = status;
     }
 
@@ -34,15 +36,17 @@ export async function GET(request: NextRequest) {
     const competitionsWithSubscribers = await Promise.all(
       competitions.map(async (competition) => {
         const subscribers = await EmailSubscriptionModel.find({
-          _id: { $in: competition.enrolledSubscribers }
-        }).select('name email').lean();
+          _id: { $in: competition.enrolledSubscribers },
+        })
+          .select("name email")
+          .lean();
 
         return {
           ...competition,
           enrolledSubscribers: subscribers,
-          totalParticipants: subscribers.length
+          totalParticipants: subscribers.length,
         };
-      })
+      }),
     );
 
     return NextResponse.json({
@@ -55,16 +59,15 @@ export async function GET(request: NextRequest) {
           total,
           pages: Math.ceil(total / limit),
           hasNext: page * limit < total,
-          hasPrev: page > 1
-        }
-      }
+          hasPrev: page > 1,
+        },
+      },
     });
-
   } catch (error: any) {
-    console.error('[API] Error fetching competitions:', error);
+    console.error("[API] Error fetching competitions:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }
@@ -72,73 +75,89 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log('[API] POST /api/competitions - Creating new competition');
+    console.log("[API] POST /api/competitions - Creating new competition");
 
     await connectToDatabase();
 
     // Validate required fields
-    const requiredFields = ['name', 'type', 'dashboard', 'prizes', 'startDate', 'endDate', 'welcomeMessage'];
+    const requiredFields = [
+      "name",
+      "type",
+      "dashboard",
+      "prizes",
+      "startDate",
+      "endDate",
+      "welcomeMessage",
+    ];
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
           { error: `Missing required field: ${field}` },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
 
     // Validate competition type
-    const validTypes = ['bottleConversion', 'clubConversion', 'aov'];
+    const validTypes = ["bottleConversion", "clubConversion", "aov"];
     if (!validTypes.includes(body.type)) {
       return NextResponse.json(
-        { error: 'Invalid competition type' },
-        { status: 400 }
+        { error: "Invalid competition type" },
+        { status: 400 },
       );
     }
 
     // Validate dashboard
-    const validDashboards = ['mtd', 'qtd', 'ytd'];
+    const validDashboards = ["mtd", "qtd", "ytd"];
     if (!validDashboards.includes(body.dashboard)) {
       return NextResponse.json(
-        { error: 'Invalid dashboard type' },
-        { status: 400 }
+        { error: "Invalid dashboard type" },
+        { status: 400 },
       );
     }
 
     // Validate competition type (ranking vs target)
     if (body.competitionType) {
-      const validCompetitionTypes = ['ranking', 'target'];
+      const validCompetitionTypes = ["ranking", "target"];
       if (!validCompetitionTypes.includes(body.competitionType)) {
         return NextResponse.json(
           { error: 'Invalid competition type. Must be "ranking" or "target"' },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
 
     // Validate target goals if competition type is target
-    if (body.competitionType === 'target' && body.targetGoals) {
+    if (body.competitionType === "target" && body.targetGoals) {
       if (body.targetGoals.bottleConversionRate !== undefined) {
-        if (body.targetGoals.bottleConversionRate < 0 || body.targetGoals.bottleConversionRate > 100) {
+        if (
+          body.targetGoals.bottleConversionRate < 0 ||
+          body.targetGoals.bottleConversionRate > 100
+        ) {
           return NextResponse.json(
-            { error: 'Bottle conversion rate target must be between 0 and 100' },
-            { status: 400 }
+            {
+              error: "Bottle conversion rate target must be between 0 and 100",
+            },
+            { status: 400 },
           );
         }
       }
       if (body.targetGoals.clubConversionRate !== undefined) {
-        if (body.targetGoals.clubConversionRate < 0 || body.targetGoals.clubConversionRate > 100) {
+        if (
+          body.targetGoals.clubConversionRate < 0 ||
+          body.targetGoals.clubConversionRate > 100
+        ) {
           return NextResponse.json(
-            { error: 'Club conversion rate target must be between 0 and 100' },
-            { status: 400 }
+            { error: "Club conversion rate target must be between 0 and 100" },
+            { status: 400 },
           );
         }
       }
       if (body.targetGoals.aov !== undefined) {
         if (body.targetGoals.aov < 0) {
           return NextResponse.json(
-            { error: 'AOV target must be a positive number' },
-            { status: 400 }
+            { error: "AOV target must be a positive number" },
+            { status: 400 },
           );
         }
       }
@@ -147,18 +166,18 @@ export async function POST(request: NextRequest) {
     // Validate dates
     const startDate = new Date(body.startDate);
     const endDate = new Date(body.endDate);
-    
+
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       return NextResponse.json(
-        { error: 'Invalid date format' },
-        { status: 400 }
+        { error: "Invalid date format" },
+        { status: 400 },
       );
     }
 
     if (startDate >= endDate) {
       return NextResponse.json(
-        { error: 'Start date must be before end date' },
-        { status: 400 }
+        { error: "Start date must be before end date" },
+        { status: 400 },
       );
     }
 
@@ -167,31 +186,49 @@ export async function POST(request: NextRequest) {
 
     // Process SMS scheduling
     let welcomeMessageSendAt = null;
-    if (body.welcomeMessage?.scheduledDate && body.welcomeMessage?.scheduledTime) {
-      const welcomeDate = new Date(`${body.welcomeMessage.scheduledDate}T${body.welcomeMessage.scheduledTime}`);
+    if (
+      body.welcomeMessage?.scheduledDate &&
+      body.welcomeMessage?.scheduledTime
+    ) {
+      const welcomeDate = new Date(
+        `${body.welcomeMessage.scheduledDate}T${body.welcomeMessage.scheduledTime}`,
+      );
       if (!isNaN(welcomeDate.getTime())) {
         welcomeMessageSendAt = welcomeDate;
       }
     }
 
     let processedProgressNotifications = [];
-    if (body.progressNotifications && Array.isArray(body.progressNotifications)) {
+    if (
+      body.progressNotifications &&
+      Array.isArray(body.progressNotifications)
+    ) {
       processedProgressNotifications = body.progressNotifications
-        .filter((notification: any) => notification.scheduledDate && notification.scheduledTime)
+        .filter(
+          (notification: any) =>
+            notification.scheduledDate && notification.scheduledTime,
+        )
         .map((notification: any, index: number) => {
-          const scheduledAt = new Date(`${notification.scheduledDate}T${notification.scheduledTime}`);
+          const scheduledAt = new Date(
+            `${notification.scheduledDate}T${notification.scheduledTime}`,
+          );
           return {
             id: `notification_${Date.now()}_${index}`,
             scheduledAt: scheduledAt,
             sent: false,
-            sentAt: null
+            sentAt: null,
           };
         });
     }
 
     let winnerAnnouncementScheduledAt = winnerAnnouncementTime;
-    if (body.winnerAnnouncement?.scheduledDate && body.winnerAnnouncement?.scheduledTime) {
-      const winnerDate = new Date(`${body.winnerAnnouncement.scheduledDate}T${body.winnerAnnouncement.scheduledTime}`);
+    if (
+      body.winnerAnnouncement?.scheduledDate &&
+      body.winnerAnnouncement?.scheduledTime
+    ) {
+      const winnerDate = new Date(
+        `${body.winnerAnnouncement.scheduledDate}T${body.winnerAnnouncement.scheduledTime}`,
+      );
       if (!isNaN(winnerDate.getTime())) {
         winnerAnnouncementScheduledAt = winnerDate;
       }
@@ -200,53 +237,57 @@ export async function POST(request: NextRequest) {
     // Create competition
     const competition = await CompetitionModel.create({
       ...body,
-      status: 'draft', // Always start as draft
+      status: "draft", // Always start as draft
       welcomeMessage: {
         customText: body.welcomeMessage.customText,
         sendAt: welcomeMessageSendAt,
         sent: false,
-        sentAt: null
+        sentAt: null,
       },
       progressNotifications: processedProgressNotifications,
       winnerAnnouncement: {
         scheduledAt: winnerAnnouncementScheduledAt,
         sent: false,
-        sentAt: null
+        sentAt: null,
       },
-      enrolledSubscribers: body.enrolledSubscribers || []
+      enrolledSubscribers: body.enrolledSubscribers || [],
     });
 
-    console.log(`[API] ✅ Created competition: ${competition.name} (ID: ${competition._id})`);
+    console.log(
+      `[API] ✅ Created competition: ${competition.name} (ID: ${competition._id})`,
+    );
 
-    return NextResponse.json({
-      success: true,
-      message: 'Competition created successfully',
-      data: {
-        competition: {
-          _id: competition._id,
-          name: competition.name,
-          type: competition.type,
-          dashboard: competition.dashboard,
-          status: competition.status,
-          startDate: competition.startDate,
-          endDate: competition.endDate
-        }
-      }
-    }, { status: 201 });
-
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Competition created successfully",
+        data: {
+          competition: {
+            _id: competition._id,
+            name: competition.name,
+            type: competition.type,
+            dashboard: competition.dashboard,
+            status: competition.status,
+            startDate: competition.startDate,
+            endDate: competition.endDate,
+          },
+        },
+      },
+      { status: 201 },
+    );
   } catch (error: any) {
-    console.error('[API] Error creating competition:', error);
-    
-    if (error.name === 'ValidationError') {
+    console.error("[API] Error creating competition:", error);
+
+    if (error.name === "ValidationError") {
       return NextResponse.json(
-        { error: 'Validation error', details: error.message },
-        { status: 400 }
+        { error: "Validation error", details: error.message },
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
-} 
+}

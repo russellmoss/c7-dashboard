@@ -1,4 +1,4 @@
-import type { EmailSubscription } from '../types/email';
+import type { EmailSubscription } from "../types/email";
 
 export interface KPIDashboardData {
   periodType: string;
@@ -29,10 +29,13 @@ export interface KPIDashboardData {
 }
 
 export class EmailTemplates {
-  static generateKPIDashboardEmail(subscription: EmailSubscription, kpiData: KPIDashboardData): string {
+  static generateKPIDashboardEmail(
+    subscription: EmailSubscription,
+    kpiData: KPIDashboardData,
+  ): string {
     const periodLabel = kpiData.periodLabel || kpiData.periodType.toUpperCase();
     const dateRange = `${kpiData.dateRange.start} to ${kpiData.dateRange.end}`;
-    
+
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -305,7 +308,7 @@ export class EmailTemplates {
             ${this.generateStaffPerformanceTable(kpiData.associatePerformance)}
             
             <!-- AI Insights -->
-            ${kpiData.insights ? this.generateInsightsSection(kpiData.insights) : ''}
+            ${kpiData.insights ? this.generateInsightsSection(kpiData.insights) : ""}
           </div>
           
           <div class="footer">
@@ -319,19 +322,25 @@ export class EmailTemplates {
   }
 
   private static getYoYClass(change: number | null): string {
-    if (change === null) return 'yoy-neutral';
-    return change > 0 ? 'yoy-positive' : change < 0 ? 'yoy-negative' : 'yoy-neutral';
+    if (change === null) return "yoy-neutral";
+    return change > 0
+      ? "yoy-positive"
+      : change < 0
+        ? "yoy-negative"
+        : "yoy-neutral";
   }
 
   private static formatYoYChange(change: number | null): string {
-    if (change === null) return 'N/A';
-    const sign = change > 0 ? '+' : '';
+    if (change === null) return "N/A";
+    const sign = change > 0 ? "+" : "";
     return `${sign}${change.toFixed(1)}%`;
   }
 
-  private static generateStaffPerformanceTable(associatePerformance: { [key: string]: any }): string {
+  private static generateStaffPerformanceTable(associatePerformance: {
+    [key: string]: any;
+  }): string {
     const associates = Object.entries(associatePerformance);
-    
+
     if (associates.length === 0) {
       return `
         <div class="staff-section">
@@ -341,11 +350,16 @@ export class EmailTemplates {
       `;
     }
 
-    const rows = associates.map(([name, data]) => {
-      const wineConversionClass = this.getConversionClass(data.wineBottleConversionRate);
-      const clubConversionClass = this.getConversionClass(data.clubConversionRate);
-      
-      return `
+    const rows = associates
+      .map(([name, data]) => {
+        const wineConversionClass = this.getConversionClass(
+          data.wineBottleConversionRate,
+        );
+        const clubConversionClass = this.getConversionClass(
+          data.clubConversionRate,
+        );
+
+        return `
         <tr>
           <td>${name}</td>
           <td>${data.guests.toLocaleString()}</td>
@@ -354,7 +368,8 @@ export class EmailTemplates {
           <td class="conversion-rate ${clubConversionClass}">${data.clubConversionRate}%</td>
         </tr>
       `;
-    }).join('');
+      })
+      .join("");
 
     return `
       <div class="staff-section">
@@ -378,35 +393,50 @@ export class EmailTemplates {
   }
 
   private static getConversionClass(rate: number | string): string {
-    const numRate = typeof rate === 'string' ? parseFloat(rate) : rate;
-    if (numRate >= 25) return 'conversion-good';
-    if (numRate >= 15) return 'conversion-warning';
-    return 'conversion-poor';
+    const numRate = typeof rate === "string" ? parseFloat(rate) : rate;
+    if (numRate >= 25) return "conversion-good";
+    if (numRate >= 15) return "conversion-warning";
+    return "conversion-poor";
   }
 
-  private static generateInsightsSection(insights: { strengths: string[]; recommendations: string[] }): string {
-    const strengthsList = insights.strengths.map(strength => `<li>${strength}</li>`).join('');
-    const recommendationsList = insights.recommendations.map(rec => `<li>${rec}</li>`).join('');
+  private static generateInsightsSection(insights: {
+    strengths: string[];
+    recommendations: string[];
+  }): string {
+    const strengthsList = insights.strengths
+      .map((strength) => `<li>${strength}</li>`)
+      .join("");
+    const recommendationsList = insights.recommendations
+      .map((rec) => `<li>${rec}</li>`)
+      .join("");
 
     return `
       <div class="insights-section">
         <div class="insights-title">AI Insights & Recommendations</div>
-        ${insights.strengths.length > 0 ? `
+        ${
+          insights.strengths.length > 0
+            ? `
           <div style="margin-bottom: 15px;">
             <strong style="color: #856404;">Key Strengths:</strong>
             <ul class="insights-list">
               ${strengthsList}
             </ul>
           </div>
-        ` : ''}
-        ${insights.recommendations.length > 0 ? `
+        `
+            : ""
+        }
+        ${
+          insights.recommendations.length > 0
+            ? `
           <div>
             <strong style="color: #856404;">Recommendations:</strong>
             <ul class="insights-list">
               ${recommendationsList}
             </ul>
           </div>
-        ` : ''}
+        `
+            : ""
+        }
       </div>
     `;
   }
@@ -415,7 +445,7 @@ export class EmailTemplates {
   static generateKPIDashboardEmailSection(kpiData: KPIDashboardData): string {
     const periodLabel = kpiData.periodLabel || kpiData.periodType.toUpperCase();
     const dateRange = `${kpiData.dateRange.start} to ${kpiData.dateRange.end}`;
-    
+
     return `
       <div style="margin-bottom: 40px;">
         <h2 style="color: #a92020; font-size: 24px; margin-bottom: 10px; border-bottom: 2px solid #a92020; padding-bottom: 10px;">
@@ -449,19 +479,19 @@ export class EmailTemplates {
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
             <div style="text-align: center;">
               <div style="font-size: 20px; font-weight: bold; color: #2c5aa0;">$${kpiData.yearOverYear.revenue.current.toLocaleString()}</div>
-              <div style="font-size: 14px; margin-top: 5px; color: ${this.getYoYClass(kpiData.yearOverYear.revenue.change) === 'yoy-positive' ? '#28a745' : this.getYoYClass(kpiData.yearOverYear.revenue.change) === 'yoy-negative' ? '#dc3545' : '#6c757d'}">
+              <div style="font-size: 14px; margin-top: 5px; color: ${this.getYoYClass(kpiData.yearOverYear.revenue.change) === "yoy-positive" ? "#28a745" : this.getYoYClass(kpiData.yearOverYear.revenue.change) === "yoy-negative" ? "#dc3545" : "#6c757d"}">
                 ${this.formatYoYChange(kpiData.yearOverYear.revenue.change)} Revenue
               </div>
             </div>
             <div style="text-align: center;">
               <div style="font-size: 20px; font-weight: bold; color: #2c5aa0;">${kpiData.yearOverYear.guests.current.toLocaleString()}</div>
-              <div style="font-size: 14px; margin-top: 5px; color: ${this.getYoYClass(kpiData.yearOverYear.guests.change) === 'yoy-positive' ? '#28a745' : this.getYoYClass(kpiData.yearOverYear.guests.change) === 'yoy-negative' ? '#dc3545' : '#6c757d'}">
+              <div style="font-size: 14px; margin-top: 5px; color: ${this.getYoYClass(kpiData.yearOverYear.guests.change) === "yoy-positive" ? "#28a745" : this.getYoYClass(kpiData.yearOverYear.guests.change) === "yoy-negative" ? "#dc3545" : "#6c757d"}">
                 ${this.formatYoYChange(kpiData.yearOverYear.guests.change)} Guests
               </div>
             </div>
             <div style="text-align: center;">
               <div style="font-size: 20px; font-weight: bold; color: #2c5aa0;">${kpiData.yearOverYear.orders.current.toLocaleString()}</div>
-              <div style="font-size: 14px; margin-top: 5px; color: ${this.getYoYClass(kpiData.yearOverYear.orders.change) === 'yoy-positive' ? '#28a745' : this.getYoYClass(kpiData.yearOverYear.orders.change) === 'yoy-negative' ? '#dc3545' : '#6c757d'}">
+              <div style="font-size: 14px; margin-top: 5px; color: ${this.getYoYClass(kpiData.yearOverYear.orders.change) === "yoy-positive" ? "#28a745" : this.getYoYClass(kpiData.yearOverYear.orders.change) === "yoy-negative" ? "#dc3545" : "#6c757d"}">
                 ${this.formatYoYChange(kpiData.yearOverYear.orders.change)} Orders
               </div>
             </div>
@@ -472,8 +502,8 @@ export class EmailTemplates {
         ${this.generateStaffPerformanceTable(kpiData.associatePerformance)}
         
         <!-- AI Insights -->
-        ${kpiData.insights ? this.generateInsightsSection(kpiData.insights) : ''}
+        ${kpiData.insights ? this.generateInsightsSection(kpiData.insights) : ""}
       </div>
     `;
   }
-} 
+}

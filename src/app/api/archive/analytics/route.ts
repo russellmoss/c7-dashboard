@@ -1,23 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { archiveManagementService } from '@/lib/archive-management';
+import { NextRequest, NextResponse } from "next/server";
+import { archiveManagementService } from "@/lib/archive-management";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    console.log('[API] GET /api/archive/analytics');
+    console.log("[API] GET /api/archive/analytics");
 
     // Parse query parameters for filters
-    const type = searchParams.get('type') as 'bottleConversion' | 'clubConversion' | 'aov' | undefined;
-    const dashboard = searchParams.get('dashboard') as 'mtd' | 'qtd' | 'ytd' | undefined;
-    
+    const type = searchParams.get("type") as
+      | "bottleConversion"
+      | "clubConversion"
+      | "aov"
+      | undefined;
+    const dashboard = searchParams.get("dashboard") as
+      | "mtd"
+      | "qtd"
+      | "ytd"
+      | undefined;
+
     // Parse date range
     let dateRange = undefined;
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
     if (startDate && endDate) {
       dateRange = {
         startDate: new Date(startDate),
-        endDate: new Date(endDate)
+        endDate: new Date(endDate),
       };
     }
 
@@ -25,24 +33,26 @@ export async function GET(request: NextRequest) {
     const filters = {
       type,
       dashboard,
-      dateRange
+      dateRange,
     };
 
     // Get performance analytics
-    const analytics = await archiveManagementService.getPerformanceAnalytics(filters);
+    const analytics =
+      await archiveManagementService.getPerformanceAnalytics(filters);
 
-    console.log(`[API] ✅ Retrieved performance analytics: ${analytics.totalCompetitions} competitions analyzed`);
+    console.log(
+      `[API] ✅ Retrieved performance analytics: ${analytics.totalCompetitions} competitions analyzed`,
+    );
 
     return NextResponse.json({
       success: true,
-      data: analytics
+      data: analytics,
     });
-
   } catch (error: any) {
-    console.error('[API] Error getting performance analytics:', error);
+    console.error("[API] Error getting performance analytics:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
-} 
+}

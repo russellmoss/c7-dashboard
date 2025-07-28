@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { EmailTemplates, KPIDashboardData } from '@/lib/email-templates';
-import { Resend } from 'resend';
-import { connectToDatabase } from '@/lib/mongodb';
-import { KPIDataModel } from '@/lib/models';
+import { NextRequest, NextResponse } from "next/server";
+import { EmailTemplates, KPIDashboardData } from "@/lib/email-templates";
+import { Resend } from "resend";
+import { connectToDatabase } from "@/lib/mongodb";
+import { KPIDataModel } from "@/lib/models";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -12,7 +12,10 @@ export async function POST(request: NextRequest) {
     const { email, name, subscribedReports } = body;
 
     if (!email || !subscribedReports || !Array.isArray(subscribedReports)) {
-      return NextResponse.json({ error: 'Email and subscribedReports array are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Email and subscribedReports array are required" },
+        { status: 400 },
+      );
     }
 
     // Connect to database
@@ -20,53 +23,66 @@ export async function POST(request: NextRequest) {
     const currentYear = new Date().getFullYear();
 
     // Fetch KPI data for all subscribed reports
-    const kpiDataPromises = subscribedReports.map(async (periodType: string) => {
-      const kpiData = await KPIDataModel.findOne({
-        periodType: periodType,
-        year: currentYear
-      }).sort({ createdAt: -1 });
+    const kpiDataPromises = subscribedReports.map(
+      async (periodType: string) => {
+        const kpiData = await KPIDataModel.findOne({
+          periodType: periodType,
+          year: currentYear,
+        }).sort({ createdAt: -1 });
 
-      if (!kpiData) {
-        throw new Error(`No KPI data found for ${periodType.toUpperCase()} ${currentYear}`);
-      }
+        if (!kpiData) {
+          throw new Error(
+            `No KPI data found for ${periodType.toUpperCase()} ${currentYear}`,
+          );
+        }
 
-      return {
-        periodType,
-        data: kpiData
-      };
-    });
+        return {
+          periodType,
+          data: kpiData,
+        };
+      },
+    );
 
     const kpiDataResults = await Promise.all(kpiDataPromises);
 
     // Generate email content for each report
-    const reportSections = kpiDataResults.map(({ periodType, data }) => {
-      const kpiData: KPIDashboardData = {
-        periodType: data.periodType,
-        periodLabel: data.data.current.periodLabel || data.periodType.toUpperCase(),
-        dateRange: data.data.current.dateRange,
-        overallMetrics: {
-          totalRevenue: data.data.current.overallMetrics.totalRevenue,
-          totalOrders: data.data.current.overallMetrics.totalOrders,
-          totalGuests: data.data.current.overallMetrics.totalGuests,
-          totalBottlesSold: data.data.current.overallMetrics.totalBottlesSold,
-          avgOrderValue: data.data.current.overallMetrics.avgOrderValue,
-          wineBottleConversionRate: data.data.current.overallMetrics.wineBottleConversionRate,
-          clubConversionRate: data.data.current.overallMetrics.clubConversionRate
-        },
-        yearOverYear: {
-          revenue: data.data.yearOverYear.revenue,
-          guests: data.data.yearOverYear.guests,
-          orders: data.data.yearOverYear.orders
-        },
-        associatePerformance: data.data.current.associatePerformance,
-        insights: data.insights ? {
-          strengths: data.insights.strengths || [],
-          recommendations: data.insights.recommendations || []
-        } : undefined
-      };
+    const reportSections = kpiDataResults
+      .map(({ periodType, data }) => {
+        const kpiData: KPIDashboardData = {
+          periodType: data.periodType,
+          periodLabel:
+            data.data.current.periodLabel || data.periodType.toUpperCase(),
+          dateRange: data.data.current.dateRange,
+          overallMetrics: {
+            totalRevenue: data.data.current.overallMetrics.totalRevenue,
+            totalOrders: data.data.current.overallMetrics.totalOrders,
+            totalGuests: data.data.current.overallMetrics.totalGuests,
+            totalBottlesSold: data.data.current.overallMetrics.totalBottlesSold,
+            avgOrderValue: data.data.current.overallMetrics.avgOrderValue,
+            wineBottleConversionRate:
+              data.data.current.overallMetrics.wineBottleConversionRate,
+            clubConversionRate:
+              data.data.current.overallMetrics.clubConversionRate,
+          },
+          yearOverYear: {
+            revenue: data.data.yearOverYear.revenue,
+            guests: data.data.yearOverYear.guests,
+            orders: data.data.yearOverYear.orders,
+          },
+          associatePerformance: data.data.current.associatePerformance,
+          insights: data.insights
+            ? {
+                strengths: data.insights.strengths || [],
+                recommendations: data.insights.recommendations || [],
+              }
+            : undefined,
+        };
 
-      return EmailTemplates.generateKPIDashboardEmailSection(kpiData);
-    }).join('<hr style="margin: 40px 0; border: none; border-top: 2px solid #a92020;">');
+        return EmailTemplates.generateKPIDashboardEmailSection(kpiData);
+      })
+      .join(
+        '<hr style="margin: 40px 0; border: none; border-top: 2px solid #a92020;">',
+      );
 
     // Create comprehensive email
     const comprehensiveEmail = `
@@ -131,7 +147,7 @@ export async function POST(request: NextRequest) {
             <h1>Milea Estate Vineyard</h1>
             <div class="subtitle">KPI Dashboard Reports</div>
             <div class="subtitle" style="font-size: 14px; margin-top: 5px;">
-              ${subscribedReports.length} Report${subscribedReports.length > 1 ? 's' : ''} - ${new Date().toLocaleDateString()}
+              ${subscribedReports.length} Report${subscribedReports.length > 1 ? "s" : ""} - ${new Date().toLocaleDateString()}
             </div>
           </div>
           
@@ -141,7 +157,7 @@ export async function POST(request: NextRequest) {
             </div>
             
             <div class="greeting">
-              Here are your KPI dashboard reports for the following periods: ${subscribedReports.map(r => r.toUpperCase()).join(', ')}.
+              Here are your KPI dashboard reports for the following periods: ${subscribedReports.map((r) => r.toUpperCase()).join(", ")}.
             </div>
             
             ${reportSections}
@@ -158,28 +174,35 @@ export async function POST(request: NextRequest) {
 
     // Send the comprehensive email
     const { data, error } = await resend.emails.send({
-      from: 'Milea Estate Vineyard <onboarding@resend.dev>',
+      from: "Milea Estate Vineyard <onboarding@resend.dev>",
       to: [email],
-      subject: `Milea Estate Vineyard - KPI Dashboard Reports (${subscribedReports.length} Report${subscribedReports.length > 1 ? 's' : ''})`,
+      subject: `Milea Estate Vineyard - KPI Dashboard Reports (${subscribedReports.length} Report${subscribedReports.length > 1 ? "s" : ""})`,
       html: comprehensiveEmail,
     });
 
     if (error) {
-      console.error('Resend error:', error);
-      return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
+      console.error("Resend error:", error);
+      return NextResponse.json(
+        { error: "Failed to send email" },
+        { status: 500 },
+      );
     }
 
-    console.log('Comprehensive KPI email sent successfully:', data);
-    return NextResponse.json({ 
-      success: true, 
+    console.log("Comprehensive KPI email sent successfully:", data);
+    return NextResponse.json({
+      success: true,
       message: `Comprehensive KPI dashboard email sent successfully with ${subscribedReports.length} report(s)!`,
-      data 
+      data,
     });
-
   } catch (error) {
-    console.error('Error sending comprehensive KPI email:', error);
-    return NextResponse.json({ 
-      error: 'Failed to send comprehensive KPI email: ' + (error instanceof Error ? error.message : 'Unknown error') 
-    }, { status: 500 });
+    console.error("Error sending comprehensive KPI email:", error);
+    return NextResponse.json(
+      {
+        error:
+          "Failed to send comprehensive KPI email: " +
+          (error instanceof Error ? error.message : "Unknown error"),
+      },
+      { status: 500 },
+    );
   }
-} 
+}

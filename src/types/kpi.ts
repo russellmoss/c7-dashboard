@@ -1,8 +1,37 @@
-import { DashboardSchedule, StaffMemberCoaching, SMSCoaching, CoachingSMSHistory } from './sms.js';
+import {
+  SMSCoaching,
+} from "./sms.js";
+
+export interface KPIDashboardData {
+  periodType: string;
+  periodLabel: string;
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  overallMetrics: {
+    totalRevenue: number;
+    totalOrders: number;
+    averageOrderValue: number;
+    totalGuests: number;
+    totalBottlesSold: number;
+    avgOrderValue: number;
+    wineBottleConversionRate: number;
+    clubConversionRate: number;
+  };
+  yearOverYear: {
+    revenue: { current: number; previous: number; change: number };
+    guests: { current: number; previous: number; change: number };
+    orders: { current: number; previous: number; change: number };
+  };
+  associatePerformance: Record<string, any>;
+  insights?: any;
+  generatedAt: string;
+}
 
 export interface KPIData {
   _id?: string;
-  periodType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters' | 'custom';
+  periodType: "mtd" | "qtd" | "ytd" | "all-quarters" | "custom";
   generatedAt: string;
   year: number;
   data: KPIReport;
@@ -10,7 +39,7 @@ export interface KPIData {
   createdAt: Date;
   updatedAt: Date;
   executionTime?: number;
-  status: 'generating' | 'completed' | 'failed';
+  status: "generating" | "completed" | "failed";
   startDate?: string; // For custom reports
   endDate?: string; // For custom reports
 }
@@ -149,8 +178,8 @@ export interface StaffFeedback {
 
 export interface CronJobLog {
   _id?: string;
-  jobType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters' | 'custom';
-  status: 'running' | 'completed' | 'failed';
+  jobType: "mtd" | "qtd" | "ytd" | "all-quarters" | "custom";
+  status: "running" | "completed" | "failed";
   startTime: Date;
   endTime?: Date;
   executionTime?: number;
@@ -165,12 +194,12 @@ export interface EmailSubscription {
   _id?: string;
   name: string;
   email: string;
-  subscribedReports: ('mtd' | 'qtd' | 'ytd' | 'all-quarters')[];
+  subscribedReports: ("mtd" | "qtd" | "ytd" | "all-quarters")[];
   reportSchedules: {
     mtd?: ReportSchedule;
     qtd?: ReportSchedule;
     ytd?: ReportSchedule;
-    'all-quarters'?: ReportSchedule;
+    "all-quarters"?: ReportSchedule;
   };
   smsCoaching?: SMSCoaching;
   isActive: boolean;
@@ -185,7 +214,14 @@ export interface EmailSubscription {
 }
 
 export interface ReportSchedule {
-  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
+  frequency:
+    | "daily"
+    | "weekly"
+    | "biweekly"
+    | "monthly"
+    | "quarterly"
+    | "yearly"
+    | "custom";
   timeEST: string;
   dayOfWeek?: number; // 0-6 (Sunday-Saturday) for weekly/biweekly
   dayOfMonth?: number; // 1-31 for monthly

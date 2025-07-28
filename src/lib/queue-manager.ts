@@ -1,31 +1,31 @@
-import PQueue from 'p-queue';
+import PQueue from "p-queue";
 
 // Centralized queue manager for API rate limiting
 export class QueueManager {
   // SMS Queue: 1 SMS every 2 seconds (Twilio recommended rate)
-  static smsQueue = new PQueue({ 
-    interval: 2000, 
+  static smsQueue = new PQueue({
+    interval: 2000,
     intervalCap: 1,
-    concurrency: 1 
+    concurrency: 1,
   });
 
   // Email Queue: 1 email per second (Resend recommended rate)
-  static emailQueue = new PQueue({ 
-    interval: 1000, 
+  static emailQueue = new PQueue({
+    interval: 1000,
     intervalCap: 1,
-    concurrency: 1 
+    concurrency: 1,
   });
 
   // Claude API Queue: 1 request every 3 seconds (to be safe)
-  static claudeQueue = new PQueue({ 
-    interval: 3000, 
+  static claudeQueue = new PQueue({
+    interval: 3000,
     intervalCap: 1,
-    concurrency: 1 
+    concurrency: 1,
   });
 
   // Batch processing queue for multiple messages
-  static batchQueue = new PQueue({ 
-    concurrency: 1 
+  static batchQueue = new PQueue({
+    concurrency: 1,
   });
 
   /**
@@ -53,28 +53,28 @@ export class QueueManager {
    * Process batch of messages with delays
    */
   static async processBatch(
-    items: any[], 
+    items: any[],
     processor: (item: any, index: number) => Promise<any>,
-    delayMs: number = 1000
+    delayMs: number = 1000,
   ): Promise<any[]> {
     const results = [];
-    
+
     for (let i = 0; i < items.length; i++) {
       const result = await this.batchQueue.add(async () => {
         console.log(`[QueueManager] Processing item ${i + 1}/${items.length}`);
         const itemResult = await processor(items[i], i);
-        
+
         // Add delay between items (except for the last one)
         if (i < items.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, delayMs));
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
-        
+
         return itemResult;
       });
-      
+
       results.push(result);
     }
-    
+
     return results;
   }
 
@@ -86,23 +86,23 @@ export class QueueManager {
       sms: {
         size: this.smsQueue.size,
         pending: this.smsQueue.pending,
-        isPaused: this.smsQueue.isPaused
+        isPaused: this.smsQueue.isPaused,
       },
       email: {
         size: this.emailQueue.size,
         pending: this.emailQueue.pending,
-        isPaused: this.emailQueue.isPaused
+        isPaused: this.emailQueue.isPaused,
       },
       claude: {
         size: this.claudeQueue.size,
         pending: this.claudeQueue.pending,
-        isPaused: this.claudeQueue.isPaused
+        isPaused: this.claudeQueue.isPaused,
       },
       batch: {
         size: this.batchQueue.size,
         pending: this.batchQueue.pending,
-        isPaused: this.batchQueue.isPaused
-      }
+        isPaused: this.batchQueue.isPaused,
+      },
     };
   }
 
@@ -114,6 +114,6 @@ export class QueueManager {
     this.emailQueue.clear();
     this.claudeQueue.clear();
     this.batchQueue.clear();
-    console.log('[QueueManager] All queues cleared');
+    console.log("[QueueManager] All queues cleared");
   }
-} 
+}

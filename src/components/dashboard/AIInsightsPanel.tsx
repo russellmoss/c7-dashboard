@@ -1,17 +1,8 @@
-'use client';
+"use client";
 
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  AlertTriangle, 
-  Target, 
-  Users, 
-  Brain,
-  CheckCircle,
-  XCircle,
-  Clock
-} from "lucide-react";
+import { Clock, Users, AlertTriangle, TrendingUp, Target, Award, AlertCircle, TrendingDown, CheckCircle } from 'lucide-react';
 
 interface AIInsight {
   strengths: string[];
@@ -43,7 +34,7 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
     return (
       <Card className="h-full">
         <div className="flex flex-row items-center space-y-0 pb-2 px-4 pt-4">
-          <Brain className="h-5 w-5 text-wine-600 mr-2" />
+          <Award className="h-5 w-5 text-wine-600 mr-2" />
           <h2 className="text-lg font-semibold">AI Insights</h2>
         </div>
         <CardContent>
@@ -60,14 +51,16 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
     return (
       <Card className="h-full">
         <div className="flex flex-row items-center space-y-0 pb-2 px-4 pt-4">
-          <Brain className="h-5 w-5 text-slate-400 mr-2" />
+          <Award className="h-5 w-5 text-slate-400 mr-2" />
           <h2 className="text-lg font-semibold text-slate-600">AI Insights</h2>
         </div>
         <CardContent>
           <div className="text-center py-8">
-            <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+            <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
             <p className="text-slate-600">No insights available</p>
-            <p className="text-sm text-slate-500 mt-1">Generate new data to see AI analysis</p>
+            <p className="text-sm text-slate-500 mt-1">
+              Generate new data to see AI analysis
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -83,22 +76,22 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
     staffPraise = [],
     staffCoaching = [],
     recommendations = [],
-    generatedAt = '',
-    error
+    generatedAt = "",
+    error,
   } = insights;
 
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleString();
     } catch {
-      return 'Unknown';
+      return "Unknown";
     }
   };
 
   return (
     <Card className="h-full">
       <div className="flex flex-row items-center space-y-0 pb-2 px-4 pt-4">
-        <Brain className="h-5 w-5 text-wine-600 mr-2" />
+        <Award className="h-5 w-5 text-wine-600 mr-2" />
         <div className="flex-1">
           <h2 className="text-lg font-semibold">AI Insights</h2>
           <div className="flex items-center text-xs text-slate-500 mt-1">
@@ -107,7 +100,9 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
           </div>
         </div>
         {error && (
-          <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-semibold ml-2">Limited Analysis</span>
+          <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-semibold ml-2">
+            Limited Analysis
+          </span>
         )}
       </div>
       <CardContent className="space-y-4">
@@ -122,7 +117,10 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
             <div className="space-y-1">
               {strengths.length > 0 ? (
                 strengths.map((strength, idx) => (
-                  <div key={idx} className="text-sm text-slate-700 bg-green-50 p-2 rounded border-l-2 border-green-200">
+                  <div
+                    key={idx}
+                    className="text-sm text-slate-700 bg-green-50 p-2 rounded border-l-2 border-green-200"
+                  >
                     {strength}
                   </div>
                 ))
@@ -141,7 +139,10 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
             <div className="space-y-1">
               {opportunities.length > 0 ? (
                 opportunities.map((opportunity, idx) => (
-                  <div key={idx} className="text-sm text-slate-700 bg-blue-50 p-2 rounded border-l-2 border-blue-200">
+                  <div
+                    key={idx}
+                    className="text-sm text-slate-700 bg-blue-50 p-2 rounded border-l-2 border-blue-200"
+                  >
                     {opportunity}
                   </div>
                 ))
@@ -155,12 +156,17 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
           <div className="space-y-2">
             <div className="flex items-center">
               <TrendingDown className="h-4 w-4 text-amber-600 mr-2" />
-              <h4 className="font-semibold text-amber-700">Areas for Improvement</h4>
+              <h4 className="font-semibold text-amber-700">
+                Areas for Improvement
+              </h4>
             </div>
             <div className="space-y-1">
               {weaknesses.length > 0 ? (
                 weaknesses.map((weakness, idx) => (
-                  <div key={idx} className="text-sm text-slate-700 bg-amber-50 p-2 rounded border-l-2 border-amber-200">
+                  <div
+                    key={idx}
+                    className="text-sm text-slate-700 bg-amber-50 p-2 rounded border-l-2 border-amber-200"
+                  >
                     {weakness}
                   </div>
                 ))
@@ -179,7 +185,10 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
             <div className="space-y-1">
               {threats.length > 0 ? (
                 threats.map((threat, idx) => (
-                  <div key={idx} className="text-sm text-slate-700 bg-red-50 p-2 rounded border-l-2 border-red-200">
+                  <div
+                    key={idx}
+                    className="text-sm text-slate-700 bg-red-50 p-2 rounded border-l-2 border-red-200"
+                  >
                     {threat}
                   </div>
                 ))
@@ -200,7 +209,7 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
               <Users className="h-4 w-4 text-wine-600 mr-2" />
               <h4 className="font-semibold text-wine-700">Staff Performance</h4>
             </div>
-            
+
             {staffPraise.length > 0 && (
               <div className="space-y-2">
                 <h5 className="text-sm font-medium text-green-700 flex items-center">
@@ -208,13 +217,19 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
                   Recognition
                 </h5>
                 {staffPraise.map((praise, idx) => (
-                  <div key={idx} className="text-sm bg-green-50 p-3 rounded border-l-2 border-green-200">
+                  <div
+                    key={idx}
+                    className="text-sm bg-green-50 p-3 rounded border-l-2 border-green-200"
+                  >
                     <p className="font-medium">{praise.name}</p>
                     <p className="text-slate-700">{praise.reason}</p>
                     {praise.metrics.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {praise.metrics.map((metric, mIdx) => (
-                          <span key={mIdx} className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-medium">
+                          <span
+                            key={mIdx}
+                            className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-medium"
+                          >
                             {metric}
                           </span>
                         ))}
@@ -232,13 +247,19 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
                   Development Opportunities
                 </h5>
                 {staffCoaching.map((coaching, idx) => (
-                  <div key={idx} className="text-sm bg-amber-50 p-3 rounded border-l-2 border-amber-200">
+                  <div
+                    key={idx}
+                    className="text-sm bg-amber-50 p-3 rounded border-l-2 border-amber-200"
+                  >
                     <p className="font-medium">{coaching.name}</p>
                     <p className="text-slate-700">{coaching.reason}</p>
                     {coaching.metrics.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {coaching.metrics.map((metric, mIdx) => (
-                          <span key={mIdx} className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-medium">
+                          <span
+                            key={mIdx}
+                            className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-medium"
+                          >
                             {metric}
                           </span>
                         ))}
@@ -263,12 +284,18 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
           <div className="space-y-1">
             {recommendations.length > 0 ? (
               recommendations.map((recommendation, idx) => (
-                <div key={idx} className="text-sm text-slate-700 bg-wine-50 p-2 rounded border-l-2 border-wine-200">
-                  <span className="font-medium text-wine-800">{idx + 1}.</span> {recommendation}
+                <div
+                  key={idx}
+                  className="text-sm text-slate-700 bg-wine-50 p-2 rounded border-l-2 border-wine-200"
+                >
+                  <span className="font-medium text-wine-800">{idx + 1}.</span>{" "}
+                  {recommendation}
                 </div>
               ))
             ) : (
-              <p className="text-xs text-slate-500 italic">No recommendations available</p>
+              <p className="text-xs text-slate-500 italic">
+                No recommendations available
+              </p>
             )}
           </div>
         </div>
@@ -286,4 +313,4 @@ export function AIInsightsPanel({ insights, loading }: AIInsightsPanelProps) {
       </CardContent>
     </Card>
   );
-} 
+}

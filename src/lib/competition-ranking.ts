@@ -1,6 +1,5 @@
-import { connectToDatabase } from './mongodb';
-import { KPIDataModel, CompetitionModel, EmailSubscriptionModel, Competition } from './models';
-import { EmailSubscription } from '../types/kpi';
+import { connectToDatabase } from "./mongodb";
+import { CompetitionModel, EmailSubscriptionModel, KPIDataModel } from "./models";
 
 export interface RankingEntry {
   subscriberId: string;
@@ -13,15 +12,18 @@ export interface RankingEntry {
 export interface CompetitionRankingResult {
   competitionId: string;
   competitionName: string;
-  competitionType: 'bottleConversion' | 'clubConversion' | 'aov';
-  dashboard: 'mtd' | 'qtd' | 'ytd';
+  competitionType: "bottleConversion" | "clubConversion" | "aov";
+  dashboard: "mtd" | "qtd" | "ytd";
   rankings: RankingEntry[];
   calculatedAt: Date;
   totalParticipants: number;
 }
 
 // Simple in-memory cache with TTL
-const rankingCache = new Map<string, { data: CompetitionRankingResult; expires: number }>();
+const rankingCache = new Map<
+  string,
+  { data: CompetitionRankingResult; expires: number }
+>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -29,24 +31,28 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
  */
 export async function calculateCompetitionRankings(
   competitionId: string,
-  forceRefresh: boolean = false
+  forceRefresh: boolean = false,
 ): Promise<CompetitionRankingResult> {
   const cacheKey = `competition_${competitionId}`;
-  
+
   // Check cache first (unless force refresh)
   if (!forceRefresh) {
     const cached = rankingCache.get(cacheKey);
     if (cached && cached.expires > Date.now()) {
-      console.log(`[RANKING] Returning cached rankings for competition ${competitionId}`);
+      console.log(
+        `[RANKING] Returning cached rankings for competition ${competitionId}`,
+      );
       return cached.data;
     }
   }
 
-  console.log(`[RANKING] Calculating fresh rankings for competition ${competitionId}`);
-  
+  console.log(
+    `[RANKING] Calculating fresh rankings for competition ${competitionId}`,
+  );
+
   try {
     await connectToDatabase();
-    
+
     // Get competition details
     const competition = await CompetitionModel.findById(competitionId).lean();
     if (!competition) {
@@ -55,11 +61,13 @@ export async function calculateCompetitionRankings(
 
     // Get enrolled subscribers
     const enrolledSubscribers = await EmailSubscriptionModel.find({
-      _id: { $in: competition.enrolledSubscribers }
+      _id: { $in: competition.enrolledSubscribers },
     }).lean();
 
     if (enrolledSubscribers.length === 0) {
-      console.log(`[RANKING] No enrolled subscribers found for competition ${competitionId}`);
+      console.log(
+        `[RANKING] No enrolled subscribers found for competition ${competitionId}`,
+      );
       return {
         competitionId,
         competitionName: competition.name,
@@ -67,7 +75,7 @@ export async function calculateCompetitionRankings(
         dashboard: competition.dashboard,
         rankings: [],
         calculatedAt: new Date(),
-        totalParticipants: 0
+        totalParticipants: 0,
       };
     }
 
@@ -75,8 +83,10 @@ export async function calculateCompetitionRankings(
     const kpiData = await KPIDataModel.findOne({
       periodType: competition.dashboard,
       year: new Date().getFullYear(),
-      status: 'completed'
-    }).sort({ createdAt: -1 }).lean();
+      status: "completed",
+    })
+      .sort({ createdAt: -1 })
+      .lean();
 
     if (!kpiData) {
       throw new Error(`No KPI data found for ${competition.dashboard} period`);
@@ -99,27 +109,30 @@ export async function calculateCompetitionRankings(
       // Get the staff member name from SMS coaching mapping
       const staffMemberName = subscriber.smsCoaching?.staffMembers?.[0]?.name;
       const staffName = staffMemberName || subscriber.name; // Fallback to subscriber name if no mapping
-      
+
       const performance = staffPerformance[staffName];
-      
+
       if (!performance) {
-        console.warn(`[RANKING] No performance data found for staff member: ${staffName} (subscriber: ${subscriber.name})`);
+        console.warn(
+          `[RANKING] No performance data found for staff member: ${staffName} (subscriber: ${subscriber.name})`,
+        );
         continue;
       }
 
       let metricValue: number;
-      
+
       switch (competition.type) {
-        case 'bottleConversion':
+        case "bottleConversion":
           metricValue = performance.wineBottleConversionRate || 0;
           break;
-        case 'clubConversion':
+        case "clubConversion":
           // Handle string values (like "N/A") for club conversion
-          metricValue = typeof performance.clubConversionRate === 'number' 
-            ? performance.clubConversionRate 
-            : 0;
+          metricValue =
+            typeof performance.clubConversionRate === "number"
+              ? performance.clubConversionRate
+              : 0;
           break;
-        case 'aov':
+        case "aov":
           metricValue = performance.aov || 0;
           break;
         default:
@@ -129,7 +142,7 @@ export async function calculateCompetitionRankings(
       subscriberMetrics.push({
         subscriberId: subscriber._id.toString(),
         name: subscriber.name, // Keep subscriber name for display
-        metricValue
+        metricValue,
       });
     }
 
@@ -144,7 +157,7 @@ export async function calculateCompetitionRankings(
 
     for (let i = 0; i < subscriberMetrics.length; i++) {
       const entry = subscriberMetrics[i];
-      
+
       if (currentValue === null || entry.metricValue !== currentValue) {
         // New rank (accounting for ties)
         currentRank = i + 1;
@@ -160,7 +173,7 @@ export async function calculateCompetitionRankings(
         name: entry.name,
         metricValue: entry.metricValue,
         rank: currentRank,
-        tied: tiedCount > 1
+        tied: tiedCount > 1,
       });
     }
 
@@ -171,20 +184,24 @@ export async function calculateCompetitionRankings(
       dashboard: competition.dashboard,
       rankings,
       calculatedAt: new Date(),
-      totalParticipants: rankings.length
+      totalParticipants: rankings.length,
     };
 
     // Cache the result
     rankingCache.set(cacheKey, {
       data: result,
-      expires: Date.now() + CACHE_TTL
+      expires: Date.now() + CACHE_TTL,
     });
 
-    console.log(`[RANKING] Calculated rankings for ${rankings.length} participants in competition ${competitionId}`);
+    console.log(
+      `[RANKING] Calculated rankings for ${rankings.length} participants in competition ${competitionId}`,
+    );
     return result;
-
   } catch (error) {
-    console.error(`[RANKING] Error calculating rankings for competition ${competitionId}:`, error);
+    console.error(
+      `[RANKING] Error calculating rankings for competition ${competitionId}:`,
+      error,
+    );
     throw error;
   }
 }
@@ -194,7 +211,7 @@ export async function calculateCompetitionRankings(
  */
 export async function getCompetitionRankings(
   competitionId: string,
-  forceRefresh: boolean = false
+  forceRefresh: boolean = false,
 ): Promise<CompetitionRankingResult> {
   return calculateCompetitionRankings(competitionId, forceRefresh);
 }
@@ -219,14 +236,17 @@ export function clearAllRankingCaches(): void {
 /**
  * Get cache statistics
  */
-export function getCacheStats(): { size: number; entries: Array<{ key: string; expires: number }> } {
+export function getCacheStats(): {
+  size: number;
+  entries: Array<{ key: string; expires: number }>;
+} {
   const entries = Array.from(rankingCache.entries()).map(([key, value]) => ({
     key,
-    expires: value.expires
+    expires: value.expires,
   }));
-  
+
   return {
     size: rankingCache.size,
-    entries
+    entries,
   };
-} 
+}

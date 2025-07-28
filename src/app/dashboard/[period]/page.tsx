@@ -1,11 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { ComprehensiveMetrics } from '@/components/dashboard/comprehensive-metrics';
-import { RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from "react";
+import { ComprehensiveMetrics } from "@/components/dashboard/comprehensive-metrics";
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-export default function DashboardPage({ params }: { params: { period: string } }) {
+export default function DashboardPage({
+  params,
+}: {
+  params: { period: string };
+}) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +20,7 @@ export default function DashboardPage({ params }: { params: { period: string } }
       setLoading(true);
       const response = await fetch(`/api/kpi/${params.period}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch data');
+        throw new Error("Failed to fetch data");
       }
       const result = await response.json();
       setData(result.data);
@@ -77,15 +81,15 @@ export default function DashboardPage({ params }: { params: { period: string } }
             </p>
           )}
         </div>
-        <Button onClick={fetchData} className="border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 h-10 px-4 py-2" >
+        <Button
+          onClick={fetchData}
+          className="border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 h-10 px-4 py-2"
+        >
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
       </div>
-      <ComprehensiveMetrics 
-        data={data} 
-        insights={data.insights}
-      />
+      <ComprehensiveMetrics data={data} insights={data.insights} />
     </div>
   );
-} 
+}

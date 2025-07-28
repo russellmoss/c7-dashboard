@@ -1,7 +1,7 @@
-import twilio from 'twilio';
-import { QueueManager } from '../queue-manager';
+import twilio from "twilio";
+import { QueueManager } from "../queue-manager";
 
-export const baseDebug = 'base-runtime-value';
+export const baseDebug = "base-runtime-value";
 
 export interface SmsService {
   sendSms(to: string, body: string): Promise<boolean>;
@@ -22,17 +22,17 @@ export class TwilioSmsService implements SmsService {
     const phoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
     if (!accountSid || !authToken || !phoneNumber) {
-      this.error = 'Missing Twilio credentials';
-      console.error('[TwilioSmsService]', this.error);
+      this.error = "Missing Twilio credentials";
+      console.error("[TwilioSmsService]", this.error);
       return;
     }
 
     try {
       this.client = twilio(accountSid, authToken);
-      console.log('[TwilioSmsService] Initialized successfully');
+      console.log("[TwilioSmsService] Initialized successfully");
     } catch (error) {
       this.error = `Initialization failed: ${error}`;
-      console.error('[TwilioSmsService]', this.error);
+      console.error("[TwilioSmsService]", this.error);
     }
   }
 
@@ -42,7 +42,7 @@ export class TwilioSmsService implements SmsService {
 
   async sendSms(to: string, body: string): Promise<boolean> {
     if (!this.client) {
-      console.error('[TwilioSmsService] Cannot send SMS:', this.error);
+      console.error("[TwilioSmsService] Cannot send SMS:", this.error);
       return false;
     }
 
@@ -53,16 +53,16 @@ export class TwilioSmsService implements SmsService {
         const message = await this.client!.messages.create({
           body,
           to,
-          from: process.env.TWILIO_PHONE_NUMBER!
+          from: process.env.TWILIO_PHONE_NUMBER!,
         });
         console.log(`[TwilioSmsService] SMS sent successfully: ${message.sid}`);
         return true;
       });
-      
+
       return result;
     } catch (error) {
-      console.error('[TwilioSmsService] Send failed:', error);
+      console.error("[TwilioSmsService] Send failed:", error);
       return false;
     }
   }
-} 
+}

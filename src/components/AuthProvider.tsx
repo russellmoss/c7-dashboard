@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { createContext, useContext, useEffect, useState } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 interface AuthContextType {
   user: any;
@@ -16,12 +16,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const session = supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      },
+    );
     return () => {
       listener?.subscription.unsubscribe();
     };
@@ -38,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const sendPasswordReset = async (email: string) => {
     return supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/login?reset=1',
+      redirectTo: window.location.origin + "/login?reset=1",
     });
   };
 
@@ -51,6 +53,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
-} 
+}

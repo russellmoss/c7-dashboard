@@ -2068,19 +2068,13 @@
       {
         "name": "Mina Do",
         "reason": "Consistently high club conversion rates",
-        "metrics": [
-          "clubConversionRate",
-          "wineBottleConversionRate"
-        ],
+        "metrics": ["clubConversionRate", "wineBottleConversionRate"],
         "_id": "688163f0541336efeb04d369"
       },
       {
         "name": "Jenny Lee",
         "reason": "Exceptional club signup performance in Q3",
-        "metrics": [
-          "clubSignups",
-          "clubConversionRate"
-        ],
+        "metrics": ["clubSignups", "clubConversionRate"],
         "_id": "688163f0541336efeb04d36a"
       }
     ],
@@ -2088,17 +2082,13 @@
       {
         "name": "Jennifer O'Toole",
         "reason": "Low club conversion rate in Q3",
-        "metrics": [
-          "clubConversionRate"
-        ],
+        "metrics": ["clubConversionRate"],
         "_id": "688163f0541336efeb04d367"
       },
       {
         "name": "Liam Garvey",
         "reason": "Below average wine bottle conversion rate in Q3",
-        "metrics": [
-          "wineBottleConversionRate"
-        ],
+        "metrics": ["wineBottleConversionRate"],
         "_id": "688163f0541336efeb04d368"
       }
     ],

@@ -1,7 +1,7 @@
-import { TwilioSmsService, baseDebug } from './base';
-import fetch from 'node-fetch';
+import { TwilioSmsService, baseDebug } from "./base";
+import fetch from "node-fetch";
 
-console.log('[DEBUG] baseDebug:', baseDebug);
+console.log("[DEBUG] baseDebug:", baseDebug);
 
 let smsService: TwilioSmsService | null = null;
 
@@ -58,30 +58,29 @@ const SALES_TECHNIQUES_TEXT = `TECHNIQUES TO SUGGEST IF BELOW GOAL (use as inspi
 // Claude API call function (Anthropic)
 export async function callClaude(prompt: string): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set');
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
     headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json'
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: 'claude-3-opus-20240229',
+      model: "claude-3-opus-20240229",
       max_tokens: 1024,
       temperature: 0.7,
-      system: 'You are a wine sales coach. Use the provided techniques as inspiration, but do not copy verbatim.',
-      messages: [
-        { role: 'user', content: prompt }
-      ]
-    })
+      system:
+        "You are a wine sales coach. Use the provided techniques as inspiration, but do not copy verbatim.",
+      messages: [{ role: "user", content: prompt }],
+    }),
   });
   if (!response.ok) {
     const errText = await response.text();
     throw new Error(`Claude API error: ${response.status} ${errText}`);
   }
   const data = await response.json();
-  return (data as any).content?.[0]?.text || 'No response from Claude.';
+  return (data as any).content?.[0]?.text || "No response from Claude.";
 }
 
 // --- Coaching message generation logic using Claude ---
@@ -89,92 +88,93 @@ export async function generateCoachingMessage(
   performance: any,
   config: any,
   periodType: string,
-  personalizedGoals?: any
+  personalizedGoals?: any,
 ): Promise<string> {
-  console.log('[DEBUG] generateCoachingMessage called with performance:', JSON.stringify(performance, null, 2));
+  console.log(
+    "[DEBUG] generateCoachingMessage called with performance:",
+    JSON.stringify(performance, null, 2),
+  );
 
   // Extract first name from staff member name
-  const firstName = performance.name ? performance.name.split(' ')[0] : 'there';
+  const firstName = performance.name ? performance.name.split(" ")[0] : "there";
 
   // Format conversion rates
-  const wineConversion = typeof performance.wineBottleConversionRate === 'number'
-    ? performance.wineBottleConversionRate.toFixed(1)
-    : performance.wineBottleConversionRate;
-  const clubConversion = typeof performance.clubConversionRate === 'number'
-    ? performance.clubConversionRate.toFixed(1)
-    : performance.clubConversionRate;
+  const wineConversion =
+    typeof performance.wineBottleConversionRate === "number"
+      ? performance.wineBottleConversionRate.toFixed(1)
+      : performance.wineBottleConversionRate;
+  const clubConversion =
+    typeof performance.clubConversionRate === "number"
+      ? performance.clubConversionRate.toFixed(1)
+      : performance.clubConversionRate;
 
   // Fetch last 3 archived SMS messages for this staff/period
-  let lastMessagesText = '';
-  let usedStrategiesText = '';
+  let lastMessagesText = "";
+  let usedStrategiesText = "";
   try {
     // @ts-ignore
-    const models = await import('../lib/models.js');
-    const lastMessages: Array<{ coachingMessage: string }> = await models.CoachingSMSHistoryModel.find({
-      staffName: performance.name,
-      phoneNumber: config.phoneNumber,
-      periodType
-    }).sort({ sentAt: -1 }).limit(3).lean();
+    const models = await import("../models");
+    const lastMessages: Array<{ coachingMessage: string }> =
+      await models.CoachingSMSHistoryModel.find({
+        staffName: performance.name,
+        phoneNumber: config.phoneNumber,
+        periodType,
+      })
+        .sort({ sentAt: -1 })
+        .limit(3)
+        .lean();
     if (lastMessages.length > 0) {
-      lastMessagesText = '\n\nHere are the last 3 coaching SMS messages sent to this staff member for this period:';
+      lastMessagesText =
+        "\n\nHere are the last 3 coaching SMS messages sent to this staff member for this period:";
       let usedStrategies: string[] = [];
       lastMessages.forEach((msg: { coachingMessage: string }, idx: number) => {
         lastMessagesText += `\nPrevious message #${idx + 1}: ${msg.coachingMessage}`;
         // Simple keyword extraction for strategies (expand as needed)
         const lower = msg.coachingMessage.toLowerCase();
-        if (lower.includes('priming') || lower.includes('prime')) usedStrategies.push('priming');
-        if (lower.includes('mention club') || lower.includes('seed club')) usedStrategies.push('mentioning or seeding club early');
-        if (lower.includes('rapport')) usedStrategies.push('rapport building');
-        if (lower.includes('assumptive')) usedStrategies.push('assumptive closing');
-        if (lower.includes('farewell glass')) usedStrategies.push('farewell glass');
-        if (lower.includes('value') || lower.includes('discount')) usedStrategies.push('emphasizing value/discounts');
-        if (lower.includes('story') || lower.includes('storytelling')) usedStrategies.push('storytelling');
-        if (lower.includes('flight')) usedStrategies.push('flight suggestion');
-        if (lower.includes('review card')) usedStrategies.push('review card');
-        if (lower.includes('personalize')) usedStrategies.push('personalization');
+        if (lower.includes("priming") || lower.includes("prime"))
+          usedStrategies.push("priming");
+        if (lower.includes("mention club") || lower.includes("seed club"))
+          usedStrategies.push("mentioning or seeding club early");
+        if (lower.includes("rapport")) usedStrategies.push("rapport building");
+        if (lower.includes("assumptive"))
+          usedStrategies.push("assumptive closing");
+        if (lower.includes("farewell glass"))
+          usedStrategies.push("farewell glass");
+        if (lower.includes("value") || lower.includes("discount"))
+          usedStrategies.push("emphasizing value/discounts");
+        if (lower.includes("story") || lower.includes("storytelling"))
+          usedStrategies.push("storytelling");
+        if (lower.includes("flight")) usedStrategies.push("flight suggestion");
+        if (lower.includes("review card")) usedStrategies.push("review card");
+        if (lower.includes("personalize"))
+          usedStrategies.push("personalization");
         // Add more as needed
       });
       if (usedStrategies.length > 0) {
-        usedStrategiesText = '\n\nThe following strategies/tips have already been used recently: ' + Array.from(new Set(usedStrategies)).join(', ') + '. DO NOT use these again. Pick a new, unique strategy or tip.';
+        usedStrategiesText =
+          "\n\nThe following strategies/tips have already been used recently: " +
+          Array.from(new Set(usedStrategies)).join(", ") +
+          ". DO NOT use these again. Pick a new, unique strategy or tip.";
       }
     }
   } catch (err) {
-    console.error('[DEBUG] Error fetching last 3 SMS messages for Claude prompt:', err);
+    console.error(
+      "[DEBUG] Error fetching last 3 SMS messages for Claude prompt:",
+      err,
+    );
   }
 
-  const exampleMessage = `Hi {firstName}! 📊\n\n{PERIOD_LABEL} Performance:\n🍷 Wine Conversion: {wineConversion}% (Company Goal: 53%)\n👥 Club Conversion: {clubConversion}% (Company Goal: 6%)\n💰 Revenue: ${'{revenue}'}\n\n💡 Hi {firstName}! 🍇\n\nLet's review your Month-to-Date performance:\n\n🍷 Wine Conversion: {wineConversion}% (Company Goal: 53%)\n👥 Club Conversion: {clubConversion}% (Company Goal: 6%)\n💰 Revenue: ${'{revenue}'}\n\nExcellent work on your wine conversion rate! You're exceeding the company goal, which shows in your strong revenue numbers. Your skill in guiding guests to bottle purchases is evident.\n\nHowever, there's a significant opportunity to improve your club conversion rate. You're currently at {clubConversion}%, which is well below the 6% company goal. Let's focus on boosting this area:\n\nTip: Try the "value stack" approach when discussing the wine club. After a guest has enjoyed multiple wines, say something like:\n\n"I'm thrilled you've found several wines you love today. Many guests in your position find our wine club to be an incredible value. As a member, you'd get:\n1. 15% off all these bottles today\n2. Complimentary tastings on future visits\n3. First access to limited releases\n4. Invitations to exclusive member events\n\nWhich of these benefits sounds most appealing to you?"\n\nThis method presents the club as a solution to their enjoyment, highlighting multiple tangible benefits. It also engages the guest in a conversation about which aspects of the club they find most valuable.\n\nKeep up the fantastic work with bottle sales, and let's bring that same excellence to club sign-ups! 🌟🍷`;
+  const exampleMessage = `Hi {firstName}! 📊\n\n{PERIOD_LABEL} Performance:\n🍷 Wine Conversion: {wineConversion}% (Company Goal: 53%)\n👥 Club Conversion: {clubConversion}% (Company Goal: 6%)\n💰 Revenue: ${"{revenue}"}\n\n💡 Hi {firstName}! 🍇\n\nLet's review your Month-to-Date performance:\n\n🍷 Wine Conversion: {wineConversion}% (Company Goal: 53%)\n👥 Club Conversion: {clubConversion}% (Company Goal: 6%)\n💰 Revenue: ${"{revenue}"}\n\nExcellent work on your wine conversion rate! You're exceeding the company goal, which shows in your strong revenue numbers. Your skill in guiding guests to bottle purchases is evident.\n\nHowever, there's a significant opportunity to improve your club conversion rate. You're currently at {clubConversion}%, which is well below the 6% company goal. Let's focus on boosting this area:\n\nTip: Try the "value stack" approach when discussing the wine club. After a guest has enjoyed multiple wines, say something like:\n\n"I'm thrilled you've found several wines you love today. Many guests in your position find our wine club to be an incredible value. As a member, you'd get:\n1. 15% off all these bottles today\n2. Complimentary tastings on future visits\n3. First access to limited releases\n4. Invitations to exclusive member events\n\nWhich of these benefits sounds most appealing to you?"\n\nThis method presents the club as a solution to their enjoyment, highlighting multiple tangible benefits. It also engages the guest in a conversation about which aspects of the club they find most valuable.\n\nKeep up the fantastic work with bottle sales, and let's bring that same excellence to club sign-ups! 🌟🍷`;
 
-  // Build personal goals text
-  let personalGoalsText = '';
-  if (personalizedGoals) {
-    const goals = [];
-    if (personalizedGoals.bottleConversionRate?.enabled && personalizedGoals.bottleConversionRate?.value) {
-      goals.push(`🍷 Personal Wine Goal: ${personalizedGoals.bottleConversionRate.value}%`);
-    }
-    if (personalizedGoals.clubConversionRate?.enabled && personalizedGoals.clubConversionRate?.value) {
-      goals.push(`👥 Personal Club Goal: ${personalizedGoals.clubConversionRate.value}%`);
-    }
-    if (personalizedGoals.aov?.enabled && personalizedGoals.aov?.value) {
-      goals.push(`💰 Personal AOV Goal: $${personalizedGoals.aov.value}`);
-    }
-    if (goals.length > 0) {
-      personalGoalsText = `\n\nPersonal Goals:\n${goals.join('\n')}`;
-    }
-  }
 
-  const prompt = `Staff member's KPIs:\n${JSON.stringify(performance, null, 2)}\n\nPersonal Goals: ${personalizedGoals ? JSON.stringify(personalizedGoals, null, 2) : 'None set'}\n\nSALES & RAPPORT TECHNIQUES:\n${SALES_TECHNIQUES_TEXT}\n${lastMessagesText}\n${usedStrategiesText}\n
+
+  const prompt = `Staff member's KPIs:\n${JSON.stringify(performance, null, 2)}\n\nPersonal Goals: ${personalizedGoals ? JSON.stringify(personalizedGoals, null, 2) : "None set"}\n\nSALES & RAPPORT TECHNIQUES:\n${SALES_TECHNIQUES_TEXT}\n${lastMessagesText}\n${usedStrategiesText}\n
 IMPORTANT FORMATTING & STYLE REQUIREMENTS:\n- Use a beautiful, friendly, supportive, and encouraging tone.\n- Use relevant emojis for wine, club, revenue, and encouragement.\n- Start with a friendly greeting using the staff member's first name and an emoji.\n- Show the performance metrics as a block with emojis (🍷, 👥, 💰), including BOTH company goals (53% wine, 6% club) AND personal goals if set.\n- Give a compliment, then a coaching tip, then an encouraging close, all with a positive, supportive tone.\n- Use section headers, bullet points, and clear formatting.\n- DO NOT repeat the same advice, strategy, or tip as the last 3 messages or the strategies listed above.\n- Keep the message concise, actionable, and motivating.\n- DO NOT sign off like a manager - end naturally without "Keep up the great work!" or similar manager-style closings.\n\nEXAMPLE FORMAT (use as a template, but personalize for this staff member and their data):\n${exampleMessage}\n\nNow, write a personalized, actionable SMS to ${firstName}, referencing their performance and suggesting 2-3 specific things to try next shift.\n\nIMPORTANT REQUIREMENTS:\n1. Start with a genuine compliment about their performance\n2. ALWAYS include their specific metrics in the message: "Your wine bottle conversion rate is ${wineConversion}% (company goal: 53%) and club conversion rate is ${clubConversion}% (company goal: 6%)"\n3. If personal goals are set, mention them alongside company goals: "Your personal goal is X% and you're at Y%"\n4. Provide 2-3 specific, actionable coaching suggestions based on the techniques provided\n5. End naturally without manager-style sign-offs\n6. Be encouraging and motivating throughout\n7. Use their first name: ${firstName}\n8. Keep it conversational and supportive\n9. Make sure to mention both conversion rates and their goals in the message\n10. Include AOV if available in performance data - AOV should be displayed as dollars (e.g., $113.44), NOT as a percentage\n\nStructure: Compliment → Include both conversion rates with company AND personal goals → Coaching → Natural ending`;
 
-  console.log('[DEBUG] Sending prompt to Claude:', prompt);
+  console.log("[DEBUG] Sending prompt to Claude:", prompt);
   const response = await callClaude(prompt);
-  console.log('[DEBUG] Claude response:', response);
+  console.log("[DEBUG] Claude response:", response);
   return response;
 }
 
-function buildMetricsString(performance: any, config: any): string {
-  let metrics = [];
-  metrics.push(`🍷 Wine Conversion: ${typeof performance.wineBottleConversionRate === 'number' ? performance.wineBottleConversionRate.toFixed(1) : performance.wineBottleConversionRate}%`);
-  metrics.push(`👥 Club Conversion: ${typeof performance.clubConversionRate === 'number' ? performance.clubConversionRate.toFixed(1) : performance.clubConversionRate}%`);
-  metrics.push(`💰 Revenue: $${performance.revenue.toLocaleString()}`);
-  return metrics.join('\n');
-} 
+

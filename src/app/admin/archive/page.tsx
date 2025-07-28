@@ -1,21 +1,28 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 
 interface ArchiveCompetition {
   _id: string;
   name: string;
-  type: 'bottleConversion' | 'clubConversion' | 'aov';
-  dashboard: 'mtd' | 'qtd' | 'ytd';
+  type: "bottleConversion" | "clubConversion" | "aov";
+  dashboard: "mtd" | "qtd" | "ytd";
   startDate: string;
   endDate: string;
-  status: 'completed' | 'archived';
+  status: "completed" | "archived";
   participantCount: number;
   winnerCount: number;
   winners: {
@@ -82,23 +89,25 @@ export default function ArchiveManagement() {
   const [competitions, setCompetitions] = useState<ArchiveCompetition[]>([]);
   const [statistics, setStatistics] = useState<ArchiveStatistics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
-    type: '',
-    dashboard: '',
-    status: '',
-    hasWinners: '',
-    hasWinnerAnnouncement: ''
+    type: "",
+    dashboard: "",
+    status: "",
+    hasWinners: "",
+    hasWinnerAnnouncement: "",
+    participants: "",
+    duration: "",
   });
   const [sort, setSort] = useState({
-    field: 'endDate',
-    direction: 'desc'
+    field: "endDate",
+    direction: "desc",
   });
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
     totalCount: 0,
-    totalPages: 0
+    totalPages: 0,
   });
 
   // Fetch competitions and statistics
@@ -111,39 +120,45 @@ export default function ArchiveManagement() {
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
         sortField: sort.field,
-        sortDirection: sort.direction
+        sortDirection: sort.direction,
       });
 
-      if (searchTerm) params.append('search', searchTerm);
-      if (filters.type) params.append('type', filters.type);
-      if (filters.dashboard) params.append('dashboard', filters.dashboard);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.hasWinners !== '') params.append('hasWinners', filters.hasWinners);
-      if (filters.hasWinnerAnnouncement !== '') params.append('hasWinnerAnnouncement', filters.hasWinnerAnnouncement);
+      if (searchTerm) params.append("search", searchTerm);
+      if (filters.type) params.append("type", filters.type);
+      if (filters.dashboard) params.append("dashboard", filters.dashboard);
+      if (filters.status) params.append("status", filters.status);
+      if (filters.hasWinners !== "")
+        params.append("hasWinners", filters.hasWinners);
+      if (filters.hasWinnerAnnouncement !== "")
+        params.append("hasWinnerAnnouncement", filters.hasWinnerAnnouncement);
+      if (filters.participants)
+        params.append("participants", filters.participants);
+      if (filters.duration) params.append("duration", filters.duration);
 
       // Fetch competitions
-      const competitionsResponse = await fetch(`/api/archive/competitions?${params}`);
+      const competitionsResponse = await fetch(
+        `/api/archive/competitions?${params}`,
+      );
       const competitionsData = await competitionsResponse.json();
 
       if (competitionsData.success) {
         setCompetitions(competitionsData.data.competitions);
-        setPagination(prev => ({
+        setPagination((prev) => ({
           ...prev,
           totalCount: competitionsData.data.totalCount,
-          totalPages: competitionsData.data.totalPages
+          totalPages: competitionsData.data.totalPages,
         }));
       }
 
       // Fetch statistics
-      const statsResponse = await fetch('/api/archive/statistics');
+      const statsResponse = await fetch("/api/archive/statistics");
       const statsData = await statsResponse.json();
 
       if (statsData.success) {
         setStatistics(statsData.data);
       }
-
     } catch (error) {
-      console.error('Error fetching archive data:', error);
+      console.error("Error fetching archive data:", error);
     } finally {
       setLoading(false);
     }
@@ -154,15 +169,21 @@ export default function ArchiveManagement() {
   }, [pagination.page, sort, filters, searchTerm]);
 
   // Handle archive/restore action
-  const handleArchiveAction = async (competitionId: string, action: 'archive' | 'restore') => {
+  const handleArchiveAction = async (
+    competitionId: string,
+    action: "archive" | "restore",
+  ) => {
     try {
-      const response = await fetch(`/api/archive/competitions/${competitionId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        `/api/archive/competitions/${competitionId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ action }),
         },
-        body: JSON.stringify({ action })
-      });
+      );
 
       if (response.ok) {
         alert(`Competition ${action}d successfully!`);
@@ -180,18 +201,18 @@ export default function ArchiveManagement() {
   // Helper functions
   const getTypeLabel = (type: string) => {
     const labels = {
-      bottleConversion: '🍷 Bottle Conversion',
-      clubConversion: '👥 Club Conversion',
-      aov: '💰 Average Order Value'
+      bottleConversion: "🍷 Bottle Conversion",
+      clubConversion: "👥 Club Conversion",
+      aov: "💰 Average Order Value",
     };
     return labels[type as keyof typeof labels] || type;
   };
 
   const getDashboardLabel = (dashboard: string) => {
     const labels = {
-      mtd: 'Month-to-Date',
-      qtd: 'Quarter-to-Date',
-      ytd: 'Year-to-Date'
+      mtd: "Month-to-Date",
+      qtd: "Quarter-to-Date",
+      ytd: "Year-to-Date",
     };
     return labels[dashboard as keyof typeof labels] || dashboard;
   };
@@ -202,10 +223,10 @@ export default function ArchiveManagement() {
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      completed: 'bg-green-100 text-green-800',
-      archived: 'bg-gray-100 text-gray-800'
+      completed: "bg-green-100 text-green-800",
+      archived: "bg-gray-100 text-gray-800",
     };
-    return badges[status as keyof typeof badges] || 'bg-gray-100 text-gray-800';
+    return badges[status as keyof typeof badges] || "bg-gray-100 text-gray-800";
   };
 
   if (loading) {
@@ -221,10 +242,15 @@ export default function ArchiveManagement() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
-          <a href="/admin" className="inline-flex items-center px-4 py-2 rounded bg-wine-600 text-white hover:bg-wine-700 transition font-semibold text-sm shadow mr-4">
+          <a
+            href="/admin"
+            className="inline-flex items-center px-4 py-2 rounded bg-wine-600 text-white hover:bg-wine-700 transition font-semibold text-sm shadow mr-4"
+          >
             ← Back to Admin
           </a>
-          <h1 className="text-2xl font-bold text-wine-900">📚 Archive Management</h1>
+          <h1 className="text-2xl font-bold text-wine-900">
+            📚 Archive Management
+          </h1>
         </div>
         <div className="text-sm text-gray-600">
           {pagination.totalCount} competitions found
@@ -236,34 +262,50 @@ export default function ArchiveManagement() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Competitions</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Total Competitions
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{statistics.totalCompetitions}</div>
+              <div className="text-2xl font-bold">
+                {statistics.totalCompetitions}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Participants</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Total Participants
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{statistics.totalParticipants}</div>
+              <div className="text-2xl font-bold">
+                {statistics.totalParticipants}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Winners</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Total Winners
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{statistics.totalWinners}</div>
+              <div className="text-2xl font-bold">
+                {statistics.totalWinners}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Avg Participants</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Avg Participants
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{statistics.averageParticipants}</div>
+              <div className="text-2xl font-bold">
+                {statistics.averageParticipants}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -284,25 +326,41 @@ export default function ArchiveManagement() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Type</label>
-              <Select value={filters.type} onValueChange={(value) => setFilters(prev => ({ ...prev, type: value }))}>
+
+            <div className="space-y-2">
+              <Label htmlFor="type-filter">Type</Label>
+              <Select
+                value={filters.type}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, type: value }))
+                }
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="All Types" />
+                  <SelectValue>All Types</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Types</SelectItem>
-                  <SelectItem value="bottleConversion">🍷 Bottle Conversion</SelectItem>
-                  <SelectItem value="clubConversion">👥 Club Conversion</SelectItem>
-                  <SelectItem value="aov">💰 Average Order Value</SelectItem>
+                  <SelectItem value="bottleConversion">
+                    Bottle Conversion
+                  </SelectItem>
+                  <SelectItem value="clubConversion">
+                    Club Conversion
+                  </SelectItem>
+                  <SelectItem value="aov">Average Order Value</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Dashboard</label>
-              <Select value={filters.dashboard} onValueChange={(value) => setFilters(prev => ({ ...prev, dashboard: value }))}>
+
+            <div className="space-y-2">
+              <Label htmlFor="dashboard-filter">Dashboard</Label>
+              <Select
+                value={filters.dashboard}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, dashboard: value }))
+                }
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="All Dashboards" />
+                  <SelectValue>All Dashboards</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Dashboards</SelectItem>
@@ -312,37 +370,101 @@ export default function ArchiveManagement() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Status</label>
-              <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
+
+            <div className="space-y-2">
+              <Label htmlFor="status-filter">Status</Label>
+              <Select
+                value={filters.status}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, status: value }))
+                }
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="All Statuses" />
+                  <SelectValue>All Statuses</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="archived">Archived</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Has Winners</label>
-              <Select value={filters.hasWinners} onValueChange={(value) => setFilters(prev => ({ ...prev, hasWinners: value }))}>
+
+            <div className="space-y-2">
+              <Label htmlFor="participants-filter">Participants</Label>
+              <Select
+                value={filters.participants}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, participants: value }))
+                }
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="All" />
+                  <SelectValue>All</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="high">High (10+)</SelectItem>
+                  <SelectItem value="medium">Medium (5-9)</SelectItem>
+                  <SelectItem value="low">Low (1-4)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="duration-filter">Duration</Label>
+              <Select
+                value={filters.duration}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, duration: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue>All</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="short">Short (1-7 days)</SelectItem>
+                  <SelectItem value="medium">Medium (8-30 days)</SelectItem>
+                  <SelectItem value="long">Long (31+ days)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Has Winners
+              </label>
+              <Select
+                value={filters.hasWinners}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, hasWinners: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue>All</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All</SelectItem>
-                  <SelectItem value="true">Has Winners</SelectItem>
-                  <SelectItem value="false">No Winners</SelectItem>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Winner Announcement</label>
-              <Select value={filters.hasWinnerAnnouncement} onValueChange={(value) => setFilters(prev => ({ ...prev, hasWinnerAnnouncement: value }))}>
+              <label className="block text-sm font-medium mb-2">
+                Winner Announcement
+              </label>
+              <Select
+                value={filters.hasWinnerAnnouncement}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    hasWinnerAnnouncement: value,
+                  }))
+                }
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="All" />
+                  <SelectValue>All</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All</SelectItem>
@@ -359,9 +481,14 @@ export default function ArchiveManagement() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-4">
           <label className="text-sm font-medium">Sort by:</label>
-          <Select value={sort.field} onValueChange={(value) => setSort(prev => ({ ...prev, field: value as any }))}>
+          <Select
+            value={sort.field}
+            onValueChange={(value) =>
+              setSort((prev) => ({ ...prev, field: value as any }))
+            }
+          >
             <SelectTrigger className="w-40">
-              <SelectValue />
+              <SelectValue>Sort By</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="endDate">End Date</SelectItem>
@@ -375,9 +502,14 @@ export default function ArchiveManagement() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setSort(prev => ({ ...prev, direction: prev.direction === 'asc' ? 'desc' : 'asc' }))}
+            onClick={() =>
+              setSort((prev) => ({
+                ...prev,
+                direction: prev.direction === "asc" ? "desc" : "asc",
+              }))
+            }
           >
-            {sort.direction === 'asc' ? '↑' : '↓'}
+            {sort.direction === "asc" ? "↑" : "↓"}
           </Button>
         </div>
       </div>
@@ -403,20 +535,24 @@ export default function ArchiveManagement() {
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  {competition.status === 'completed' && (
+                  {competition.status === "completed" && (
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleArchiveAction(competition._id, 'archive')}
+                      onClick={() =>
+                        handleArchiveAction(competition._id, "archive")
+                      }
                     >
                       📚 Archive
                     </Button>
                   )}
-                  {competition.status === 'archived' && (
+                  {competition.status === "archived" && (
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleArchiveAction(competition._id, 'restore')}
+                      onClick={() =>
+                        handleArchiveAction(competition._id, "restore")
+                      }
                     >
                       🔄 Restore
                     </Button>
@@ -427,11 +563,15 @@ export default function ArchiveManagement() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <h4 className="font-medium text-sm text-gray-600">Duration</h4>
+                  <h4 className="font-medium text-sm text-gray-600">
+                    Duration
+                  </h4>
                   <p className="text-lg">{competition.duration} days</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-sm text-gray-600">Participants</h4>
+                  <h4 className="font-medium text-sm text-gray-600">
+                    Participants
+                  </h4>
                   <p className="text-lg">{competition.participantCount}</p>
                 </div>
                 <div>
@@ -439,7 +579,9 @@ export default function ArchiveManagement() {
                   <p className="text-lg">{competition.winnerCount}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-sm text-gray-600">Completion Rate</h4>
+                  <h4 className="font-medium text-sm text-gray-600">
+                    Completion Rate
+                  </h4>
                   <p className="text-lg">{competition.completionRate}%</p>
                 </div>
               </div>
@@ -449,27 +591,44 @@ export default function ArchiveManagement() {
               {/* Winners */}
               {competition.winnerCount > 0 && (
                 <div className="mb-4">
-                  <h4 className="font-medium text-sm text-gray-600 mb-2">🏆 Winners</h4>
+                  <h4 className="font-medium text-sm text-gray-600 mb-2">
+                    🏆 Winners
+                  </h4>
                   <div className="grid grid-cols-3 gap-4">
                     {competition.winners.first && (
                       <div className="text-center p-3 bg-yellow-100 rounded-lg">
                         <div className="text-2xl">🥇</div>
-                        <div className="font-bold">{competition.winners.first.name}</div>
-                        <div className="text-xs">{competition.winners.first.value}{competition.type === 'aov' ? '' : '%'}</div>
+                        <div className="font-bold">
+                          {competition.winners.first.name}
+                        </div>
+                        <div className="text-xs">
+                          {competition.winners.first.value}
+                          {competition.type === "aov" ? "" : "%"}
+                        </div>
                       </div>
                     )}
                     {competition.winners.second && (
                       <div className="text-center p-3 bg-gray-100 rounded-lg">
                         <div className="text-2xl">🥈</div>
-                        <div className="font-bold">{competition.winners.second.name}</div>
-                        <div className="text-xs">{competition.winners.second.value}{competition.type === 'aov' ? '' : '%'}</div>
+                        <div className="font-bold">
+                          {competition.winners.second.name}
+                        </div>
+                        <div className="text-xs">
+                          {competition.winners.second.value}
+                          {competition.type === "aov" ? "" : "%"}
+                        </div>
                       </div>
                     )}
                     {competition.winners.third && (
                       <div className="text-center p-3 bg-orange-100 rounded-lg">
                         <div className="text-2xl">🥉</div>
-                        <div className="font-bold">{competition.winners.third.name}</div>
-                        <div className="text-xs">{competition.winners.third.value}{competition.type === 'aov' ? '' : '%'}</div>
+                        <div className="font-bold">
+                          {competition.winners.third.name}
+                        </div>
+                        <div className="text-xs">
+                          {competition.winners.third.value}
+                          {competition.type === "aov" ? "" : "%"}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -479,23 +638,35 @@ export default function ArchiveManagement() {
               {/* Dates */}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="font-medium">Start:</span> {formatDate(competition.startDate)}
+                  <span className="font-medium">Start:</span>{" "}
+                  {formatDate(competition.startDate)}
                 </div>
                 <div>
-                  <span className="font-medium">End:</span> {formatDate(competition.endDate)}
+                  <span className="font-medium">End:</span>{" "}
+                  {formatDate(competition.endDate)}
                 </div>
               </div>
 
               {/* SMS Status */}
               <div className="mt-4 flex space-x-4 text-sm">
-                <div className={`flex items-center ${competition.welcomeMessage.sent ? 'text-green-600' : 'text-gray-400'}`}>
-                  {competition.welcomeMessage.sent ? '✅' : '❌'} Welcome SMS
+                <div
+                  className={`flex items-center ${competition.welcomeMessage.sent ? "text-green-600" : "text-gray-400"}`}
+                >
+                  {competition.welcomeMessage.sent ? "✅" : "❌"} Welcome SMS
                 </div>
-                <div className={`flex items-center ${competition.winnerAnnouncement.sent ? 'text-green-600' : 'text-gray-400'}`}>
-                  {competition.winnerAnnouncement.sent ? '✅' : '❌'} Winner Announcement
+                <div
+                  className={`flex items-center ${competition.winnerAnnouncement.sent ? "text-green-600" : "text-gray-400"}`}
+                >
+                  {competition.winnerAnnouncement.sent ? "✅" : "❌"} Winner
+                  Announcement
                 </div>
                 <div className="flex items-center text-blue-600">
-                  📊 {competition.progressNotifications.filter(n => n.sent).length}/{competition.progressNotifications.length} Progress SMS
+                  📊{" "}
+                  {
+                    competition.progressNotifications.filter((n) => n.sent)
+                      .length
+                  }
+                  /{competition.progressNotifications.length} Progress SMS
                 </div>
               </div>
             </CardContent>
@@ -509,7 +680,9 @@ export default function ArchiveManagement() {
           <Button
             variant="outline"
             disabled={pagination.page === 1}
-            onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+            onClick={() =>
+              setPagination((prev) => ({ ...prev, page: prev.page - 1 }))
+            }
           >
             Previous
           </Button>
@@ -519,7 +692,9 @@ export default function ArchiveManagement() {
           <Button
             variant="outline"
             disabled={pagination.page === pagination.totalPages}
-            onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+            onClick={() =>
+              setPagination((prev) => ({ ...prev, page: prev.page + 1 }))
+            }
           >
             Next
           </Button>
@@ -533,4 +708,4 @@ export default function ArchiveManagement() {
       )}
     </div>
   );
-} 
+}

@@ -1,11 +1,11 @@
-import { Resend } from 'resend';
-import { EmailTemplates, KPIDashboardData } from '../lib/email-templates.js';
-import PQueue from 'p-queue';
-import type { EmailSubscription, KPIData } from '../types/email.js';
+import { Resend } from "resend";
+import { EmailTemplates, KPIDashboardData } from "../lib/email-templates.js";
+import PQueue from "p-queue";
+import type { EmailSubscription } from "../types/email.js";
 
 function getResendInstance() {
   const key = process.env.RESEND_API_KEY;
-  if (!key) throw new Error('RESEND_API_KEY is not set');
+  if (!key) throw new Error("RESEND_API_KEY is not set");
   return new Resend(key);
 }
 
@@ -15,13 +15,16 @@ export const emailQueue = new PQueue({ interval: 1000, intervalCap: 1 });
 export class EmailService {
   static async sendKPIDashboard(
     subscription: EmailSubscription,
-    kpiData: KPIDashboardData
+    kpiData: KPIDashboardData,
   ) {
     try {
-      const emailContent = EmailTemplates.generateKPIDashboardEmail(subscription, kpiData);
-      
+      const emailContent = EmailTemplates.generateKPIDashboardEmail(
+        subscription,
+        kpiData,
+      );
+
       const emailData = {
-        from: 'Milea Estate Vineyard <onboarding@resend.dev>',
+        from: "Milea Estate Vineyard <onboarding@resend.dev>",
         to: [subscription.email],
         subject: `Milea Estate Vineyard - ${kpiData.periodType.toUpperCase()} KPI Report`,
         html: emailContent,
@@ -40,15 +43,16 @@ export class EmailService {
       });
 
       if (error) {
-        console.error('Error sending KPI email:', error);
-        throw new Error(`Failed to send email: ${(error as any)?.message || String(error)}`);
+        console.error("Error sending KPI email:", error);
+        throw new Error(
+          `Failed to send email: ${(error as any)?.message || String(error)}`,
+        );
       }
 
-      console.log('KPI email sent successfully:', data);
+      console.log("KPI email sent successfully:", data);
       return data;
-
     } catch (error) {
-      console.error('Email service error:', error);
+      console.error("Email service error:", error);
       throw error;
     }
   }
@@ -68,7 +72,7 @@ export class EmailService {
           </ul>
           <p>You will receive regular KPI reports based on your subscription settings:</p>
           <ul>
-            <li><strong>Reports:</strong> ${subscription.subscribedReports.join(', ')}</li>
+            <li><strong>Reports:</strong> ${subscription.subscribedReports.join(", ")}</li>
             <li><strong>Frequency:</strong> ${subscription.frequency}</li>
             <li><strong>Time:</strong> ${subscription.timeEST} EST</li>
           </ul>
@@ -81,24 +85,22 @@ export class EmailService {
 
       const resend = getResendInstance();
       const { data, error } = await resend.emails.send({
-        from: 'Milea Estate Vineyard <onboarding@resend.dev>',
+        from: "Milea Estate Vineyard <onboarding@resend.dev>",
         to: [subscription.email],
-        subject: 'Test Email - KPI Dashboard System',
+        subject: "Test Email - KPI Dashboard System",
         html: testEmailContent,
       });
 
       if (error) {
-        console.error('Resend error:', error);
+        console.error("Resend error:", error);
         throw new Error(`Failed to send email: ${error.message}`);
       }
 
-      console.log('Test email sent successfully:', data);
+      console.log("Test email sent successfully:", data);
       return data;
-
     } catch (error) {
-      console.error('Email service error:', error);
+      console.error("Email service error:", error);
       throw error;
     }
   }
-
-} 
+}

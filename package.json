@@ -7,10 +7,21 @@
     "dev": "next dev",
     "build": "next build",
     "build:worker": "tsc -p tsconfig.worker.json",
+    "build:all": "npm run build && npm run build:worker",
+    "start": "next start",
+    "start:worker": "node dist/scripts/background-worker.js",
     "worker:dev": "npm run build:worker && node --loader ts-node/esm dist/scripts/background-worker.js",
     "worker:prod": "node dist/scripts/background-worker.js",
     "worker:watch": "nodemon --watch src --ext ts --exec 'npm run worker:dev'",
-    "start:worker": "node dist/scripts/background-worker.js"
+    "migrate:competitions": "node src/scripts/migrations/create-competition-collection.js",
+    "migrate:subscribers": "node src/scripts/migrations/update-subscriber-schema.js",
+    "migrate:aov": "node src/scripts/migrations/backfill-aov-data.js",
+    "migrate:all": "npm run migrate:competitions && npm run migrate:subscribers && npm run migrate:aov",
+    "test:build": "npm run build:all",
+    "test:worker": "npm run build:worker && npm run start:worker",
+    "health:check": "curl -f http://localhost:3000/api/health || exit 1",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",

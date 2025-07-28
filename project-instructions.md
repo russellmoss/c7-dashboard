@@ -8,8 +8,9 @@ When assisting with this project:
 6. **Performance Matters**: This handles large datasets, optimize accordingly
 
 Key Functions to Never Modify:
+
 - calculateKPIsForPeriod
-- calculateYoYChanges  
+- calculateYoYChanges
 - getDateRanges
 - Associate performance calculations
 - Conversion rate formulas

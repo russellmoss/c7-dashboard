@@ -3,14 +3,20 @@
 @tailwind utilities;
 
 /* Luxury winery custom styles */
-html, body {
-  font-family: 'Inter', 'system-ui', 'sans-serif';
+html,
+body {
+  font-family: "Inter", "system-ui", "sans-serif";
   background: #fdf2f2;
   color: #2d1a1a;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Inter', 'system-ui', 'sans-serif';
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Inter", "system-ui", "sans-serif";
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -25,14 +31,20 @@ a:hover {
 }
 
 /* Luxury card shadow for all cards */
-.card, .shadow-wine {
+.card,
+.shadow-wine {
   box-shadow: 0 4px 14px 0 rgba(169, 32, 32, 0.15);
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 .animate-blink {
   animation: blink 1.2s infinite;
-} 
+}

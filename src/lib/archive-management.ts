@@ -1,23 +1,28 @@
-import { connectToDatabase } from './mongodb';
-import { CompetitionModel, EmailSubscriptionModel } from './models';
-import { getCompetitionRankings } from './competition-ranking';
+import { connectToDatabase } from "./mongodb";
+import { CompetitionModel } from "./models";
 
 export interface ArchiveFilters {
-  type?: 'bottleConversion' | 'clubConversion' | 'aov';
-  dashboard?: 'mtd' | 'qtd' | 'ytd';
+  type?: "bottleConversion" | "clubConversion" | "aov";
+  dashboard?: "mtd" | "qtd" | "ytd";
   dateRange?: {
     startDate: Date;
     endDate: Date;
   };
-  status?: 'completed' | 'archived';
+  status?: "completed" | "archived";
   search?: string;
   hasWinners?: boolean;
   hasWinnerAnnouncement?: boolean;
 }
 
 export interface ArchiveSortOptions {
-  field: 'name' | 'startDate' | 'endDate' | 'createdAt' | 'participantCount' | 'winnerCount';
-  direction: 'asc' | 'desc';
+  field:
+    | "name"
+    | "startDate"
+    | "endDate"
+    | "createdAt"
+    | "participantCount"
+    | "winnerCount";
+  direction: "asc" | "desc";
 }
 
 export interface ArchiveStatistics {
@@ -53,11 +58,11 @@ export interface ArchiveStatistics {
 export interface ArchiveCompetition {
   _id: string;
   name: string;
-  type: 'bottleConversion' | 'clubConversion' | 'aov';
-  dashboard: 'mtd' | 'qtd' | 'ytd';
+  type: "bottleConversion" | "clubConversion" | "aov";
+  dashboard: "mtd" | "qtd" | "ytd";
   startDate: Date;
   endDate: Date;
-  status: 'completed' | 'archived';
+  status: "completed" | "archived";
   participantCount: number;
   winnerCount: number;
   finalRankings: Array<{
@@ -112,16 +117,16 @@ export class ArchiveManagementService {
    */
   async searchArchivedCompetitions(
     filters: ArchiveFilters = {},
-    sort: ArchiveSortOptions = { field: 'endDate', direction: 'desc' },
+    sort: ArchiveSortOptions = { field: "endDate", direction: "desc" },
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
   ): Promise<ArchiveSearchResult> {
     try {
       await connectToDatabase();
 
       // Build query
       const query: any = {
-        status: { $in: ['completed', 'archived'] }
+        status: { $in: ["completed", "archived"] },
       };
 
       // Apply filters
@@ -136,7 +141,7 @@ export class ArchiveManagementService {
       if (filters.dateRange) {
         query.endDate = {
           $gte: filters.dateRange.startDate,
-          $lte: filters.dateRange.endDate
+          $lte: filters.dateRange.endDate,
         };
       }
 
@@ -145,33 +150,33 @@ export class ArchiveManagementService {
       }
 
       if (filters.search) {
-        query.name = { $regex: filters.search, $options: 'i' };
+        query.name = { $regex: filters.search, $options: "i" };
       }
 
       if (filters.hasWinners !== undefined) {
         if (filters.hasWinners) {
-          query['finalRankings.0'] = { $exists: true };
+          query["finalRankings.0"] = { $exists: true };
         } else {
           query.finalRankings = { $size: 0 };
         }
       }
 
       if (filters.hasWinnerAnnouncement !== undefined) {
-        query['winnerAnnouncement.sent'] = filters.hasWinnerAnnouncement;
+        query["winnerAnnouncement.sent"] = filters.hasWinnerAnnouncement;
       }
 
       // Build sort object
       const sortObj: any = {};
-      if (sort.field === 'participantCount' || sort.field === 'winnerCount') {
+      if (sort.field === "participantCount" || sort.field === "winnerCount") {
         // These will be calculated after aggregation
-        sortObj[sort.field] = sort.direction === 'asc' ? 1 : -1;
+        sortObj[sort.field] = sort.direction === "asc" ? 1 : -1;
       } else {
-        sortObj[sort.field] = sort.direction === 'asc' ? 1 : -1;
+        sortObj[sort.field] = sort.direction === "asc" ? 1 : -1;
       }
 
       // Execute query with pagination
       const skip = (page - 1) * limit;
-      
+
       const competitions = await CompetitionModel.find(query)
         .sort(sortObj)
         .skip(skip)
@@ -186,15 +191,21 @@ export class ArchiveManagementService {
         competitions.map(async (competition) => {
           const enriched = await this.enrichCompetitionData(competition);
           return enriched;
-        })
+        }),
       );
 
       // Apply sorting for calculated fields
-      if (sort.field === 'participantCount' || sort.field === 'winnerCount') {
+      if (sort.field === "participantCount" || sort.field === "winnerCount") {
         enrichedCompetitions.sort((a, b) => {
-          const aValue = sort.field === 'participantCount' ? a.participantCount : a.winnerCount;
-          const bValue = sort.field === 'participantCount' ? b.participantCount : b.winnerCount;
-          return sort.direction === 'asc' ? aValue - bValue : bValue - aValue;
+          const aValue =
+            sort.field === "participantCount"
+              ? a.participantCount
+              : a.winnerCount;
+          const bValue =
+            sort.field === "participantCount"
+              ? b.participantCount
+              : b.winnerCount;
+          return sort.direction === "asc" ? aValue - bValue : bValue - aValue;
         });
       }
 
@@ -205,12 +216,16 @@ export class ArchiveManagementService {
         limit,
         totalPages: Math.ceil(totalCount / limit),
         filters,
-        sort
+        sort,
       };
-
     } catch (error: any) {
-      console.error('[ArchiveManagementService] Error searching archived competitions:', error);
-      throw new Error(`Failed to search archived competitions: ${error.message}`);
+      console.error(
+        "[ArchiveManagementService] Error searching archived competitions:",
+        error,
+      );
+      throw new Error(
+        `Failed to search archived competitions: ${error.message}`,
+      );
     }
   }
 
@@ -223,7 +238,7 @@ export class ArchiveManagementService {
 
       // Get all completed and archived competitions
       const competitions = await CompetitionModel.find({
-        status: { $in: ['completed', 'archived'] }
+        status: { $in: ["completed", "archived"] },
       }).lean();
 
       if (competitions.length === 0) {
@@ -239,24 +254,27 @@ export class ArchiveManagementService {
       const byType = {
         bottleConversion: { count: 0, participants: 0, winners: 0 },
         clubConversion: { count: 0, participants: 0, winners: 0 },
-        aov: { count: 0, participants: 0, winners: 0 }
+        aov: { count: 0, participants: 0, winners: 0 },
       };
 
       // Calculate by dashboard
       const byDashboard = {
         mtd: { count: 0, participants: 0, winners: 0 },
         qtd: { count: 0, participants: 0, winners: 0 },
-        ytd: { count: 0, participants: 0, winners: 0 }
+        ytd: { count: 0, participants: 0, winners: 0 },
       };
 
       // Calculate by month
-      const monthMap = new Map<string, { count: number; participants: number; winners: number }>();
+      const monthMap = new Map<
+        string,
+        { count: number; participants: number; winners: number }
+      >();
 
       // Process each competition
-      competitions.forEach(competition => {
+      competitions.forEach((competition) => {
         const participantCount = competition.enrolledSubscribers?.length || 0;
         const winnerCount = competition.finalRankings?.length || 0;
-        
+
         totalParticipants += participantCount;
         totalWinners += winnerCount;
 
@@ -271,8 +289,14 @@ export class ArchiveManagementService {
         byDashboard[competition.dashboard].winners += winnerCount;
 
         // By month
-        const monthKey = new Date(competition.endDate).toISOString().substring(0, 7); // YYYY-MM
-        const monthData = monthMap.get(monthKey) || { count: 0, participants: 0, winners: 0 };
+        const monthKey = new Date(competition.endDate)
+          .toISOString()
+          .substring(0, 7); // YYYY-MM
+        const monthData = monthMap.get(monthKey) || {
+          count: 0,
+          participants: 0,
+          winners: 0,
+        };
         monthData.count++;
         monthData.participants += participantCount;
         monthData.winners += winnerCount;
@@ -288,33 +312,58 @@ export class ArchiveManagementService {
       // Calculate recent activity
       const now = new Date();
       const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const thisQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      const thisQuarter = new Date(
+        now.getFullYear(),
+        Math.floor(now.getMonth() / 3) * 3,
+        1,
+      );
 
       const recentActivity = {
-        lastCompleted: competitions
-          .filter(c => c.status === 'completed')
-          .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime())[0]?.endDate || null,
-        lastArchived: competitions
-          .filter(c => c.status === 'archived')
-          .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0]?.updatedAt || null,
-        competitionsThisMonth: competitions.filter(c => new Date(c.endDate) >= thisMonth).length,
-        competitionsThisQuarter: competitions.filter(c => new Date(c.endDate) >= thisQuarter).length
+        lastCompleted:
+          competitions
+            .filter((c) => c.status === "completed")
+            .sort(
+              (a, b) =>
+                new Date(b.endDate).getTime() - new Date(a.endDate).getTime(),
+            )[0]?.endDate || null,
+        lastArchived:
+          competitions
+            .filter((c) => c.status === "archived")
+            .sort(
+              (a, b) =>
+                new Date(b.updatedAt || new Date()).getTime() -
+                new Date(a.updatedAt || new Date()).getTime(),
+            )[0]?.updatedAt || null,
+        competitionsThisMonth: competitions.filter(
+          (c) => new Date(c.endDate) >= thisMonth,
+        ).length,
+        competitionsThisQuarter: competitions.filter(
+          (c) => new Date(c.endDate) >= thisQuarter,
+        ).length,
       };
 
       return {
         totalCompetitions,
         totalParticipants,
         totalWinners,
-        averageParticipants: totalCompetitions > 0 ? Math.round(totalParticipants / totalCompetitions) : 0,
-        averageWinners: totalCompetitions > 0 ? Math.round(totalWinners / totalCompetitions) : 0,
+        averageParticipants:
+          totalCompetitions > 0
+            ? Math.round(totalParticipants / totalCompetitions)
+            : 0,
+        averageWinners:
+          totalCompetitions > 0
+            ? Math.round(totalWinners / totalCompetitions)
+            : 0,
         byType,
         byDashboard,
         byMonth,
-        recentActivity
+        recentActivity,
       };
-
     } catch (error: any) {
-      console.error('[ArchiveManagementService] Error getting archive statistics:', error);
+      console.error(
+        "[ArchiveManagementService] Error getting archive statistics:",
+        error,
+      );
       throw new Error(`Failed to get archive statistics: ${error.message}`);
     }
   }
@@ -322,19 +371,26 @@ export class ArchiveManagementService {
   /**
    * Get detailed competition data for archive view
    */
-  async getCompetitionDetails(competitionId: string): Promise<ArchiveCompetition | null> {
+  async getCompetitionDetails(
+    competitionId: string,
+  ): Promise<ArchiveCompetition | null> {
     try {
       await connectToDatabase();
 
       const competition = await CompetitionModel.findById(competitionId).lean();
-      if (!competition || !['completed', 'archived'].includes(competition.status)) {
+      if (
+        !competition ||
+        !["completed", "archived"].includes(competition.status)
+      ) {
         return null;
       }
 
       return await this.enrichCompetitionData(competition);
-
     } catch (error: any) {
-      console.error('[ArchiveManagementService] Error getting competition details:', error);
+      console.error(
+        "[ArchiveManagementService] Error getting competition details:",
+        error,
+      );
       throw new Error(`Failed to get competition details: ${error.message}`);
     }
   }
@@ -348,21 +404,25 @@ export class ArchiveManagementService {
 
       const competition = await CompetitionModel.findById(competitionId);
       if (!competition) {
-        throw new Error('Competition not found');
+        throw new Error("Competition not found");
       }
 
-      if (competition.status !== 'completed') {
-        throw new Error('Only completed competitions can be archived');
+      if (competition.status !== "completed") {
+        throw new Error("Only completed competitions can be archived");
       }
 
-      competition.status = 'archived';
+      competition.status = "archived";
       await competition.save();
 
-      console.log(`[ArchiveManagementService] ✅ Competition ${competition.name} archived successfully`);
+      console.log(
+        `[ArchiveManagementService] ✅ Competition ${competition.name} archived successfully`,
+      );
       return true;
-
     } catch (error: any) {
-      console.error('[ArchiveManagementService] Error archiving competition:', error);
+      console.error(
+        "[ArchiveManagementService] Error archiving competition:",
+        error,
+      );
       throw new Error(`Failed to archive competition: ${error.message}`);
     }
   }
@@ -376,21 +436,25 @@ export class ArchiveManagementService {
 
       const competition = await CompetitionModel.findById(competitionId);
       if (!competition) {
-        throw new Error('Competition not found');
+        throw new Error("Competition not found");
       }
 
-      if (competition.status !== 'archived') {
-        throw new Error('Only archived competitions can be restored');
+      if (competition.status !== "archived") {
+        throw new Error("Only archived competitions can be restored");
       }
 
-      competition.status = 'completed';
+      competition.status = "completed";
       await competition.save();
 
-      console.log(`[ArchiveManagementService] ✅ Competition ${competition.name} restored successfully`);
+      console.log(
+        `[ArchiveManagementService] ✅ Competition ${competition.name} restored successfully`,
+      );
       return true;
-
     } catch (error: any) {
-      console.error('[ArchiveManagementService] Error restoring competition:', error);
+      console.error(
+        "[ArchiveManagementService] Error restoring competition:",
+        error,
+      );
       throw new Error(`Failed to restore competition: ${error.message}`);
     }
   }
@@ -404,7 +468,7 @@ export class ArchiveManagementService {
 
       // Build query
       const query: any = {
-        status: { $in: ['completed', 'archived'] }
+        status: { $in: ["completed", "archived"] },
       };
 
       if (filters.type) query.type = filters.type;
@@ -412,7 +476,7 @@ export class ArchiveManagementService {
       if (filters.dateRange) {
         query.endDate = {
           $gte: filters.dateRange.startDate,
-          $lte: filters.dateRange.endDate
+          $lte: filters.dateRange.endDate,
         };
       }
 
@@ -427,23 +491,23 @@ export class ArchiveManagementService {
         winnerDistribution: {
           firstPlace: 0,
           secondPlace: 0,
-          thirdPlace: 0
+          thirdPlace: 0,
         },
         typePerformance: {
           bottleConversion: { count: 0, avgParticipants: 0, avgWinners: 0 },
           clubConversion: { count: 0, avgParticipants: 0, avgWinners: 0 },
-          aov: { count: 0, avgParticipants: 0, avgWinners: 0 }
+          aov: { count: 0, avgParticipants: 0, avgWinners: 0 },
         },
         dashboardPerformance: {
           mtd: { count: 0, avgParticipants: 0, avgWinners: 0 },
           qtd: { count: 0, avgParticipants: 0, avgWinners: 0 },
-          ytd: { count: 0, avgParticipants: 0, avgWinners: 0 }
+          ytd: { count: 0, avgParticipants: 0, avgWinners: 0 },
         },
         completionRates: {
           welcomeMessage: 0,
           progressNotifications: 0,
-          winnerAnnouncement: 0
-        }
+          winnerAnnouncement: 0,
+        },
       };
 
       if (competitions.length === 0) {
@@ -456,29 +520,38 @@ export class ArchiveManagementService {
       let progressNotificationsSent = 0;
       let winnerAnnouncementsSent = 0;
 
-      competitions.forEach(competition => {
+      competitions.forEach((competition) => {
         const participantCount = competition.enrolledSubscribers?.length || 0;
         const winnerCount = competition.finalRankings?.length || 0;
-        
+
         totalParticipants += participantCount;
         totalWinners += winnerCount;
 
         // Track completion rates
         if (competition.welcomeMessage?.sent) welcomeMessagesSent++;
         if (competition.winnerAnnouncement?.sent) winnerAnnouncementsSent++;
-        
-        const sentProgressNotifications = competition.progressNotifications?.filter(n => n.sent).length || 0;
-        const totalProgressNotifications = competition.progressNotifications?.length || 0;
+
+        const sentProgressNotifications =
+          competition.progressNotifications?.filter((n) => n.sent).length || 0;
+        const totalProgressNotifications =
+          competition.progressNotifications?.length || 0;
         if (totalProgressNotifications > 0) {
-          progressNotificationsSent += sentProgressNotifications / totalProgressNotifications;
+          progressNotificationsSent +=
+            sentProgressNotifications / totalProgressNotifications;
         }
 
         // Track winner distribution
         if (competition.finalRankings?.length > 0) {
-          const firstPlace = competition.finalRankings.find(r => r.rank === 1);
-          const secondPlace = competition.finalRankings.find(r => r.rank === 2);
-          const thirdPlace = competition.finalRankings.find(r => r.rank === 3);
-          
+          const firstPlace = competition.finalRankings.find(
+            (r) => r.rank === 1,
+          );
+          const secondPlace = competition.finalRankings.find(
+            (r) => r.rank === 2,
+          );
+          const thirdPlace = competition.finalRankings.find(
+            (r) => r.rank === 3,
+          );
+
           if (firstPlace) analytics.winnerDistribution.firstPlace++;
           if (secondPlace) analytics.winnerDistribution.secondPlace++;
           if (thirdPlace) analytics.winnerDistribution.thirdPlace++;
@@ -486,43 +559,70 @@ export class ArchiveManagementService {
 
         // Track by type
         analytics.typePerformance[competition.type].count++;
-        analytics.typePerformance[competition.type].avgParticipants += participantCount;
+        analytics.typePerformance[competition.type].avgParticipants +=
+          participantCount;
         analytics.typePerformance[competition.type].avgWinners += winnerCount;
 
         // Track by dashboard
         analytics.dashboardPerformance[competition.dashboard].count++;
-        analytics.dashboardPerformance[competition.dashboard].avgParticipants += participantCount;
-        analytics.dashboardPerformance[competition.dashboard].avgWinners += winnerCount;
+        analytics.dashboardPerformance[competition.dashboard].avgParticipants +=
+          participantCount;
+        analytics.dashboardPerformance[competition.dashboard].avgWinners +=
+          winnerCount;
       });
 
       // Calculate averages
-      analytics.averageParticipants = Math.round(totalParticipants / competitions.length);
+      analytics.averageParticipants = Math.round(
+        totalParticipants / competitions.length,
+      );
       analytics.averageWinners = Math.round(totalWinners / competitions.length);
-      analytics.completionRates.welcomeMessage = Math.round((welcomeMessagesSent / competitions.length) * 100);
-      analytics.completionRates.winnerAnnouncement = Math.round((winnerAnnouncementsSent / competitions.length) * 100);
-      analytics.completionRates.progressNotifications = Math.round((progressNotificationsSent / competitions.length) * 100);
+      analytics.completionRates.welcomeMessage = Math.round(
+        (welcomeMessagesSent / competitions.length) * 100,
+      );
+      analytics.completionRates.winnerAnnouncement = Math.round(
+        (winnerAnnouncementsSent / competitions.length) * 100,
+      );
+      analytics.completionRates.progressNotifications = Math.round(
+        (progressNotificationsSent / competitions.length) * 100,
+      );
 
       // Calculate type and dashboard averages
-      Object.keys(analytics.typePerformance).forEach(type => {
-        const typeData = analytics.typePerformance[type as keyof typeof analytics.typePerformance];
+      Object.keys(analytics.typePerformance).forEach((type) => {
+        const typeData =
+          analytics.typePerformance[
+            type as keyof typeof analytics.typePerformance
+          ];
         if (typeData.count > 0) {
-          typeData.avgParticipants = Math.round(typeData.avgParticipants / typeData.count);
-          typeData.avgWinners = Math.round(typeData.avgWinners / typeData.count);
+          typeData.avgParticipants = Math.round(
+            typeData.avgParticipants / typeData.count,
+          );
+          typeData.avgWinners = Math.round(
+            typeData.avgWinners / typeData.count,
+          );
         }
       });
 
-      Object.keys(analytics.dashboardPerformance).forEach(dashboard => {
-        const dashboardData = analytics.dashboardPerformance[dashboard as keyof typeof analytics.dashboardPerformance];
+      Object.keys(analytics.dashboardPerformance).forEach((dashboard) => {
+        const dashboardData =
+          analytics.dashboardPerformance[
+            dashboard as keyof typeof analytics.dashboardPerformance
+          ];
         if (dashboardData.count > 0) {
-          dashboardData.avgParticipants = Math.round(dashboardData.avgParticipants / dashboardData.count);
-          dashboardData.avgWinners = Math.round(dashboardData.avgWinners / dashboardData.count);
+          dashboardData.avgParticipants = Math.round(
+            dashboardData.avgParticipants / dashboardData.count,
+          );
+          dashboardData.avgWinners = Math.round(
+            dashboardData.avgWinners / dashboardData.count,
+          );
         }
       });
 
       return analytics;
-
     } catch (error: any) {
-      console.error('[ArchiveManagementService] Error getting performance analytics:', error);
+      console.error(
+        "[ArchiveManagementService] Error getting performance analytics:",
+        error,
+      );
       throw new Error(`Failed to get performance analytics: ${error.message}`);
     }
   }
@@ -530,29 +630,37 @@ export class ArchiveManagementService {
   /**
    * Enrich competition data with calculated fields
    */
-  private async enrichCompetitionData(competition: any): Promise<ArchiveCompetition> {
+  private async enrichCompetitionData(
+    competition: any,
+  ): Promise<ArchiveCompetition> {
     const participantCount = competition.enrolledSubscribers?.length || 0;
     const winnerCount = competition.finalRankings?.length || 0;
-    
+
     // Calculate winners
     const winners = {
       first: competition.finalRankings?.find((r: any) => r.rank === 1) || null,
       second: competition.finalRankings?.find((r: any) => r.rank === 2) || null,
-      third: competition.finalRankings?.find((r: any) => r.rank === 3) || null
+      third: competition.finalRankings?.find((r: any) => r.rank === 3) || null,
     };
 
     // Calculate duration
     const duration = Math.ceil(
-      (new Date(competition.endDate).getTime() - new Date(competition.startDate).getTime()) / (1000 * 60 * 60 * 24)
+      (new Date(competition.endDate).getTime() -
+        new Date(competition.startDate).getTime()) /
+        (1000 * 60 * 60 * 24),
     );
 
     // Calculate completion rate
-    const totalNotifications = 1 + (competition.progressNotifications?.length || 0) + 1; // welcome + progress + winner
-    const sentNotifications = 
+    const totalNotifications =
+      1 + (competition.progressNotifications?.length || 0) + 1; // welcome + progress + winner
+    const sentNotifications =
       (competition.welcomeMessage?.sent ? 1 : 0) +
-      (competition.progressNotifications?.filter((n: any) => n.sent).length || 0) +
+      (competition.progressNotifications?.filter((n: any) => n.sent).length ||
+        0) +
       (competition.winnerAnnouncement?.sent ? 1 : 0);
-    const completionRate = Math.round((sentNotifications / totalNotifications) * 100);
+    const completionRate = Math.round(
+      (sentNotifications / totalNotifications) * 100,
+    );
 
     return {
       _id: competition._id.toString(),
@@ -566,24 +674,30 @@ export class ArchiveManagementService {
       winnerCount,
       finalRankings: competition.finalRankings || [],
       winners: {
-        first: winners.first ? { name: winners.first.name, value: winners.first.value } : null,
-        second: winners.second ? { name: winners.second.name, value: winners.second.value } : null,
-        third: winners.third ? { name: winners.third.name, value: winners.third.value } : null
+        first: winners.first
+          ? { name: winners.first.name, value: winners.first.value }
+          : null,
+        second: winners.second
+          ? { name: winners.second.name, value: winners.second.value }
+          : null,
+        third: winners.third
+          ? { name: winners.third.name, value: winners.third.value }
+          : null,
       },
       prizes: competition.prizes,
       welcomeMessage: {
         sent: competition.welcomeMessage?.sent || false,
-        sentAt: competition.welcomeMessage?.sentAt || null
+        sentAt: competition.welcomeMessage?.sentAt || null,
       },
       progressNotifications: competition.progressNotifications || [],
       winnerAnnouncement: {
         sent: competition.winnerAnnouncement?.sent || false,
-        sentAt: competition.winnerAnnouncement?.sentAt || null
+        sentAt: competition.winnerAnnouncement?.sentAt || null,
       },
       createdAt: competition.createdAt,
       updatedAt: competition.updatedAt,
       duration,
-      completionRate
+      completionRate,
     };
   }
 
@@ -600,23 +714,23 @@ export class ArchiveManagementService {
       byType: {
         bottleConversion: { count: 0, participants: 0, winners: 0 },
         clubConversion: { count: 0, participants: 0, winners: 0 },
-        aov: { count: 0, participants: 0, winners: 0 }
+        aov: { count: 0, participants: 0, winners: 0 },
       },
       byDashboard: {
         mtd: { count: 0, participants: 0, winners: 0 },
         qtd: { count: 0, participants: 0, winners: 0 },
-        ytd: { count: 0, participants: 0, winners: 0 }
+        ytd: { count: 0, participants: 0, winners: 0 },
       },
       byMonth: [],
       recentActivity: {
         lastCompleted: null,
         lastArchived: null,
         competitionsThisMonth: 0,
-        competitionsThisQuarter: 0
-      }
+        competitionsThisQuarter: 0,
+      },
     };
   }
 }
 
 // Export singleton instance
-export const archiveManagementService = new ArchiveManagementService(); 
+export const archiveManagementService = new ArchiveManagementService();

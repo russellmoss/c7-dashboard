@@ -1,17 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
-import { connectToDatabase } from '@/lib/mongodb';
-import { KPIDataModel } from '@/lib/models';
+import { NextRequest, NextResponse } from "next/server";
+import puppeteer from "puppeteer";
+import { connectToDatabase } from "@/lib/mongodb";
+import { KPIDataModel } from "@/lib/models";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const periodType = searchParams.get('periodType');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    const periodType = searchParams.get("periodType");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
 
     if (!periodType) {
-      return NextResponse.json({ error: 'Period type is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Period type is required" },
+        { status: 400 },
+      );
     }
 
     console.log(`[PDF] Generating PDF for: ${periodType}`);
@@ -19,56 +22,68 @@ export async function GET(request: NextRequest) {
     // Get the data from MongoDB
     await connectToDatabase();
     let kpiData;
-    
-    if (periodType === 'custom' && startDate && endDate) {
+
+    if (periodType === "custom" && startDate && endDate) {
       kpiData = await KPIDataModel.findOne({
-        periodType: 'custom',
+        periodType: "custom",
         startDate,
-        endDate
+        endDate,
       });
     } else {
       kpiData = await KPIDataModel.findOne({
         periodType,
-        year: new Date().getFullYear()
+        year: new Date().getFullYear(),
       });
     }
 
     if (!kpiData) {
-      return NextResponse.json({ error: 'No data found for this period' }, { status: 404 });
+      return NextResponse.json(
+        { error: "No data found for this period" },
+        { status: 404 },
+      );
     }
 
     // Launch Puppeteer
-    console.log('[PDF] Launching Puppeteer...');
+    console.log("[PDF] Launching Puppeteer...");
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+      ],
     });
 
     const page = await browser.newPage();
-    
+
     // Set viewport for better PDF rendering
     await page.setViewport({ width: 1200, height: 800 });
-    
+
     // Generate HTML content for the PDF
-    const htmlContent = generateDashboardHTML(kpiData, periodType, startDate || undefined, endDate || undefined);
-    
-    console.log('[PDF] Setting HTML content...');
-    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' });
+    const htmlContent = generateDashboardHTML(
+      kpiData,
+      periodType,
+      startDate || undefined,
+      endDate || undefined,
+    );
+
+    console.log("[PDF] Setting HTML content...");
+    await page.setContent(htmlContent, { waitUntil: "domcontentloaded" });
 
     // Wait for content to load
-    console.log('[PDF] Waiting for content...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log("[PDF] Waiting for content...");
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Generate PDF with proper settings
-    console.log('[PDF] Generating PDF...');
+    console.log("[PDF] Generating PDF...");
     const pdf = await page.pdf({
-      format: 'A4',
+      format: "A4",
       printBackground: true,
       margin: {
-        top: '20mm',
-        right: '20mm',
-        bottom: '20mm',
-        left: '20mm'
+        top: "20mm",
+        right: "20mm",
+        bottom: "20mm",
+        left: "20mm",
       },
       displayHeaderFooter: true,
       headerTemplate: `
@@ -81,39 +96,52 @@ export async function GET(request: NextRequest) {
           Generated on <span class="date"></span> | Page <span class="pageNumber"></span> of <span class="totalPages"></span>
         </div>
       `,
-      timeout: 30000
+      timeout: 30000,
     });
 
     await browser.close();
-    console.log('[PDF] PDF generated successfully');
+    console.log("[PDF] PDF generated successfully");
 
     // Return the PDF
     return new NextResponse(pdf, {
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="milea-kpi-${periodType}-${new Date().toISOString().split('T')[0]}.pdf"`
-      }
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="milea-kpi-${periodType}-${new Date().toISOString().split("T")[0]}.pdf"`,
+      },
     });
-
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    return NextResponse.json({ error: 'Failed to generate PDF' }, { status: 500 });
+    console.error("Error generating PDF:", error);
+    return NextResponse.json(
+      { error: "Failed to generate PDF" },
+      { status: 500 },
+    );
   }
 }
 
-function generateDashboardHTML(kpiData: any, periodType: string, startDate?: string, endDate?: string) {
+function generateDashboardHTML(
+  kpiData: any,
+  periodType: string,
+  startDate?: string,
+  endDate?: string,
+) {
   const data = kpiData.data;
   const current = data?.current;
   const yoy = data?.yearOverYear;
-  
+
   const getPeriodTitle = () => {
     switch (periodType) {
-      case 'mtd': return 'Month to Date Performance';
-      case 'qtd': return 'Quarter to Date Performance';
-      case 'ytd': return 'Year to Date Performance';
-      case 'all-quarters': return 'All Quarters Performance';
-      case 'custom': return `Custom Period: ${startDate} to ${endDate}`;
-      default: return 'KPI Dashboard';
+      case "mtd":
+        return "Month to Date Performance";
+      case "qtd":
+        return "Quarter to Date Performance";
+      case "ytd":
+        return "Year to Date Performance";
+      case "all-quarters":
+        return "All Quarters Performance";
+      case "custom":
+        return `Custom Period: ${startDate} to ${endDate}`;
+      default:
+        return "KPI Dashboard";
     }
   };
 
@@ -234,8 +262,8 @@ function generateDashboardHTML(kpiData: any, periodType: string, startDate?: str
       <div class="metrics-grid">
         <div class="metric-card">
           <div class="metric-title">Total Revenue</div>
-          <div class="metric-value">$${yoy?.revenue?.current?.toLocaleString() || '0'}</div>
-          <div class="metric-change">${yoy?.revenue?.change ? `${yoy.revenue.change > 0 ? '+' : ''}${yoy.revenue.change}%` : 'N/A'}</div>
+          <div class="metric-value">$${yoy?.revenue?.current?.toLocaleString() || "0"}</div>
+          <div class="metric-change">${yoy?.revenue?.change ? `${yoy.revenue.change > 0 ? "+" : ""}${yoy.revenue.change}%` : "N/A"}</div>
         </div>
         <div class="metric-card">
           <div class="metric-title">Wine Conversion Rate</div>
@@ -249,12 +277,14 @@ function generateDashboardHTML(kpiData: any, periodType: string, startDate?: str
         </div>
         <div class="metric-card">
           <div class="metric-title">Total Guests</div>
-          <div class="metric-value">${yoy?.guests?.current?.toLocaleString() || '0'}</div>
-          <div class="metric-change">${yoy?.guests?.change ? `${yoy.guests.change > 0 ? '+' : ''}${yoy.guests.change}%` : 'N/A'}</div>
+          <div class="metric-value">${yoy?.guests?.current?.toLocaleString() || "0"}</div>
+          <div class="metric-change">${yoy?.guests?.change ? `${yoy.guests.change > 0 ? "+" : ""}${yoy.guests.change}%` : "N/A"}</div>
         </div>
       </div>
 
-      ${current?.associatePerformance ? `
+      ${
+        current?.associatePerformance
+          ? `
         <div class="section">
           <h2>Staff Performance</h2>
           <table>
@@ -269,7 +299,9 @@ function generateDashboardHTML(kpiData: any, periodType: string, startDate?: str
               </tr>
             </thead>
             <tbody>
-              ${Object.entries(current.associatePerformance).map(([name, perf]: any) => `
+              ${Object.entries(current.associatePerformance)
+                .map(
+                  ([name, perf]: any) => `
                 <tr>
                   <td>${name}</td>
                   <td>${perf.orders || 0}</td>
@@ -278,32 +310,48 @@ function generateDashboardHTML(kpiData: any, periodType: string, startDate?: str
                   <td>${perf.wineBottleConversionRate || 0}%</td>
                   <td>${perf.clubConversionRate || 0}%</td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </tbody>
           </table>
         </div>
-      ` : ''}
+      `
+          : ""
+      }
 
-      ${kpiData.insights ? `
+      ${
+        kpiData.insights
+          ? `
         <div class="section">
           <h2>AI Insights</h2>
           <div class="insights">
-            ${kpiData.insights.strengths?.length ? `
+            ${
+              kpiData.insights.strengths?.length
+                ? `
               <h3>Strengths</h3>
               <ul>
-                ${kpiData.insights.strengths.map((s: string) => `<li>${s}</li>`).join('')}
+                ${kpiData.insights.strengths.map((s: string) => `<li>${s}</li>`).join("")}
               </ul>
-            ` : ''}
-            ${kpiData.insights.recommendations?.length ? `
+            `
+                : ""
+            }
+            ${
+              kpiData.insights.recommendations?.length
+                ? `
               <h3>Recommendations</h3>
               <ul>
-                ${kpiData.insights.recommendations.map((r: string) => `<li>${r}</li>`).join('')}
+                ${kpiData.insights.recommendations.map((r: string) => `<li>${r}</li>`).join("")}
               </ul>
-            ` : ''}
+            `
+                : ""
+            }
           </div>
         </div>
-      ` : ''}
+      `
+          : ""
+      }
     </body>
     </html>
   `;
-} 
+}

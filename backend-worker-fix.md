@@ -3,12 +3,15 @@
 ## Step 1: Diagnose the Current Issue
 
 ### Cursor Prompt:
+
 ```
 Look at src/lib/sms-service.node.ts and src/scripts/background-worker.ts. Find where the SMS client is initialized and where the "SMS client not initialized" message is coming from. Also check how environment variables are loaded. Show me the initialization code and explain why it might not be working.
 ```
 
 ### Expected Finding:
+
 The issue is likely that the Twilio client isn't being initialized properly due to:
+
 - Environment variables not being loaded before initialization
 - Singleton pattern issues
 - Import timing problems
@@ -16,28 +19,31 @@ The issue is likely that the Twilio client isn't being initialized properly due 
 ## Step 2: Fix Environment Variable Loading
 
 ### Cursor Prompt:
+
 ```
 In src/scripts/background-worker.ts, ensure environment variables are loaded BEFORE any imports that might use them. Move the dotenv config to the very top of the file, before any other imports. Use the correct path resolution for .env.local.
 ```
 
 ### Code to Apply:
+
 ```typescript
 // src/scripts/background-worker.ts
-import { config } from 'dotenv';
-import { resolve } from 'path';
+import { config } from "dotenv";
+import { resolve } from "path";
 
 // Load environment variables FIRST, before any other imports
-config({ path: resolve(process.cwd(), '.env.local') });
+config({ path: resolve(process.cwd(), ".env.local") });
 
 // Now import everything else
-import { processScheduledJobs } from '../lib/scheduling.node.js';
-import { initializeSmsService } from '../lib/sms-service.node.js';
+import { processScheduledJobs } from "../lib/scheduling.node.js";
+import { initializeSmsService } from "../lib/sms-service.node.js";
 // ... other imports
 ```
 
 ## Step 3: Fix SMS Service Initialization
 
 ### Cursor Prompt:
+
 ```
 In src/lib/sms-service.node.ts, create a proper initialization pattern that:
 1. Checks if Twilio credentials exist before creating the client
@@ -47,9 +53,10 @@ In src/lib/sms-service.node.ts, create a proper initialization pattern that:
 ```
 
 ### Code to Apply:
+
 ```typescript
 // src/lib/sms-service.node.ts
-import twilio from 'twilio';
+import twilio from "twilio";
 
 let twilioClient: ReturnType<typeof twilio> | null = null;
 let initializationError: string | null = null;
@@ -60,29 +67,32 @@ export function initializeSmsService(): void {
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     const phoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
-    console.log('[SMS Service] Initializing with credentials:', {
-      accountSid: accountSid ? `${accountSid.substring(0, 8)}...` : 'NOT SET',
-      authToken: authToken ? 'SET' : 'NOT SET',
-      phoneNumber: phoneNumber ? phoneNumber : 'NOT SET'
+    console.log("[SMS Service] Initializing with credentials:", {
+      accountSid: accountSid ? `${accountSid.substring(0, 8)}...` : "NOT SET",
+      authToken: authToken ? "SET" : "NOT SET",
+      phoneNumber: phoneNumber ? phoneNumber : "NOT SET",
     });
 
     if (!accountSid || !authToken || !phoneNumber) {
-      initializationError = `Missing Twilio credentials: ${!accountSid ? 'TWILIO_ACCOUNT_SID ' : ''}${!authToken ? 'TWILIO_AUTH_TOKEN ' : ''}${!phoneNumber ? 'TWILIO_PHONE_NUMBER' : ''}`;
-      console.error('[SMS Service]', initializationError);
+      initializationError = `Missing Twilio credentials: ${!accountSid ? "TWILIO_ACCOUNT_SID " : ""}${!authToken ? "TWILIO_AUTH_TOKEN " : ""}${!phoneNumber ? "TWILIO_PHONE_NUMBER" : ""}`;
+      console.error("[SMS Service]", initializationError);
       return;
     }
 
     twilioClient = twilio(accountSid, authToken);
-    console.log('[SMS Service] Twilio client initialized successfully');
+    console.log("[SMS Service] Twilio client initialized successfully");
   } catch (error) {
     initializationError = `Failed to initialize Twilio client: ${error}`;
-    console.error('[SMS Service]', initializationError);
+    console.error("[SMS Service]", initializationError);
   }
 }
 
 export async function sendSms(to: string, body: string): Promise<boolean> {
   if (!twilioClient) {
-    console.error('[SMS Service] Cannot send SMS: client not initialized.', initializationError);
+    console.error(
+      "[SMS Service] Cannot send SMS: client not initialized.",
+      initializationError,
+    );
     return false;
   }
 
@@ -90,13 +100,13 @@ export async function sendSms(to: string, body: string): Promise<boolean> {
     const message = await twilioClient.messages.create({
       body,
       to,
-      from: process.env.TWILIO_PHONE_NUMBER!
+      from: process.env.TWILIO_PHONE_NUMBER!,
     });
-    
+
     console.log(`[SMS Service] SMS sent successfully. SID: ${message.sid}`);
     return true;
   } catch (error) {
-    console.error('[SMS Service] Failed to send SMS:', error);
+    console.error("[SMS Service] Failed to send SMS:", error);
     return false;
   }
 }
@@ -108,6 +118,7 @@ initializeSmsService();
 ## Step 4: Update Background Worker
 
 ### Cursor Prompt:
+
 ```
 Update src/scripts/background-worker.ts to:
 1. Properly initialize the SMS service after environment variables are loaded
@@ -116,28 +127,32 @@ Update src/scripts/background-worker.ts to:
 ```
 
 ### Code to Apply:
+
 ```typescript
 // src/scripts/background-worker.ts
-import { config } from 'dotenv';
-import { resolve } from 'path';
+import { config } from "dotenv";
+import { resolve } from "path";
 
 // Load environment variables FIRST
-config({ path: resolve(process.cwd(), '.env.local') });
-console.log('[Worker] Environment loaded. TWILIO_ACCOUNT_SID:', process.env.TWILIO_ACCOUNT_SID ? 'SET' : 'NOT SET');
+config({ path: resolve(process.cwd(), ".env.local") });
+console.log(
+  "[Worker] Environment loaded. TWILIO_ACCOUNT_SID:",
+  process.env.TWILIO_ACCOUNT_SID ? "SET" : "NOT SET",
+);
 
-import { processScheduledJobs } from '../lib/scheduling.node.js';
-import { initializeSmsService } from '../lib/sms-service.node.js';
+import { processScheduledJobs } from "../lib/scheduling.node.js";
+import { initializeSmsService } from "../lib/sms-service.node.js";
 
 async function main() {
-  console.log('[Worker] Starting background worker...');
-  
+  console.log("[Worker] Starting background worker...");
+
   // Ensure SMS service is initialized
   initializeSmsService();
-  
+
   try {
     await processScheduledJobs();
   } catch (error) {
-    console.error('[Worker] Error processing jobs:', error);
+    console.error("[Worker] Error processing jobs:", error);
     process.exit(1);
   }
 }
@@ -148,6 +163,7 @@ main();
 ## Step 5: Update Scheduling Logic
 
 ### Cursor Prompt:
+
 ```
 In src/lib/scheduling.node.ts (or wherever processScheduledJobs is defined), update the SMS sending logic to:
 1. Check the return value of sendSms()
@@ -156,35 +172,45 @@ In src/lib/scheduling.node.ts (or wherever processScheduledJobs is defined), upd
 ```
 
 ### Code to Apply:
+
 ```typescript
 // src/lib/scheduling.node.ts
-import { sendSms } from './sms-service.node.js';
+import { sendSms } from "./sms-service.node.js";
 
 export async function processScheduledJobs() {
-  console.log(`[${new Date().toISOString()}] INFO: Processing scheduled jobs...`);
-  
+  console.log(
+    `[${new Date().toISOString()}] INFO: Processing scheduled jobs...`,
+  );
+
   // ... subscription fetching logic ...
-  
+
   for (const subscription of activeSubscriptions) {
     const phoneNumber = subscription.phoneNumber;
     const message = `Your scheduled message for ${subscription.name}`;
-    
+
     const success = await sendSms(phoneNumber, message);
-    
+
     if (success) {
-      console.log(`[${new Date().toISOString()}] SUCCESS: Sent SMS to ${phoneNumber} for ${subscription.name}`);
+      console.log(
+        `[${new Date().toISOString()}] SUCCESS: Sent SMS to ${phoneNumber} for ${subscription.name}`,
+      );
     } else {
-      console.log(`[${new Date().toISOString()}] FAILED: Could not send SMS to ${phoneNumber} for ${subscription.name}`);
+      console.log(
+        `[${new Date().toISOString()}] FAILED: Could not send SMS to ${phoneNumber} for ${subscription.name}`,
+      );
     }
   }
-  
-  console.log(`[${new Date().toISOString()}] INFO: Completed processing scheduled jobs`);
+
+  console.log(
+    `[${new Date().toISOString()}] INFO: Completed processing scheduled jobs`,
+  );
 }
 ```
 
 ## Step 6: Clean Up Project Structure
 
 ### Cursor Prompt:
+
 ```
 Create a new shared utilities structure that works for both Next.js and Node.js:
 1. Create src/lib/sms/base.ts with the core SMS logic (no imports with extensions)
@@ -197,7 +223,7 @@ Create a new shared utilities structure that works for both Next.js and Node.js:
 
 ```typescript
 // src/lib/sms/base.ts
-import twilio from 'twilio';
+import twilio from "twilio";
 
 export interface SmsService {
   sendSms(to: string, body: string): Promise<boolean>;
@@ -218,17 +244,17 @@ export class TwilioSmsService implements SmsService {
     const phoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
     if (!accountSid || !authToken || !phoneNumber) {
-      this.error = 'Missing Twilio credentials';
-      console.error('[TwilioSmsService]', this.error);
+      this.error = "Missing Twilio credentials";
+      console.error("[TwilioSmsService]", this.error);
       return;
     }
 
     try {
       this.client = twilio(accountSid, authToken);
-      console.log('[TwilioSmsService] Initialized successfully');
+      console.log("[TwilioSmsService] Initialized successfully");
     } catch (error) {
       this.error = `Initialization failed: ${error}`;
-      console.error('[TwilioSmsService]', this.error);
+      console.error("[TwilioSmsService]", this.error);
     }
   }
 
@@ -238,7 +264,7 @@ export class TwilioSmsService implements SmsService {
 
   async sendSms(to: string, body: string): Promise<boolean> {
     if (!this.client) {
-      console.error('[TwilioSmsService] Cannot send SMS:', this.error);
+      console.error("[TwilioSmsService] Cannot send SMS:", this.error);
       return false;
     }
 
@@ -246,12 +272,12 @@ export class TwilioSmsService implements SmsService {
       const message = await this.client.messages.create({
         body,
         to,
-        from: process.env.TWILIO_PHONE_NUMBER!
+        from: process.env.TWILIO_PHONE_NUMBER!,
       });
       console.log(`[TwilioSmsService] SMS sent: ${message.sid}`);
       return true;
     } catch (error) {
-      console.error('[TwilioSmsService] Send failed:', error);
+      console.error("[TwilioSmsService] Send failed:", error);
       return false;
     }
   }
@@ -260,7 +286,7 @@ export class TwilioSmsService implements SmsService {
 
 ```typescript
 // src/lib/sms/client.ts (for Next.js)
-import { TwilioSmsService } from './base';
+import { TwilioSmsService } from "./base";
 
 let smsService: TwilioSmsService | null = null;
 
@@ -274,7 +300,7 @@ export function getSmsService(): TwilioSmsService {
 
 ```typescript
 // src/lib/sms/worker.ts (for Node.js worker)
-import { TwilioSmsService } from './base.js';
+import { TwilioSmsService } from "./base.js";
 
 let smsService: TwilioSmsService | null = null;
 
@@ -293,6 +319,7 @@ export const sendSms = async (to: string, body: string): Promise<boolean> => {
 ## Step 7: Update TypeScript Configuration
 
 ### Cursor Prompt:
+
 ```
 Create separate TypeScript configurations:
 1. Update tsconfig.json for Next.js (keep module resolution as is)
@@ -326,6 +353,7 @@ Create separate TypeScript configurations:
 ## Step 8: Update Package.json Scripts
 
 ### Cursor Prompt:
+
 ```
 Update package.json to add proper build and run scripts for the worker:
 1. Add a build:worker script that uses tsconfig.worker.json
@@ -354,6 +382,7 @@ Update package.json to add proper build and run scripts for the worker:
 ## Step 9: Final Testing
 
 ### Cursor Prompt:
+
 ```
 Create a test script src/scripts/test-sms.ts that:
 1. Loads environment variables
@@ -367,40 +396,49 @@ This will help verify everything is working before running the full worker.
 
 ```typescript
 // src/scripts/test-sms.ts
-import { config } from 'dotenv';
-import { resolve } from 'path';
+import { config } from "dotenv";
+import { resolve } from "path";
 
 // Load environment variables
-config({ path: resolve(process.cwd(), '.env.local') });
+config({ path: resolve(process.cwd(), ".env.local") });
 
-import { getSmsService } from '../lib/sms/worker.js';
+import { getSmsService } from "../lib/sms/worker.js";
 
 async function testSms() {
-  console.log('=== SMS Service Test ===');
-  console.log('Environment variables:');
-  console.log('- TWILIO_ACCOUNT_SID:', process.env.TWILIO_ACCOUNT_SID ? 'SET' : 'NOT SET');
-  console.log('- TWILIO_AUTH_TOKEN:', process.env.TWILIO_AUTH_TOKEN ? 'SET' : 'NOT SET');
-  console.log('- TWILIO_PHONE_NUMBER:', process.env.TWILIO_PHONE_NUMBER || 'NOT SET');
-  
+  console.log("=== SMS Service Test ===");
+  console.log("Environment variables:");
+  console.log(
+    "- TWILIO_ACCOUNT_SID:",
+    process.env.TWILIO_ACCOUNT_SID ? "SET" : "NOT SET",
+  );
+  console.log(
+    "- TWILIO_AUTH_TOKEN:",
+    process.env.TWILIO_AUTH_TOKEN ? "SET" : "NOT SET",
+  );
+  console.log(
+    "- TWILIO_PHONE_NUMBER:",
+    process.env.TWILIO_PHONE_NUMBER || "NOT SET",
+  );
+
   const smsService = getSmsService();
-  console.log('\nSMS Service initialized:', smsService.isInitialized());
-  
+  console.log("\nSMS Service initialized:", smsService.isInitialized());
+
   if (!smsService.isInitialized()) {
-    console.error('SMS Service failed to initialize. Check your credentials.');
+    console.error("SMS Service failed to initialize. Check your credentials.");
     process.exit(1);
   }
-  
+
   // Replace with a real phone number for testing
-  const testNumber = '+1234567890'; 
-  const testMessage = 'Test message from worker';
-  
+  const testNumber = "+1234567890";
+  const testMessage = "Test message from worker";
+
   console.log(`\nSending test SMS to ${testNumber}...`);
   const success = await smsService.sendSms(testNumber, testMessage);
-  
+
   if (success) {
-    console.log('✅ SMS sent successfully!');
+    console.log("✅ SMS sent successfully!");
   } else {
-    console.log('❌ Failed to send SMS');
+    console.log("❌ Failed to send SMS");
   }
 }
 
@@ -410,6 +448,7 @@ testSms().catch(console.error);
 ## Step 10: Run and Verify
 
 ### Commands to Execute:
+
 ```bash
 # 1. Build the worker
 npm run build:worker
@@ -426,6 +465,7 @@ npm run worker:prod
 ## Troubleshooting Checklist
 
 ### Cursor Prompt:
+
 ```
 If SMS is still not sending, check these in order:
 1. Verify .env.local has all three Twilio variables set correctly

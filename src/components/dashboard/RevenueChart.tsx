@@ -1,4 +1,13 @@
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
+} from "recharts";
 
 interface RevenueChartProps {
   data: any;
@@ -12,12 +21,15 @@ export function RevenueChart({ data }: RevenueChartProps) {
       name: data.periodLabel,
       Revenue: data.overallMetrics.totalRevenue,
       Orders: data.overallMetrics.totalOrders,
-    }
+    },
   ];
   return (
     <div className="w-full h-64 bg-white rounded-lg shadow-sm p-4">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
+        <BarChart
+          data={chartData}
+          margin={{ top: 16, right: 16, left: 0, bottom: 0 }}
+        >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
           <YAxis />
@@ -29,4 +41,4 @@ export function RevenueChart({ data }: RevenueChartProps) {
       </ResponsiveContainer>
     </div>
   );
-} 
+}

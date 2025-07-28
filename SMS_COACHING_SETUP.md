@@ -1,9 +1,11 @@
 # SMS Coaching Setup Guide
 
 ## Overview
+
 The SMS coaching feature allows you to send personalized performance updates and AI-generated coaching messages to individual staff members via text message.
 
 ## Features
+
 - **Personalized Performance Metrics**: Wine conversion rate, club conversion rate, goal variance
 - **AI-Generated Coaching**: Personalized tips and encouragement based on performance
 - **Flexible Scheduling**: Daily, weekly, or monthly SMS delivery
@@ -13,11 +15,13 @@ The SMS coaching feature allows you to send personalized performance updates and
 ## Setup Instructions
 
 ### 1. Install Twilio
+
 ```bash
 npm install twilio
 ```
 
 ### 2. Environment Variables
+
 Add these variables to your `.env.local` file:
 
 ```env
@@ -28,6 +32,7 @@ TWILIO_PHONE_NUMBER=your_twilio_phone_number
 ```
 
 ### 3. Twilio Account Setup
+
 1. Sign up for a Twilio account at https://www.twilio.com
 2. Get your Account SID and Auth Token from the Twilio Console
 3. Purchase a phone number for sending SMS
@@ -36,6 +41,7 @@ TWILIO_PHONE_NUMBER=your_twilio_phone_number
 ### 4. Using SMS Coaching
 
 #### In the Admin Dashboard:
+
 1. Go to the Admin Dashboard
 2. Click "Edit" on any subscription
 3. Scroll down to the "SMS Coaching" section
@@ -49,12 +55,14 @@ TWILIO_PHONE_NUMBER=your_twilio_phone_number
 11. Save changes
 
 #### Available Actions:
+
 - **Send SMS Coaching**: Send coaching messages to selected staff members
 - **Test SMS**: Send a test message to verify setup
 
 ## SMS Message Format
 
 Example SMS:
+
 ```
 Hi John Smith! 📊
 
@@ -87,17 +95,20 @@ Keep up the great work! 🍷
 ## Troubleshooting
 
 ### SMS Not Sending
+
 1. Check Twilio credentials in environment variables
 2. Verify phone number format (include country code)
 3. Check Twilio account balance
 4. Review server logs for error messages
 
 ### AI Coaching Not Working
+
 1. Verify Anthropic API key is set
 2. Check API rate limits
 3. Review server logs for AI service errors
 
 ### Staff Members Not Found
+
 1. Ensure staff names match exactly with KPI data
 2. Check that KPI data exists for the selected period
 3. Verify staff member names in the dropdown
@@ -113,4 +124,4 @@ Keep up the great work! 🍷
 
 - Twilio charges per SMS sent
 - AI API calls for coaching generation
-- Consider frequency and number of staff members when budgeting 
+- Consider frequency and number of staff members when budgeting

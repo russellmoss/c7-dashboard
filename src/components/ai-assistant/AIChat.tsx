@@ -1,48 +1,51 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from "react";
 
 interface Message {
-  role: 'user' | 'ai';
+  role: "user" | "ai";
   content: string;
 }
 
 export default function AIChat() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   async function sendMessage() {
     if (!input.trim()) return;
-    setMessages((msgs) => [...msgs, { role: 'user', content: input }]);
+    setMessages((msgs) => [...msgs, { role: "user", content: input }]);
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/ai-assistant/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input })
+      const res = await fetch("/api/ai-assistant/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setError(data.error || 'AI failed to respond');
+        setError(data.error || "AI failed to respond");
       } else {
-        setMessages((msgs) => [...msgs, { role: 'ai', content: data.response }]);
+        setMessages((msgs) => [
+          ...msgs,
+          { role: "ai", content: data.response },
+        ]);
       }
     } catch (err) {
-      setError('Network error');
+      setError("Network error");
     } finally {
       setLoading(false);
-      setInput('');
+      setInput("");
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
@@ -51,20 +54,33 @@ export default function AIChat() {
   return (
     <div className="max-w-xl mx-auto bg-white rounded-lg shadow p-4 flex flex-col h-[500px]">
       <div className="flex items-center mb-2">
-        <span className="font-bold text-wine-700 text-lg mr-2">AI Assistant</span>
-        <span className="text-xs text-slate-400">(Ask about any dashboard or KPI)</span>
+        <span className="font-bold text-wine-700 text-lg mr-2">
+          AI Assistant
+        </span>
+        <span className="text-xs text-slate-400">
+          (Ask about any dashboard or KPI)
+        </span>
       </div>
       <div className="flex-1 overflow-y-auto border rounded bg-slate-50 p-2 mb-2">
         {messages.length === 0 && !loading && (
-          <div className="text-slate-400 text-center mt-10">Ask a question about your business performance...</div>
+          <div className="text-slate-400 text-center mt-10">
+            Ask a question about your business performance...
+          </div>
         )}
         {messages.map((msg, idx) => (
-          <div key={idx} className={msg.role === 'user' ? 'text-right mb-2' : 'text-left mb-2'}>
-            <div className={
-              msg.role === 'user'
-                ? 'inline-block bg-wine-100 text-wine-900 px-3 py-2 rounded-lg'
-                : 'inline-block bg-slate-200 text-slate-800 px-3 py-2 rounded-lg'
-            }>
+          <div
+            key={idx}
+            className={
+              msg.role === "user" ? "text-right mb-2" : "text-left mb-2"
+            }
+          >
+            <div
+              className={
+                msg.role === "user"
+                  ? "inline-block bg-wine-100 text-wine-900 px-3 py-2 rounded-lg"
+                  : "inline-block bg-slate-200 text-slate-800 px-3 py-2 rounded-lg"
+              }
+            >
               {msg.content}
             </div>
           </div>
@@ -85,7 +101,7 @@ export default function AIChat() {
           className="flex-1 border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wine-400"
           placeholder="Type your question..."
           value={input}
-          onChange={e => setInput(e.target.value)}
+          onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={loading}
         />
@@ -94,9 +110,9 @@ export default function AIChat() {
           className="bg-wine-600 text-white px-4 py-2 rounded font-semibold hover:bg-wine-700 disabled:opacity-50"
           disabled={loading || !input.trim()}
         >
-          {loading ? '...' : 'Send'}
+          {loading ? "..." : "Send"}
         </button>
       </div>
     </div>
   );
-} 
+}

@@ -9,7 +9,7 @@
 
 export interface KPIData {
   _id?: string;
-  periodType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters';
+  periodType: "mtd" | "qtd" | "ytd" | "all-quarters";
   generatedAt: string;
   year: number;
   data: {
@@ -27,7 +27,7 @@ export interface KPIData {
   createdAt: Date;
   updatedAt: Date;
   executionTime?: number;
-  status: 'generating' | 'completed' | 'failed';
+  status: "generating" | "completed" | "failed";
 }
 
 export interface PeriodData {
@@ -168,8 +168,8 @@ export interface StaffFeedback {
 
 export interface CronJobLog {
   _id?: string;
-  jobType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters';
-  status: 'running' | 'completed' | 'failed';
+  jobType: "mtd" | "qtd" | "ytd" | "all-quarters";
+  status: "running" | "completed" | "failed";
   startTime: Date;
   endTime?: Date;
   executionTime?: number;
@@ -181,7 +181,7 @@ export interface CronJobLog {
 export interface EmailSubscription {
   _id?: string;
   email: string;
-  subscribedReports: ('mtd' | 'qtd' | 'ytd' | 'all-quarters')[];
+  subscribedReports: ("mtd" | "qtd" | "ytd" | "all-quarters")[];
   active: boolean;
   createdAt: Date;
   unsubscribeToken?: string;
@@ -193,119 +193,134 @@ export interface EmailSubscription {
 ```typescript
 // src/lib/models.ts
 
-import mongoose, { Schema, Model } from 'mongoose';
+import mongoose, { Schema, Model } from "mongoose";
 
 // KPI Data Schema
-const KPIDataSchema = new Schema<KPIData>({
-  periodType: {
-    type: String,
-    enum: ['mtd', 'qtd', 'ytd', 'all-quarters'],
-    required: true,
-    index: true
+const KPIDataSchema = new Schema<KPIData>(
+  {
+    periodType: {
+      type: String,
+      enum: ["mtd", "qtd", "ytd", "all-quarters"],
+      required: true,
+      index: true,
+    },
+    generatedAt: {
+      type: String,
+      required: true,
+    },
+    year: {
+      type: Number,
+      required: true,
+      index: true,
+    },
+    data: {
+      type: Schema.Types.Mixed,
+      required: true,
+    },
+    insights: {
+      strengths: [String],
+      opportunities: [String],
+      weaknesses: [String],
+      threats: [String],
+      staffPraise: [
+        {
+          name: String,
+          reason: String,
+          metrics: [String],
+        },
+      ],
+      staffCoaching: [
+        {
+          name: String,
+          reason: String,
+          metrics: [String],
+        },
+      ],
+      recommendations: [String],
+      generatedAt: String,
+    },
+    executionTime: Number,
+    status: {
+      type: String,
+      enum: ["generating", "completed", "failed"],
+      default: "generating",
+    },
   },
-  generatedAt: {
-    type: String,
-    required: true
+  {
+    timestamps: true,
+    collection: "kpi_data",
   },
-  year: {
-    type: Number,
-    required: true,
-    index: true
-  },
-  data: {
-    type: Schema.Types.Mixed,
-    required: true
-  },
-  insights: {
-    strengths: [String],
-    opportunities: [String],
-    weaknesses: [String],
-    threats: [String],
-    staffPraise: [{
-      name: String,
-      reason: String,
-      metrics: [String]
-    }],
-    staffCoaching: [{
-      name: String,
-      reason: String,
-      metrics: [String]
-    }],
-    recommendations: [String],
-    generatedAt: String
-  },
-  executionTime: Number,
-  status: {
-    type: String,
-    enum: ['generating', 'completed', 'failed'],
-    default: 'generating'
-  }
-}, {
-  timestamps: true,
-  collection: 'kpi_data'
-});
+);
 
 // Compound index for efficient queries
 KPIDataSchema.index({ periodType: 1, year: 1 }, { unique: true });
 KPIDataSchema.index({ createdAt: -1 });
 
 // Cron Job Log Schema
-const CronJobLogSchema = new Schema<CronJobLog>({
-  jobType: {
-    type: String,
-    enum: ['mtd', 'qtd', 'ytd', 'all-quarters'],
-    required: true,
-    index: true
+const CronJobLogSchema = new Schema<CronJobLog>(
+  {
+    jobType: {
+      type: String,
+      enum: ["mtd", "qtd", "ytd", "all-quarters"],
+      required: true,
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: ["running", "completed", "failed"],
+      required: true,
+    },
+    startTime: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+    endTime: Date,
+    executionTime: Number,
+    error: String,
+    dataGenerated: {
+      type: Boolean,
+      default: false,
+    },
+    recordsProcessed: Number,
   },
-  status: {
-    type: String,
-    enum: ['running', 'completed', 'failed'],
-    required: true
+  {
+    timestamps: true,
+    collection: "cron_job_logs",
   },
-  startTime: {
-    type: Date,
-    required: true,
-    index: true
-  },
-  endTime: Date,
-  executionTime: Number,
-  error: String,
-  dataGenerated: {
-    type: Boolean,
-    default: false
-  },
-  recordsProcessed: Number
-}, {
-  timestamps: true,
-  collection: 'cron_job_logs'
-});
+);
 
 // Email Subscription Schema
-const EmailSubscriptionSchema = new Schema<EmailSubscription>({
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true,
-    trim: true
+const EmailSubscriptionSchema = new Schema<EmailSubscription>(
+  {
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    subscribedReports: [
+      {
+        type: String,
+        enum: ["mtd", "qtd", "ytd", "all-quarters"],
+      },
+    ],
+    active: {
+      type: Boolean,
+      default: true,
+    },
+    unsubscribeToken: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
   },
-  subscribedReports: [{
-    type: String,
-    enum: ['mtd', 'qtd', 'ytd', 'all-quarters']
-  }],
-  active: {
-    type: Boolean,
-    default: true
+  {
+    timestamps: true,
+    collection: "email_subscriptions",
   },
-  unsubscribeToken: {
-    type: String,
-    unique: true,
-    sparse: true
-  }
-}, {
-  timestamps: true,
-  collection: 'email_subscriptions'
-});
+);
 ```
 
 ## API Response Types
@@ -316,7 +331,7 @@ const EmailSubscriptionSchema = new Schema<EmailSubscription>({
 // GET /api/kpi/[periodType] Response
 interface KPIDataResponse {
   success: boolean;
-  periodType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters';
+  periodType: "mtd" | "qtd" | "ytd" | "all-quarters";
   data: {
     generatedAt: string;
     periodType: string;
@@ -342,8 +357,8 @@ interface GenerateKPIResponse {
 
 // GET /api/kpi/status/[periodType] Response
 interface KPIStatusResponse {
-  periodType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters';
-  status: 'idle' | 'generating' | 'completed' | 'failed';
+  periodType: "mtd" | "qtd" | "ytd" | "all-quarters";
+  status: "idle" | "generating" | "completed" | "failed";
   progress: number | null;
   lastUpdated?: Date;
   lastGenerated?: string;
@@ -352,9 +367,9 @@ interface KPIStatusResponse {
 
 // GET /api/health Response
 interface HealthCheckResponse {
-  status: 'healthy' | 'unhealthy';
+  status: "healthy" | "unhealthy";
   timestamp: string;
-  mongodb: 'connected' | 'disconnected';
+  mongodb: "connected" | "disconnected";
   environment: string;
   missingEnvVars: string[] | null;
   error?: string;
@@ -385,20 +400,20 @@ interface ErrorResponse {
 interface EnvironmentVariables {
   // MongoDB Configuration
   MONGODB_URI: string;
-  
+
   // Anthropic AI Configuration
   ANTHROPIC_API_KEY: string;
-  
+
   // Resend Email Service Configuration
   RESEND_API_KEY: string;
-  
+
   // Commerce7 API Configuration
   C7_APP_ID: string;
   C7_API_KEY: string;
   C7_TENANT_ID: string;
-  
+
   // Next.js Configuration
-  NODE_ENV: 'development' | 'production' | 'test';
+  NODE_ENV: "development" | "production" | "test";
   NEXTAUTH_SECRET: string;
   NEXTAUTH_URL: string;
 }
@@ -417,7 +432,7 @@ declare global {
 // UI Component Props
 
 interface RefreshButtonProps {
-  periodType: 'mtd' | 'qtd' | 'ytd' | 'all-quarters';
+  periodType: "mtd" | "qtd" | "ytd" | "all-quarters";
   onRefreshComplete?: () => void;
   className?: string;
 }
@@ -458,13 +473,13 @@ interface DateRanges {
 ```typescript
 // Application Constants
 
-type PeriodType = 'mtd' | 'qtd' | 'ytd' | 'all-quarters';
+type PeriodType = "mtd" | "qtd" | "ytd" | "all-quarters";
 
 interface EstimatedTimes {
   mtd: string;
   qtd: string;
   ytd: string;
-  'all-quarters': string;
+  "all-quarters": string;
 }
 
 interface PerformanceGoals {

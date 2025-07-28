@@ -1,1 +1,1 @@
-export const testValue = 42; 
+export const testValue = 42;

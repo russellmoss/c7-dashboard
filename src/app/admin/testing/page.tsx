@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
 
 interface TestResult {
   name: string;
@@ -18,7 +18,7 @@ interface TestSummary {
   failedTests: number;
   successRate: number;
   totalDuration: number;
-  status: 'excellent' | 'good' | 'fair' | 'needs_improvement';
+  status: "excellent" | "good" | "fair" | "needs_improvement";
 }
 
 interface ComprehensiveTestData {
@@ -89,17 +89,17 @@ export default function TestingDashboard() {
   const runTests = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/test-comprehensive');
+      const response = await fetch("/api/test-comprehensive");
       const data = await response.json();
 
       if (data.success) {
         setTestData(data.data);
         setLastRun(new Date());
       } else {
-        console.error('Test failed:', data.message);
+        console.error("Test failed:", data.message);
       }
     } catch (error) {
-      console.error('Error running tests:', error);
+      console.error("Error running tests:", error);
     } finally {
       setLoading(false);
     }
@@ -108,28 +108,33 @@ export default function TestingDashboard() {
   // Get status color
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'excellent': return 'bg-green-100 text-green-800';
-      case 'good': return 'bg-blue-100 text-blue-800';
-      case 'fair': return 'bg-yellow-100 text-yellow-800';
-      case 'needs_improvement': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "excellent":
+        return "bg-green-100 text-green-800";
+      case "good":
+        return "bg-blue-100 text-blue-800";
+      case "fair":
+        return "bg-yellow-100 text-yellow-800";
+      case "needs_improvement":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   // Get test result icon
   const getTestIcon = (success: boolean) => {
-    return success ? '✅' : '❌';
+    return success ? "✅" : "❌";
   };
 
   // Get test result color
   const getTestColor = (success: boolean) => {
-    return success ? 'text-green-600' : 'text-red-600';
+    return success ? "text-green-600" : "text-red-600";
   };
 
   // Render test category
   const renderTestCategory = (title: string, tests: any, icon: string) => {
     const testArray = Object.values(tests) as TestResult[];
-    const passedTests = testArray.filter(test => test.success).length;
+    const passedTests = testArray.filter((test) => test.success).length;
     const totalTests = testArray.length;
 
     return (
@@ -140,7 +145,13 @@ export default function TestingDashboard() {
               <span className="mr-2">{icon}</span>
               {title}
             </span>
-            <Badge className={passedTests === totalTests ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+            <Badge
+              className={
+                passedTests === totalTests
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
+              }
+            >
               {passedTests}/{totalTests} Passed
             </Badge>
           </CardTitle>
@@ -148,7 +159,10 @@ export default function TestingDashboard() {
         <CardContent>
           <div className="space-y-3">
             {testArray.map((test, index) => (
-              <div key={index} className="flex items-start space-x-3 p-3 border rounded-lg">
+              <div
+                key={index}
+                className="flex items-start space-x-3 p-3 border rounded-lg"
+              >
                 <span className={`text-lg ${getTestColor(test.success)}`}>
                   {getTestIcon(test.success)}
                 </span>
@@ -169,17 +183,22 @@ export default function TestingDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
-          <a href="/admin" className="inline-flex items-center px-4 py-2 rounded bg-wine-600 text-white hover:bg-wine-700 transition font-semibold text-sm shadow mr-4">
+          <a
+            href="/admin"
+            className="inline-flex items-center px-4 py-2 rounded bg-wine-600 text-white hover:bg-wine-700 transition font-semibold text-sm shadow mr-4"
+          >
             ← Back to Admin
           </a>
-          <h1 className="text-2xl font-bold text-wine-900">🧪 Comprehensive Testing Dashboard</h1>
+          <h1 className="text-2xl font-bold text-wine-900">
+            🧪 Comprehensive Testing Dashboard
+          </h1>
         </div>
-        <Button 
-          onClick={runTests} 
+        <Button
+          onClick={runTests}
           disabled={loading}
           className="bg-wine-600 hover:bg-wine-700"
         >
-          {loading ? '🔄 Running Tests...' : '🚀 Run Comprehensive Tests'}
+          {loading ? "🔄 Running Tests..." : "🚀 Run Comprehensive Tests"}
         </Button>
       </div>
 
@@ -200,9 +219,13 @@ export default function TestingDashboard() {
             <div className="text-4xl mb-4">🧪</div>
             <h3 className="text-xl font-semibold mb-2">Ready to Run Tests</h3>
             <p className="text-gray-600 mb-4">
-              Click the button above to run comprehensive tests on the entire competition management system.
+              Click the button above to run comprehensive tests on the entire
+              competition management system.
             </p>
-            <Button onClick={runTests} className="bg-wine-600 hover:bg-wine-700">
+            <Button
+              onClick={runTests}
+              className="bg-wine-600 hover:bg-wine-700"
+            >
               🚀 Start Testing
             </Button>
           </CardContent>
@@ -213,7 +236,9 @@ export default function TestingDashboard() {
         <Card>
           <CardContent className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-wine-600 mx-auto mb-4"></div>
-            <h3 className="text-xl font-semibold mb-2">Running Comprehensive Tests</h3>
+            <h3 className="text-xl font-semibold mb-2">
+              Running Comprehensive Tests
+            </h3>
             <p className="text-gray-600">
               Testing all system components... This may take a few moments.
             </p>
@@ -236,19 +261,27 @@ export default function TestingDashboard() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{testData.summary.totalTests}</div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {testData.summary.totalTests}
+                  </div>
                   <div className="text-sm text-gray-600">Total Tests</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{testData.summary.passedTests}</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {testData.summary.passedTests}
+                  </div>
                   <div className="text-sm text-gray-600">Passed</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">{testData.summary.failedTests}</div>
+                  <div className="text-2xl font-bold text-red-600">
+                    {testData.summary.failedTests}
+                  </div>
                   <div className="text-sm text-gray-600">Failed</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-wine-600">{testData.summary.successRate}%</div>
+                  <div className="text-2xl font-bold text-wine-600">
+                    {testData.summary.successRate}%
+                  </div>
                   <div className="text-sm text-gray-600">Success Rate</div>
                 </div>
               </div>
@@ -262,12 +295,17 @@ export default function TestingDashboard() {
           {testData.criticalIssues.length > 0 && (
             <Card className="border-red-200">
               <CardHeader>
-                <CardTitle className="text-red-800">🚨 Critical Issues</CardTitle>
+                <CardTitle className="text-red-800">
+                  🚨 Critical Issues
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {testData.criticalIssues.map((issue, index) => (
-                    <div key={index} className="flex items-start space-x-2 p-3 bg-red-50 rounded-lg">
+                    <div
+                      key={index}
+                      className="flex items-start space-x-2 p-3 bg-red-50 rounded-lg"
+                    >
                       <span className="text-red-600">⚠️</span>
                       <span className="text-red-800">{issue}</span>
                     </div>
@@ -286,7 +324,10 @@ export default function TestingDashboard() {
               <CardContent>
                 <div className="space-y-2">
                   {testData.recommendations.map((recommendation, index) => (
-                    <div key={index} className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg">
+                    <div
+                      key={index}
+                      className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg"
+                    >
                       <span className="text-blue-600">💡</span>
                       <span className="text-blue-800">{recommendation}</span>
                     </div>
@@ -298,14 +339,46 @@ export default function TestingDashboard() {
 
           {/* Test Results */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {renderTestCategory('Database', testData.testResults.database, '🗄️')}
-            {renderTestCategory('Competition Management', testData.testResults.competitionManagement, '🏆')}
-            {renderTestCategory('Ranking System', testData.testResults.rankingSystem, '📊')}
-            {renderTestCategory('SMS System', testData.testResults.smsSystem, '📱')}
-            {renderTestCategory('Analytics', testData.testResults.analytics, '📈')}
-            {renderTestCategory('Archive Management', testData.testResults.archiveManagement, '📚')}
-            {renderTestCategory('API Endpoints', testData.testResults.apiEndpoints, '🌐')}
-            {renderTestCategory('Integration', testData.testResults.integration, '🔗')}
+            {renderTestCategory(
+              "Database",
+              testData.testResults.database,
+              "🗄️",
+            )}
+            {renderTestCategory(
+              "Competition Management",
+              testData.testResults.competitionManagement,
+              "🏆",
+            )}
+            {renderTestCategory(
+              "Ranking System",
+              testData.testResults.rankingSystem,
+              "📊",
+            )}
+            {renderTestCategory(
+              "SMS System",
+              testData.testResults.smsSystem,
+              "📱",
+            )}
+            {renderTestCategory(
+              "Analytics",
+              testData.testResults.analytics,
+              "📈",
+            )}
+            {renderTestCategory(
+              "Archive Management",
+              testData.testResults.archiveManagement,
+              "📚",
+            )}
+            {renderTestCategory(
+              "API Endpoints",
+              testData.testResults.apiEndpoints,
+              "🌐",
+            )}
+            {renderTestCategory(
+              "Integration",
+              testData.testResults.integration,
+              "🔗",
+            )}
           </div>
 
           {/* Test Features */}
@@ -340,4 +413,4 @@ export default function TestingDashboard() {
       )}
     </div>
   );
-} 
+}

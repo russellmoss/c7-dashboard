@@ -8,8 +8,5 @@
     "emitDecoratorMetadata": false,
     "sourceMap": false
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx"
-  ]
-} 
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

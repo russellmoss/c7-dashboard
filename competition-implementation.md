@@ -16,6 +16,7 @@ Update all relevant TypeScript types to include the new AOV field.
 ```
 
 Example implementation:
+
 ```typescript
 // types/dashboard.ts
 interface StaffMetrics {
@@ -34,13 +35,16 @@ interface StaffMetrics {
 
 // backend/dataProcessing.ts
 function calculateStaffAOV(data: RawOrderData): number {
-  const validOrders = data.orders.filter(o => 
-    o.type !== 'return' && o.type !== 'refund'
+  const validOrders = data.orders.filter(
+    (o) => o.type !== "return" && o.type !== "refund",
   );
-  const validRevenue = validOrders.reduce((sum, order) => sum + order.amount, 0);
-  
-  return validOrders.length > 0 
-    ? Math.round((validRevenue / validOrders.length) * 100) / 100 
+  const validRevenue = validOrders.reduce(
+    (sum, order) => sum + order.amount,
+    0,
+  );
+
+  return validOrders.length > 0
+    ? Math.round((validRevenue / validOrders.length) * 100) / 100
     : 0;
 }
 ```
@@ -113,7 +117,7 @@ Example output:
 ```
 cursor.ai prompt:
 Update the competition schema and types to support multiple SMS message types:
-1. Welcome message: 
+1. Welcome message:
    - customText: string (admin-written message)
    - sendAt: Date | null (null means manual send)
    - sent: boolean

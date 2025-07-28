@@ -1,12 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
-import { KPIDataModel, EmailSubscriptionModel, CoachingSMSHistoryModel } from '@/lib/models';
-import { getSmsService, sendSms, generateCoachingMessage } from '@/lib/sms/sms-worker.next';
-import { StaffMemberCoaching, SMSCoaching } from '@/types/sms';
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb";
+import { EmailSubscriptionModel, KPIDataModel, CoachingSMSHistoryModel } from "@/lib/models";
+
+import { getSmsService } from "@/lib/sms/client";
+import { generateCoachingMessage } from "@/lib/sms/sms-worker.worker";
 
 function levenshtein(a: string, b: string): number {
   if (a === b) return 0;
-  const al = a.length, bl = b.length;
+  const al = a.length,
+    bl = b.length;
   if (al === 0) return bl;
   if (bl === 0) return al;
   const matrix = Array.from({ length: al + 1 }, () => Array(bl + 1).fill(0));
@@ -18,14 +20,17 @@ function levenshtein(a: string, b: string): number {
       matrix[i][j] = Math.min(
         matrix[i - 1][j] + 1,
         matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + cost
+        matrix[i - 1][j - 1] + cost,
       );
     }
   }
   return matrix[al][bl];
 }
 
-function fuzzyFindStaffName(target: string, staffList: string[]): string | null {
+function fuzzyFindStaffName(
+  target: string,
+  staffList: string[],
+): string | null {
   const norm = (s: string) => s.trim().toLowerCase();
   const t = norm(target);
   let best: { name: string; dist: number } | null = null;
@@ -42,35 +47,41 @@ function fuzzyFindStaffName(target: string, staffList: string[]): string | null 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { subscriptionId, periodType = 'mtd' } = body;
+    const { subscriptionId, periodType = "mtd" } = body;
 
     await connectToDatabase();
 
     // Get the subscription
     const subscription = await EmailSubscriptionModel.findById(subscriptionId);
     if (!subscription || !subscription.smsCoaching?.isActive) {
-      return NextResponse.json({ error: 'SMS coaching not enabled for this subscription' }, { status: 400 });
+      return NextResponse.json(
+        { error: "SMS coaching not enabled for this subscription" },
+        { status: 400 },
+      );
     }
 
     // Get the latest KPI data for the specified period
     const currentYear = new Date().getFullYear();
     let kpiData;
-    
-    if (periodType === 'custom') {
+
+    if (periodType === "custom") {
       // For custom periods, you might need to pass start/end dates
       kpiData = await KPIDataModel.findOne({
         periodType,
-        year: currentYear
+        year: currentYear,
       }).sort({ createdAt: -1 });
     } else {
       kpiData = await KPIDataModel.findOne({
         periodType,
-        year: currentYear
+        year: currentYear,
       });
     }
 
     if (!kpiData) {
-      return NextResponse.json({ error: 'No KPI data found for the specified period' }, { status: 404 });
+      return NextResponse.json(
+        { error: "No KPI data found for the specified period" },
+        { status: 404 },
+      );
     }
 
     // Extract staff performance data
@@ -83,15 +94,15 @@ export async function POST(request: NextRequest) {
       if (!staffMember.isActive) continue;
 
       // Check if this staff member has the requested dashboard configured
-      const dashboardConfig = staffMember.dashboards.find(d => 
-        d.periodType === periodType && d.isActive
+      const dashboardConfig = staffMember.dashboards.find(
+        (d) => d.periodType === periodType && d.isActive,
       );
 
       if (!dashboardConfig) {
         results.push({
           staffName: staffMember.name,
           success: false,
-          error: `Dashboard ${periodType} not configured for this staff member`
+          error: `Dashboard ${periodType} not configured for this staff member`,
         });
         continue;
       }
@@ -102,7 +113,8 @@ export async function POST(request: NextRequest) {
         results.push({
           staffName: staffMember.name,
           success: false,
-          error: 'Staff member not found in performance data (fuzzy match failed)'
+          error:
+            "Staff member not found in performance data (fuzzy match failed)",
         });
         continue;
       }
@@ -112,7 +124,7 @@ export async function POST(request: NextRequest) {
         results.push({
           staffName: staffMember.name,
           success: false,
-          error: 'Staff member not found in performance data'
+          error: "Staff member not found in performance data",
         });
         continue;
       }
@@ -122,18 +134,27 @@ export async function POST(request: NextRequest) {
         name: matchedName,
         wineBottleConversionRate: performance.wineBottleConversionRate,
         clubConversionRate: performance.clubConversionRate,
-        wineBottleConversionGoalVariance: performance.wineBottleConversionGoalVariance,
+        wineBottleConversionGoalVariance:
+          performance.wineBottleConversionGoalVariance,
         clubConversionGoalVariance: performance.clubConversionGoalVariance,
         orders: performance.orders,
         guests: performance.guests,
         revenue: performance.revenue,
         bottles: performance.bottles,
-        aov: performance.aov
+        aov: performance.aov,
       };
 
       // Send SMS with personal goals
-      const message = await generateCoachingMessage(staffData, subscription.smsCoaching, periodType, subscription.personalizedGoals);
-      const success = await sendSms(subscription.smsCoaching.phoneNumber, message);
+      const message = await generateCoachingMessage(
+        staffData,
+        subscription.smsCoaching,
+        periodType,
+        subscription.personalizedGoals,
+      );
+      const success = await getSmsService().sendSms(
+        subscription.smsCoaching.phoneNumber,
+        message,
+      );
 
       // Archive the sent SMS if successful
       if (success) {
@@ -142,7 +163,7 @@ export async function POST(request: NextRequest) {
           phoneNumber: subscription.smsCoaching.phoneNumber,
           periodType,
           coachingMessage: message,
-          sentAt: new Date()
+          sentAt: new Date(),
         });
       }
 
@@ -150,23 +171,25 @@ export async function POST(request: NextRequest) {
         staffName: staffMember.name,
         matchedName,
         success,
-        error: success ? null : 'Failed to send SMS',
-        periodType
+        error: success ? null : "Failed to send SMS",
+        periodType,
       });
     }
 
-    const successCount = results.filter(r => r.success).length;
+    const successCount = results.filter((r) => r.success).length;
     const totalCount = results.length;
 
     return NextResponse.json({
       message: `SMS coaching sent to ${successCount}/${totalCount} staff members for ${periodType.toUpperCase()}`,
       results,
       periodType,
-      subscriptionName: subscription.name
+      subscriptionName: subscription.name,
     });
-
   } catch (error) {
-    console.error('Error sending SMS coaching:', error);
-    return NextResponse.json({ error: 'Failed to send SMS coaching' }, { status: 500 });
+    console.error("Error sending SMS coaching:", error);
+    return NextResponse.json(
+      { error: "Failed to send SMS coaching" },
+      { status: 500 },
+    );
   }
-} 
+}

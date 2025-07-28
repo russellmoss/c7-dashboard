@@ -1,23 +1,35 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { ArrowUpIcon, ArrowDownIcon, DollarSign, Users, Wine, TrendingUp } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import React from "react";
-import { AIInsightsPanel } from './ai-insights-panel';
-import { KPICard } from './KPICard';
+import React from 'react';
+
+import { DollarSign, Wine, Users, TrendingUp } from 'lucide-react';
+import { AIInsightsPanel } from "./ai-insights-panel";
+import { KPICard } from "./KPICard";
 
 interface ComprehensiveMetricsProps {
   data: any;
   insights: any;
 }
 
-export function ComprehensiveMetrics({ data, insights }: ComprehensiveMetricsProps) {
-  if (!data) return <div className="text-center text-red-600">No data available.</div>;
-  const { current, previous, yearOverYear } = data;
+export function ComprehensiveMetrics({
+  data,
+  insights,
+}: ComprehensiveMetricsProps) {
+  if (!data)
+    return <div className="text-center text-red-600">No data available.</div>;
+  const { current, yearOverYear } = data;
 
   // Section Heading
-  const SectionHeading = ({ children, color = "wine" }: { children: React.ReactNode, color?: string }) => (
-    <h2 className={`text-xl md:text-2xl font-bold mb-4 mt-8 text-${color}-700 tracking-tight`}>{children}</h2>
+  const SectionHeading = ({
+    children,
+    color = "wine",
+  }: {
+    children: React.ReactNode;
+    color?: string;
+  }) => (
+    <h2
+      className={`text-xl md:text-2xl font-bold mb-4 mt-8 text-${color}-700 tracking-tight`}
+    >
+      {children}
+    </h2>
   );
 
   // Summary Banner
@@ -25,13 +37,21 @@ export function ComprehensiveMetrics({ data, insights }: ComprehensiveMetricsPro
     <div className="rounded-xl bg-wine-600 text-white px-6 py-4 mb-8 shadow-md animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">{current?.periodLabel || data?.periodLabel}</h1>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+            {current?.periodLabel || data?.periodLabel}
+          </h1>
           <p className="text-sm md:text-base text-wine-100 font-medium">
             {current?.dateRange?.start} to {current?.dateRange?.end}
           </p>
         </div>
         <div className="text-amber-200 text-sm font-semibold">
-          {data?.definitions?.totalRevenue}: <span className="ml-1">{current?.overallMetrics?.totalRevenue?.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>
+          {data?.definitions?.totalRevenue}:{" "}
+          <span className="ml-1">
+            {current?.overallMetrics?.totalRevenue?.toLocaleString("en-US", {
+              style: "currency",
+              currency: "USD",
+            })}
+          </span>
         </div>
       </div>
     </div>
@@ -87,4 +107,4 @@ export function ComprehensiveMetrics({ data, insights }: ComprehensiveMetricsPro
       <AIInsightsPanel insights={insights} />
     </div>
   );
-} 
+}

@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 
+export const dynamic = 'force-dynamic';
+
 interface ArchiveCompetition {
   _id: string;
   name: string;

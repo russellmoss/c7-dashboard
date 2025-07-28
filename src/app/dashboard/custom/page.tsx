@@ -1,13 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { KPICard } from "@/components/dashboard/KPICard";
-import {
-  StaffTable,
-  useSortableTable,
-} from "@/components/dashboard/StaffTable";
+import { StaffTable, useSortableTable } from "@/components/dashboard/StaffTable";
 import { CustomRefreshButton } from "@/components/dashboard/CustomRefreshButton";
-import dynamic from "next/dynamic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,8 +19,11 @@ import {
 import { AIInsightsPanel } from "@/components/dashboard/AIInsightsPanel";
 import PDFExportButton from "@/components/dashboard/PDFExportButton";
 import Link from "next/link";
+import dynamicImport from "next/dynamic";
 
-const AIChat = dynamic(() => import("@/components/ai-assistant/AIChat"), {
+export const dynamic = 'force-dynamic';
+
+const AIChat = dynamicImport(() => import("@/components/ai-assistant/AIChat"), {
   ssr: false,
 });
 

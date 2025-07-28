@@ -4,6 +4,8 @@ import React from "react";
 import { useAuth } from "../components/AuthProvider";
 import { useRouter } from "next/navigation";
 
+export const dynamic = 'force-dynamic';
+
 export default function HomePage() {
   const { user } = useAuth();
   const router = useRouter();

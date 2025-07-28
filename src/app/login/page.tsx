@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useAuth } from "../../components/AuthProvider";
 import { useRouter } from "next/navigation";
 
+export const dynamic = 'force-dynamic';
+
 const WineGlassLogo = () => (
   <svg
     width="48"

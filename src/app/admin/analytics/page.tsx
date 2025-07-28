@@ -13,6 +13,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
+export const dynamic = 'force-dynamic';
+
 interface StaffInsight {
   staffName: string;
   totalCompetitions: number;

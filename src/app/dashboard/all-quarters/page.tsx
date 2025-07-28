@@ -9,8 +9,11 @@ import { AlertCircle, TrendingUp, Wine, Crown, Users } from "lucide-react";
 import { AIInsightsPanel } from "@/components/dashboard/AIInsightsPanel";
 import PDFExportButton from "@/components/dashboard/PDFExportButton";
 import Link from "next/link";
-import dynamic from "next/dynamic";
-const AIChat = dynamic(() => import("@/components/ai-assistant/AIChat"), {
+import dynamicImport from "next/dynamic";
+
+export const dynamic = 'force-dynamic';
+
+const AIChat = dynamicImport(() => import("@/components/ai-assistant/AIChat"), {
   ssr: false,
 });
 

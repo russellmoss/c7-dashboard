@@ -5,6 +5,8 @@ import { ComprehensiveMetrics } from "@/components/dashboard/comprehensive-metri
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+export const dynamic = 'force-dynamic';
+
 export default function DashboardPage({
   params,
 }: {

@@ -2,16 +2,20 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { KPICard } from "@/components/dashboard/KPICard";
-import {
-  StaffTable,
-  useSortableTable,
-} from "@/components/dashboard/StaffTable";
+import { StaffTable, useSortableTable } from "@/components/dashboard/StaffTable";
 import { RefreshButton } from "@/components/dashboard/RefreshButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, TrendingUp, Wine, Crown, Users } from "lucide-react";
 import { AIInsightsPanel } from "@/components/dashboard/AIInsightsPanel";
 import PDFExportButton from "@/components/dashboard/PDFExportButton";
 import Link from "next/link";
+import dynamicImport from "next/dynamic";
+
+export const dynamic = 'force-dynamic';
+
+const AIChat = dynamicImport(() => import("@/components/ai-assistant/AIChat"), {
+  ssr: false,
+});
 
 
 export default function QTDDashboard() {

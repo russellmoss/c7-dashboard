@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { EmailSubscription } from "@/types/email";
 import SubscriptionModal from "@/components/admin/SubscriptionModal";
 
+export const dynamic = 'force-dynamic';
+
 export default function AdminDashboard() {
   const [subscriptions, setSubscriptions] = useState<EmailSubscription[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);

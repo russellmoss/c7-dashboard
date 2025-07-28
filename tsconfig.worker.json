@@ -21,11 +21,9 @@
     "src/scripts/background-worker.ts",
     "src/scripts/init-db.ts",
     "src/scripts/hello.ts",
-    "src/lib/email-service.ts",
-    "src/lib/models.ts",
-    "src/lib/email-templates.ts",
-    "src/lib/sms/sms-worker.worker.ts",
-    "src/lib/sms/base.ts"
+    "src/lib/**/*.ts",
+    "src/lib/**/*.js",
+    "src/types/**/*.ts"
   ],
   "exclude": [
     "src/app/**/*",

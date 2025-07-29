@@ -42,23 +42,41 @@ export default function AdminDashboard() {
 
   const handleModalSave = async (updatedSubscription: EmailSubscription) => {
     try {
+      const requestBody = {
+        name: updatedSubscription.name,
+        email: updatedSubscription.email,
+        phone: updatedSubscription.smsCoaching?.phoneNumber || "",
+        subscribedReports: updatedSubscription.subscribedReports,
+        reportSchedules: updatedSubscription.reportSchedules,
+        smsCoaching: updatedSubscription.smsCoaching,
+        isActive: updatedSubscription.isActive,
+        personalizedGoals: updatedSubscription.personalizedGoals,
+      };
+
+      console.log("🔍 [DEBUG] Sending PUT request to update subscription:");
+      console.log("📝 Request body:", JSON.stringify(requestBody, null, 2));
+      console.log("🆔 Subscription ID:", updatedSubscription._id);
+
       const response = await fetch(
         `/api/admin/subscriptions/${updatedSubscription._id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: updatedSubscription.name,
-            email: updatedSubscription.email,
-            phone: updatedSubscription.smsCoaching?.phoneNumber || "",
-            subscribedReports: updatedSubscription.subscribedReports,
-            reportSchedules: updatedSubscription.reportSchedules,
-            smsCoaching: updatedSubscription.smsCoaching,
-            isActive: updatedSubscription.isActive,
-            personalizedGoals: updatedSubscription.personalizedGoals,
-          }),
+          body: JSON.stringify(requestBody),
         },
       );
+
+      console.log("📡 [DEBUG] Response status:", response.status);
+      console.log("📡 [DEBUG] Response ok:", response.ok);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("❌ [DEBUG] Error response:", errorData);
+        throw new Error(errorData.error || "Unknown error");
+      }
+
+      const result = await response.json();
+      console.log("✅ [DEBUG] Success response:", result);
 
       if (response.ok) {
         // Fetch the updated subscription to get the latest data from the server

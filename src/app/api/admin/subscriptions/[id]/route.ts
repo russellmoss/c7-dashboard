@@ -33,6 +33,9 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
+    console.log("🔍 [API DEBUG] PUT request received for subscription:", params.id);
+    console.log("📝 [API DEBUG] Request body:", JSON.stringify(body, null, 2));
+    
     const {
       name,
       email,
@@ -84,6 +87,8 @@ export async function PUT(
       updatePayload.personalizedGoals = personalizedGoals;
     }
 
+    console.log("📝 [API DEBUG] Update payload:", JSON.stringify(updatePayload, null, 2));
+    
     const subscription = await EmailSubscriptionModel.findByIdAndUpdate(
       params.id,
       updatePayload,
@@ -91,12 +96,14 @@ export async function PUT(
     );
 
     if (!subscription) {
+      console.log("❌ [API DEBUG] Subscription not found");
       return NextResponse.json(
         { error: "Subscription not found" },
         { status: 404 },
       );
     }
 
+    console.log("✅ [API DEBUG] Subscription updated successfully:", subscription._id);
     return NextResponse.json(subscription);
   } catch (error) {
     console.error("Error updating subscription:", error);

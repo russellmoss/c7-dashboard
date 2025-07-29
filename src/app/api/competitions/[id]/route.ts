@@ -95,31 +95,8 @@ export async function PUT(
       );
     }
 
-    // For active competitions, only allow certain fields to be updated
-    if (existingCompetition.status === "active") {
-      const allowedFieldsForActive = [
-        "name",
-        "prizes",
-        "welcomeMessage",
-        "progressNotifications",
-        "targetGoals",
-        "competitionType",
-      ];
-      const updateFields = Object.keys(body);
-      const disallowedFields = updateFields.filter(
-        (field) => !allowedFieldsForActive.includes(field),
-      );
-
-      if (disallowedFields.length > 0) {
-        return NextResponse.json(
-          {
-            error: "Cannot update certain fields for active competitions",
-            disallowedFields,
-          },
-          { status: 400 },
-        );
-      }
-    }
+    // Allow editing all fields for active competitions (removed restrictions)
+    // Users should be able to modify any aspect of their competitions
 
     // Process SMS scheduling updates
     let updateBody = { ...body };
@@ -130,8 +107,9 @@ export async function PUT(
         body.welcomeMessage.scheduledDate &&
         body.welcomeMessage.scheduledTime
       ) {
+        // Create date in EST timezone to avoid 4-hour offset
         const welcomeDate = new Date(
-          `${body.welcomeMessage.scheduledDate}T${body.welcomeMessage.scheduledTime}`,
+          `${body.welcomeMessage.scheduledDate}T${body.welcomeMessage.scheduledTime}-05:00`
         );
         if (!isNaN(welcomeDate.getTime())) {
           welcomeMessageSendAt = welcomeDate;
@@ -158,8 +136,9 @@ export async function PUT(
             notification.scheduledDate && notification.scheduledTime,
         )
         .map((notification: any, index: number) => {
+          // Create date in EST timezone to avoid 4-hour offset
           const scheduledAt = new Date(
-            `${notification.scheduledDate}T${notification.scheduledTime}`,
+            `${notification.scheduledDate}T${notification.scheduledTime}-05:00`
           );
           return {
             id: `notification_${Date.now()}_${index}`,
@@ -179,8 +158,9 @@ export async function PUT(
         body.winnerAnnouncement.scheduledDate &&
         body.winnerAnnouncement.scheduledTime
       ) {
+        // Create date in EST timezone to avoid 4-hour offset
         const winnerDate = new Date(
-          `${body.winnerAnnouncement.scheduledDate}T${body.winnerAnnouncement.scheduledTime}`,
+          `${body.winnerAnnouncement.scheduledDate}T${body.winnerAnnouncement.scheduledTime}-05:00`
         );
         if (!isNaN(winnerDate.getTime())) {
           winnerAnnouncementScheduledAt = winnerDate;

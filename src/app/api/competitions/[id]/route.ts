@@ -107,9 +107,9 @@ export async function PUT(
         body.welcomeMessage.scheduledDate &&
         body.welcomeMessage.scheduledTime
       ) {
-        // Use EST timezone offset (-05:00) since user is in EST
+        // Use EDT timezone offset (-04:00) since user is in EDT
         const welcomeDate = new Date(
-          `${body.welcomeMessage.scheduledDate}T${body.welcomeMessage.scheduledTime}-05:00`
+          `${body.welcomeMessage.scheduledDate}T${body.welcomeMessage.scheduledTime}-04:00`
         );
         if (!isNaN(welcomeDate.getTime())) {
           welcomeMessageSendAt = welcomeDate;
@@ -136,9 +136,9 @@ export async function PUT(
             notification.scheduledDate && notification.scheduledTime,
         )
         .map((notification: any, index: number) => {
-          // Use EST timezone offset (-05:00) since user is in EST
+          // Use EDT timezone offset (-04:00) since user is in EDT
           const scheduledAt = new Date(
-            `${notification.scheduledDate}T${notification.scheduledTime}-05:00`
+            `${notification.scheduledDate}T${notification.scheduledTime}-04:00`
           );
           return {
             id: `notification_${Date.now()}_${index}`,
@@ -158,9 +158,9 @@ export async function PUT(
         body.winnerAnnouncement.scheduledDate &&
         body.winnerAnnouncement.scheduledTime
       ) {
-        // Use EST timezone offset (-05:00) since user is in EST
+        // Use EDT timezone offset (-04:00) since user is in EDT
         const winnerDate = new Date(
-          `${body.winnerAnnouncement.scheduledDate}T${body.winnerAnnouncement.scheduledTime}-05:00`
+          `${body.winnerAnnouncement.scheduledDate}T${body.winnerAnnouncement.scheduledTime}-04:00`
         );
         if (!isNaN(winnerDate.getTime())) {
           winnerAnnouncementScheduledAt = winnerDate;

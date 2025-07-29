@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   },
   formatDetection: {
     telephone: false
+  },
+  other: {
+    "mobile-web-app-capable": "yes"
   }
 };
 
@@ -59,13 +62,15 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={inter.className}>
-        <AuthProvider>
-          <ThemeProvider>
-            <TopBar />
-            {children}
-          </ThemeProvider>
-        </AuthProvider>
+      <body>
+        <div className={inter.className}>
+          <AuthProvider>
+            <ThemeProvider>
+              <TopBar />
+              {children}
+            </ThemeProvider>
+          </AuthProvider>
+        </div>
       </body>
     </html>
   );

@@ -50,10 +50,12 @@ export default function AdminDashboard() {
           body: JSON.stringify({
             name: updatedSubscription.name,
             email: updatedSubscription.email,
+            phone: updatedSubscription.smsCoaching?.phoneNumber || "",
             subscribedReports: updatedSubscription.subscribedReports,
-            frequency: updatedSubscription.frequency,
-            timeEST: updatedSubscription.timeEST,
+            reportSchedules: updatedSubscription.reportSchedules,
+            smsCoaching: updatedSubscription.smsCoaching,
             isActive: updatedSubscription.isActive,
+            personalizedGoals: updatedSubscription.personalizedGoals,
           }),
         },
       );

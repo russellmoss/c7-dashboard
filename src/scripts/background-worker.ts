@@ -260,7 +260,7 @@ async function processCompetitionSMS(CompetitionModel: any, now: Date) {
             `[COMPETITION] Sending welcome SMS for competition: ${competition.name}`,
           );
 
-          const { WelcomeSmsService } = await import("../lib/sms/welcome-sms");
+          const { WelcomeSmsService } = await import("../lib/sms/welcome-sms.js");
           const welcomeSmsService = new WelcomeSmsService();
 
           await welcomeSmsService.sendWelcomeSms(competition._id.toString());
@@ -288,7 +288,7 @@ async function processCompetitionSMS(CompetitionModel: any, now: Date) {
               );
 
               const { ProgressSmsService } = await import(
-                "../lib/sms/progress-sms"
+                "../lib/sms/progress-sms.js"
               );
               const progressSmsService = new ProgressSmsService();
 
@@ -326,7 +326,7 @@ async function processCompetitionSMS(CompetitionModel: any, now: Date) {
           );
 
           const { WinnerAnnouncementService } = await import(
-            "../lib/sms/winner-announcement"
+            "../lib/sms/winner-announcement.js"
           );
           const winnerAnnouncementService = new WinnerAnnouncementService();
 

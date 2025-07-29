@@ -11,6 +11,10 @@ services:
       NODE_ENV=production SKIP_INTEGRATION_TESTS=true CI=true npm run build:render
       npm run verify:render
       echo "✅ Frontend build completed successfully"
+      echo "📁 Checking standalone build..."
+      ls -la .next/standalone/ || echo "⚠️ Standalone directory not found"
+      echo "📁 Checking static assets..."
+      ls -la .next/static/ || echo "⚠️ Static directory not found"
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:

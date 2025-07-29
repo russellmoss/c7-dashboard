@@ -33,7 +33,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Disable static file serving
+  // Configure webpack for standalone build
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

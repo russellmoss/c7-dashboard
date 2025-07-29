@@ -4,8 +4,7 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['mongoose'],
   },
-  // Completely disable static generation
-  output: 'standalone',
+  // Remove standalone output to fix start command
   trailingSlash: false,
   // Add headers to prevent static generation
   async headers() {

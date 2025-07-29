@@ -147,8 +147,16 @@ export default function CompetitionAdmin() {
         type: editingCompetition.type,
         competitionType: editingCompetition.competitionType,
         dashboard: editingCompetition.dashboard,
-        startDate: editingCompetition.startDate,
-        endDate: editingCompetition.endDate,
+        startDate: editingCompetition.startDate
+          ? new Date(editingCompetition.startDate)
+              .toISOString()
+              .slice(0, 16) // Format for datetime-local: YYYY-MM-DDTHH:MM
+          : "",
+        endDate: editingCompetition.endDate
+          ? new Date(editingCompetition.endDate)
+              .toISOString()
+              .slice(0, 16) // Format for datetime-local: YYYY-MM-DDTHH:MM
+          : "",
         prizes: editingCompetition.prizes,
         targetGoals: {
           bottleConversionRate:
@@ -162,36 +170,42 @@ export default function CompetitionAdmin() {
           sendAt: editingCompetition.welcomeMessage.sendAt,
           scheduledDate: editingCompetition.welcomeMessage.sendAt
             ? new Date(editingCompetition.welcomeMessage.sendAt)
-                .toISOString()
-                .split("T")[0]
+                .toLocaleDateString('en-CA') // Use YYYY-MM-DD format
             : "",
           scheduledTime: editingCompetition.welcomeMessage.sendAt
             ? new Date(editingCompetition.welcomeMessage.sendAt)
-                .toTimeString()
-                .slice(0, 5)
+                .toLocaleTimeString('en-US', { 
+                  hour12: false,
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
             : "09:00",
         },
         progressNotifications: editingCompetition.progressNotifications.map(
           (notification: any) => ({
             scheduledDate: new Date(notification.scheduledAt)
-              .toISOString()
-              .split("T")[0],
+              .toLocaleDateString('en-CA'), // Use YYYY-MM-DD format
             scheduledTime: new Date(notification.scheduledAt)
-              .toTimeString()
-              .slice(0, 5),
+              .toLocaleTimeString('en-US', { 
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
             customMessage: notification.customMessage || "",
           }),
         ),
         winnerAnnouncement: {
           scheduledDate: editingCompetition.winnerAnnouncement.scheduledAt
             ? new Date(editingCompetition.winnerAnnouncement.scheduledAt)
-                .toISOString()
-                .split("T")[0]
+                .toLocaleDateString('en-CA') // Use YYYY-MM-DD format
             : "",
           scheduledTime: editingCompetition.winnerAnnouncement.scheduledAt
             ? new Date(editingCompetition.winnerAnnouncement.scheduledAt)
-                .toTimeString()
-                .slice(0, 5)
+                .toLocaleTimeString('en-US', { 
+                  hour12: false,
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
             : "10:00",
         },
         enrolledSubscribers: editingCompetition.enrolledSubscribers.map(

@@ -1,5 +1,5 @@
-import { connectToDatabase } from "./mongodb";
-import { CompetitionModel, EmailSubscriptionModel } from "./models";
+import { connectToDatabase } from "./mongodb.js";
+import { CompetitionModel, EmailSubscriptionModel } from "./models.js";
 
 
 export interface AnalyticsFilters {

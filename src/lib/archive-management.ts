@@ -1,5 +1,5 @@
-import { connectToDatabase } from "./mongodb";
-import { CompetitionModel } from "./models";
+import { connectToDatabase } from "./mongodb.js";
+import { CompetitionModel } from "./models.js";
 
 export interface ArchiveFilters {
   type?: "bottleConversion" | "clubConversion" | "aov";

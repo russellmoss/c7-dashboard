@@ -1,6 +1,6 @@
-import { getSmsService } from "./client";
-import { connectToDatabase } from "../mongodb";
-import { CompetitionModel, EmailSubscriptionModel } from "../models";
+import { getSmsService } from "./client.js";
+import { connectToDatabase } from "../mongodb.js";
+import { CompetitionModel, EmailSubscriptionModel } from "../models.js";
 
 export interface WelcomeSmsResult {
   success: boolean;

@@ -1,10 +1,11 @@
-import { getSmsService } from "./client";
-import { connectToDatabase } from "../mongodb";
+import { getSmsService } from "./client.js";
+import { connectToDatabase } from "../mongodb.js";
 import {
   CompetitionModel,
   EmailSubscriptionModel,
-} from "../models";
-import { getCompetitionRankings, RankingEntry } from "../competition-ranking";
+  KPIDataModel,
+} from "../models.js";
+import { getCompetitionRankings, RankingEntry } from "../competition-ranking.js";
 
 export interface ProgressSmsResult {
   success: boolean;
@@ -436,8 +437,6 @@ Generate a concise, motivational progress update message:`;
     dashboard: string,
   ): Promise<any> {
     try {
-      const { KPIDataModel } = await import("../models");
-
       const kpiData = await KPIDataModel.findOne({
         periodType: dashboard,
         year: new Date().getFullYear(),

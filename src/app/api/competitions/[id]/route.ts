@@ -107,15 +107,9 @@ export async function PUT(
         body.welcomeMessage.scheduledDate &&
         body.welcomeMessage.scheduledTime
       ) {
-        // Create date in local timezone by adding timezone offset
-        const localDate = new Date();
-        const timezoneOffset = localDate.getTimezoneOffset();
-        const offsetHours = Math.abs(Math.floor(timezoneOffset / 60));
-        const offsetMinutes = Math.abs(timezoneOffset % 60);
-        const offsetString = timezoneOffset <= 0 ? `+${offsetHours.toString().padStart(2, '0')}:${offsetMinutes.toString().padStart(2, '0')}` : `-${offsetHours.toString().padStart(2, '0')}:${offsetMinutes.toString().padStart(2, '0')}`;
-        
+        // Use EST timezone offset (-05:00) since user is in EST
         const welcomeDate = new Date(
-          `${body.welcomeMessage.scheduledDate}T${body.welcomeMessage.scheduledTime}${offsetString}`
+          `${body.welcomeMessage.scheduledDate}T${body.welcomeMessage.scheduledTime}-05:00`
         );
         if (!isNaN(welcomeDate.getTime())) {
           welcomeMessageSendAt = welcomeDate;
@@ -142,15 +136,9 @@ export async function PUT(
             notification.scheduledDate && notification.scheduledTime,
         )
         .map((notification: any, index: number) => {
-          // Create date in local timezone by adding timezone offset
-          const localDate = new Date();
-          const timezoneOffset = localDate.getTimezoneOffset();
-          const offsetHours = Math.abs(Math.floor(timezoneOffset / 60));
-          const offsetMinutes = Math.abs(timezoneOffset % 60);
-          const offsetString = timezoneOffset <= 0 ? `+${offsetHours.toString().padStart(2, '0')}:${offsetMinutes.toString().padStart(2, '0')}` : `-${offsetHours.toString().padStart(2, '0')}:${offsetMinutes.toString().padStart(2, '0')}`;
-          
+          // Use EST timezone offset (-05:00) since user is in EST
           const scheduledAt = new Date(
-            `${notification.scheduledDate}T${notification.scheduledTime}${offsetString}`
+            `${notification.scheduledDate}T${notification.scheduledTime}-05:00`
           );
           return {
             id: `notification_${Date.now()}_${index}`,
@@ -170,15 +158,9 @@ export async function PUT(
         body.winnerAnnouncement.scheduledDate &&
         body.winnerAnnouncement.scheduledTime
       ) {
-        // Create date in local timezone by adding timezone offset
-        const localDate = new Date();
-        const timezoneOffset = localDate.getTimezoneOffset();
-        const offsetHours = Math.abs(Math.floor(timezoneOffset / 60));
-        const offsetMinutes = Math.abs(timezoneOffset % 60);
-        const offsetString = timezoneOffset <= 0 ? `+${offsetHours.toString().padStart(2, '0')}:${offsetMinutes.toString().padStart(2, '0')}` : `-${offsetHours.toString().padStart(2, '0')}:${offsetMinutes.toString().padStart(2, '0')}`;
-        
+        // Use EST timezone offset (-05:00) since user is in EST
         const winnerDate = new Date(
-          `${body.winnerAnnouncement.scheduledDate}T${body.winnerAnnouncement.scheduledTime}${offsetString}`
+          `${body.winnerAnnouncement.scheduledDate}T${body.winnerAnnouncement.scheduledTime}-05:00`
         );
         if (!isNaN(winnerDate.getTime())) {
           winnerAnnouncementScheduledAt = winnerDate;

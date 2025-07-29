@@ -28,7 +28,7 @@ console.log("[DEBUG] EmailService:", typeof EmailService);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const scriptPath = join(__dirname, "optimized-kpi-dashboard.js");
+const scriptPath = join(__dirname, "optimized-kpi-dashboard.cjs");
 
 // Logging
 const log = {

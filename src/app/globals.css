@@ -48,11 +48,20 @@
   --ring: 0 72% 51%;
 }
 
-/* Luxury winery custom styles */
+/* Mobile-first base styles */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
 html {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   transition: background-color 0.3s ease, color 0.3s ease;
+  /* Smooth scrolling on mobile */
+  scroll-behavior: smooth;
+  /* Prevent horizontal scroll on mobile */
+  overflow-x: hidden;
 }
 
 html,
@@ -61,6 +70,47 @@ body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   transition: background-color 0.3s ease, color 0.3s ease;
+  /* Ensure proper mobile viewport */
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
+  /* Prevent zoom on input focus on iOS */
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+/* Mobile touch targets - minimum 44px for accessibility */
+button, 
+input[type="button"], 
+input[type="submit"], 
+input[type="reset"],
+a[role="button"],
+[role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+  /* Ensure touch feedback */
+  -webkit-tap-highlight-color: rgba(169, 32, 32, 0.1);
+}
+
+/* Mobile-friendly focus states */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Mobile active states for touch feedback */
+button:active,
+input[type="button"]:active,
+input[type="submit"]:active,
+input[type="reset"]:active,
+a[role="button"]:active,
+[role="button"]:active {
+  transform: scale(0.98);
+  transition: transform 0.1s ease;
 }
 
 h1,
@@ -100,4 +150,43 @@ a:hover {
 }
 .animate-blink {
   animation: blink 1.2s infinite;
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  /* Ensure proper spacing on mobile */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Improve touch targets on mobile */
+  .btn, .button {
+    padding: 12px 16px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  /* Better mobile table handling */
+  table {
+    font-size: 14px;
+  }
+  
+  /* Mobile-friendly form inputs */
+  input, select, textarea {
+    font-size: 16px; /* Prevent zoom on iOS */
+    padding: 12px;
+  }
+}
+
+/* Prevent text selection on interactive elements */
+button, 
+input[type="button"], 
+input[type="submit"], 
+input[type="reset"],
+a[role="button"],
+[role="button"] {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }

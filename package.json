@@ -20,7 +20,7 @@
     "verify:build": "test -f .next/BUILD_ID && echo 'Build ID exists' || echo 'Build ID missing'",
     "verify:render": "echo 'Verifying build artifacts...' && ls -la .next/ && test -f .next/BUILD_ID && echo '✅ BUILD_ID exists' || (echo '❌ BUILD_ID missing' && exit 1)",
     "verify:windows": "echo 'Verifying build artifacts...' && dir .next && if exist .next\\BUILD_ID (echo '✅ BUILD_ID exists') else (echo '❌ BUILD_ID missing' && exit 1)",
-    "start": "NODE_ENV=production node .next/standalone/server.js",
+    "start": "NODE_ENV=production node .next/standalone/server.js || NODE_ENV=production next start",
     "start:worker": "NODE_ENV=production node dist/scripts/background-worker.js",
     "worker:dev": "npm run build:worker && node --loader ts-node/esm dist/scripts/background-worker.js",
     "worker:prod": "node dist/scripts/background-worker.js",

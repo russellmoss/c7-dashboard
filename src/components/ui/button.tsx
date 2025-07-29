@@ -28,22 +28,22 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         type={type}
         className={cn(
-          "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-600 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none",
+          "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-600 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none active:scale-98",
           // Variants
-          variant === "default" && "bg-wine-600 text-white hover:bg-wine-700",
-          variant === "destructive" && "bg-red-600 text-white hover:bg-red-700",
+          variant === "default" && "bg-wine-600 text-white hover:bg-wine-700 active:bg-wine-800",
+          variant === "destructive" && "bg-red-600 text-white hover:bg-red-700 active:bg-red-800",
           variant === "outline" &&
-            "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+            "border border-input bg-background hover:bg-accent hover:text-accent-foreground active:bg-accent/80",
           variant === "secondary" &&
-            "bg-gray-100 text-gray-900 hover:bg-gray-200",
-          variant === "ghost" && "hover:bg-accent hover:text-accent-foreground",
+            "bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-300",
+          variant === "ghost" && "hover:bg-accent hover:text-accent-foreground active:bg-accent/80",
           variant === "link" &&
             "text-primary underline-offset-4 hover:underline",
-          // Sizes
-          size === "default" && "h-10 px-4 py-2",
-          size === "sm" && "h-9 rounded-md px-3",
-          size === "lg" && "h-11 rounded-md px-8",
-          size === "icon" && "h-10 w-10",
+          // Sizes with mobile touch targets
+          size === "default" && "h-11 px-4 py-2 min-h-[44px]",
+          size === "sm" && "h-10 rounded-md px-3 min-h-[44px]",
+          size === "lg" && "h-12 rounded-md px-8 min-h-[44px]",
+          size === "icon" && "h-11 w-11 min-h-[44px] min-w-[44px]",
           className,
         )}
         ref={ref}

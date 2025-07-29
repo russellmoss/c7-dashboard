@@ -1,5 +1,5 @@
-import { connectToDatabase } from "./mongodb.js";
-import { CompetitionModel, EmailSubscriptionModel, KPIDataModel } from "./models.js";
+import { connectToDatabase } from "./mongodb";
+import { CompetitionModel, EmailSubscriptionModel, KPIDataModel } from "./models";
 
 export interface RankingEntry {
   subscriberId: string;

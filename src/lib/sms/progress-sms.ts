@@ -1,11 +1,11 @@
-import { getSmsService } from "./client.js";
-import { connectToDatabase } from "../mongodb.js";
+import { getSmsService } from "./client";
+import { connectToDatabase } from "../mongodb";
 import {
   CompetitionModel,
   EmailSubscriptionModel,
   KPIDataModel,
-} from "../models.js";
-import { getCompetitionRankings, RankingEntry } from "../competition-ranking.js";
+} from "../models";
+import { getCompetitionRankings, RankingEntry } from "../competition-ranking";
 
 export interface ProgressSmsResult {
   success: boolean;

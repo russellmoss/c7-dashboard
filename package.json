@@ -11,7 +11,7 @@
     "build:render": "NODE_ENV=production SKIP_INTEGRATION_TESTS=true NEXT_DISABLE_STATIC_GENERATION=true NEXT_DISABLE_OPTIMIZATION=true NEXT_DISABLE_CACHE=true NEXT_DISABLE_STATIC_EXPORT=true next build --no-lint --debug",
     "build:windows": "set NODE_ENV=production && set SKIP_INTEGRATION_TESTS=true && set NEXT_DISABLE_STATIC_GENERATION=true && set NEXT_DISABLE_OPTIMIZATION=true && set NEXT_DISABLE_CACHE=true && set NEXT_DISABLE_STATIC_EXPORT=true && next build --no-lint",
     "build:worker": "NODE_ENV=production tsc -p tsconfig.worker.json",
-    "build:worker:prod": "NODE_ENV=production SKIP_INTEGRATION_TESTS=true CI=true tsc -p tsconfig.worker.json",
+    "build:worker:prod": "NODE_ENV=production SKIP_INTEGRATION_TESTS=true CI=true tsc -p tsconfig.worker.json && node scripts/add-js-extensions.js",
     "build:worker:windows": "set NODE_ENV=production && set SKIP_INTEGRATION_TESTS=true && set CI=true && tsc -p tsconfig.worker.json",
     "build:all": "npm run build && npm run build:worker",
     "build:all:prod": "npm run build:render && npm run build:worker:prod",

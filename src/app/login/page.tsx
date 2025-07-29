@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../../components/AuthProvider";
 import { useRouter } from "next/navigation";
 
@@ -36,8 +36,13 @@ export default function LoginPage() {
   const [resetSent, setResetSent] = useState(false);
   const [showReset, setShowReset] = useState(false);
 
+  useEffect(() => {
+    if (user) {
+      router.replace("/");
+    }
+  }, [user, router]);
+
   if (user) {
-    router.replace("/");
     return null;
   }
 
@@ -62,18 +67,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-pink-50">
-      <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md flex flex-col items-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary">
+      <div className="bg-card shadow-lg rounded-lg p-8 w-full max-w-md flex flex-col items-center">
         <WineGlassLogo />
-        <h1 className="text-2xl font-bold text-[#a92020] mt-4 mb-2">
+        <h1 className="text-2xl font-bold text-primary mt-4 mb-2">
           Milea KPI Dashboard
         </h1>
         {showReset ? (
           <form className="w-full mt-4" onSubmit={handleReset}>
-            <label className="block mb-2 text-sm font-medium">Email</label>
+            <label className="block mb-2 text-sm font-medium text-card-foreground">Email</label>
             <input
               type="email"
-              className="w-full border rounded px-3 py-2 mb-4"
+              className="w-full border border-input rounded px-3 py-2 mb-4 bg-background text-foreground"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -86,14 +91,14 @@ export default function LoginPage() {
             {error && <div className="text-red-600 mb-4">{error}</div>}
             <button
               type="submit"
-              className="w-full bg-[#a92020] text-white py-2 rounded font-semibold hover:bg-[#8b1a1a] transition"
+              className="w-full bg-primary text-primary-foreground py-2 rounded font-semibold hover:bg-primary/90 transition"
               disabled={loading}
             >
               {loading ? "Sending..." : "Send Password Reset Email"}
             </button>
             <button
               type="button"
-              className="w-full mt-2 text-sm text-gray-600 hover:underline"
+              className="w-full mt-2 text-sm text-muted-foreground hover:underline"
               onClick={() => {
                 setShowReset(false);
                 setResetSent(false);
@@ -105,19 +110,19 @@ export default function LoginPage() {
           </form>
         ) : (
           <form className="w-full mt-4" onSubmit={handleLogin}>
-            <label className="block mb-2 text-sm font-medium">Email</label>
+            <label className="block mb-2 text-sm font-medium text-card-foreground">Email</label>
             <input
               type="email"
-              className="w-full border rounded px-3 py-2 mb-4"
+              className="w-full border border-input rounded px-3 py-2 mb-4 bg-background text-foreground"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            <label className="block mb-2 text-sm font-medium">Password</label>
+            <label className="block mb-2 text-sm font-medium text-card-foreground">Password</label>
             <div className="relative mb-4">
               <input
                 type={showPassword ? "text" : "password"}
-                className="w-full border rounded px-3 py-2 pr-10"
+                className="w-full border border-input rounded px-3 py-2 pr-10 bg-background text-foreground"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -178,14 +183,14 @@ export default function LoginPage() {
             {error && <div className="text-red-600 mb-4">{error}</div>}
             <button
               type="submit"
-              className="w-full bg-[#a92020] text-white py-2 rounded font-semibold hover:bg-[#8b1a1a] transition"
+              className="w-full bg-primary text-primary-foreground py-2 rounded font-semibold hover:bg-primary/90 transition"
               disabled={loading}
             >
               {loading ? "Logging in..." : "Login"}
             </button>
             <button
               type="button"
-              className="w-full mt-2 text-sm text-gray-600 hover:underline"
+              className="w-full mt-2 text-sm text-muted-foreground hover:underline"
               onClick={() => {
                 setShowReset(true);
                 setError("");

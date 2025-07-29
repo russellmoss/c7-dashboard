@@ -45,13 +45,13 @@ export default function DashboardPage({
   if (loading) {
     return (
       <div className="container mx-auto p-6 space-y-6">
-        <div className="h-8 w-64 bg-slate-200 rounded animate-pulse" />
+        <div className="h-8 w-64 bg-muted rounded animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 bg-slate-200 rounded animate-pulse" />
+            <div key={i} className="h-32 bg-muted rounded animate-pulse" />
           ))}
         </div>
-        <div className="h-96 bg-slate-200 rounded animate-pulse" />
+        <div className="h-96 bg-muted rounded animate-pulse" />
       </div>
     );
   }
@@ -85,7 +85,7 @@ export default function DashboardPage({
         </div>
         <Button
           onClick={fetchData}
-          className="border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 h-10 px-4 py-2"
+          className="border border-input bg-background text-foreground hover:bg-muted h-10 px-4 py-2"
         >
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh

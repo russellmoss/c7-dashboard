@@ -17,16 +17,16 @@ export function AIInsightsPanel({ insights }: { insights: any }) {
     color: string;
   }) => (
     <Card className={`border-l-4 border-l-${color}-500 animate-fade-in`}>
-      <div className="pb-3 p-4 border-b flex items-center">
+      <div className="pb-3 p-4 border-b border-border flex items-center">
         <Icon className={`w-5 h-5 mr-2 text-${color}-500`} />
-        <h4 className="text-base font-semibold">{title}</h4>
+        <h4 className="text-base font-semibold text-card-foreground">{title}</h4>
       </div>
       <CardContent>
         <ul className="space-y-2">
           {items.map((item, index) => (
             <li key={index} className="text-sm flex items-start">
               <span className={`text-${color}-500 mr-2`}>•</span>
-              <span>{item}</span>
+              <span className="text-card-foreground">{item}</span>
             </li>
           ))}
         </ul>
@@ -44,8 +44,8 @@ export function AIInsightsPanel({ insights }: { insights: any }) {
     color: string;
   }) => (
     <Card className={`animate-fade-in`}>
-      <div className="pb-3 p-4 border-b">
-        <h4 className="text-base font-semibold text-{color}-700">{title}</h4>
+      <div className="pb-3 p-4 border-b border-border">
+        <h4 className="text-base font-semibold text-card-foreground">{title}</h4>
       </div>
       <CardContent>
         <ul className="space-y-2">
@@ -54,8 +54,8 @@ export function AIInsightsPanel({ insights }: { insights: any }) {
           )}
           {items.map((staff, i) => (
             <li key={i} className="flex flex-col">
-              <span className="font-semibold">{staff.name}</span>
-              <span className={`text-xs text-${color}-700`}>
+              <span className="font-semibold text-card-foreground">{staff.name}</span>
+              <span className={`text-xs text-${color}-600 dark:text-${color}-400`}>
                 {staff.reason}
               </span>
               <span className="text-xs text-muted-foreground">
@@ -70,14 +70,14 @@ export function AIInsightsPanel({ insights }: { insights: any }) {
 
   // Simple badge replacement
   const Badge = ({ children }: { children: React.ReactNode }) => (
-    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-slate-200 text-xs font-semibold text-slate-700 mr-2 min-w-[1.5rem] text-center">
+    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-muted text-xs font-semibold text-card-foreground mr-2 min-w-[1.5rem] text-center">
       {children}
     </span>
   );
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h2 className="text-2xl font-bold">AI-Generated Insights</h2>
+      <h2 className="text-2xl font-bold text-foreground">AI-Generated Insights</h2>
       {/* SWOT Analysis Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <SWOTCard
@@ -122,8 +122,8 @@ export function AIInsightsPanel({ insights }: { insights: any }) {
 
       {/* Recommendations */}
       <Card className="animate-fade-in">
-        <div className="p-4 border-b">
-          <h4 className="text-lg font-semibold">Actionable Recommendations</h4>
+        <div className="p-4 border-b border-border">
+          <h4 className="text-lg font-semibold text-card-foreground">Actionable Recommendations</h4>
         </div>
         <CardContent>
           <div className="space-y-3">
@@ -133,7 +133,7 @@ export function AIInsightsPanel({ insights }: { insights: any }) {
                 className="flex items-start space-x-3 p-3 bg-muted rounded-lg animate-fade-in"
               >
                 <Badge>{index + 1}</Badge>
-                <p className="text-sm flex-1">{rec}</p>
+                <p className="text-sm flex-1 text-card-foreground">{rec}</p>
               </div>
             ))}
           </div>

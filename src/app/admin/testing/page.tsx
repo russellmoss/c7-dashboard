@@ -236,11 +236,11 @@ export default function TestingDashboard() {
       {loading && (
         <Card>
           <CardContent className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-wine-600 mx-auto mb-4"></div>
-            <h3 className="text-xl font-semibold mb-2">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <h3 className="text-xl font-semibold mb-2 text-card-foreground">
               Running Comprehensive Tests
             </h3>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Testing all system components... This may take a few moments.
             </p>
           </CardContent>

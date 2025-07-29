@@ -26,7 +26,7 @@ export function ComprehensiveMetrics({
     color?: string;
   }) => (
     <h2
-      className={`text-xl md:text-2xl font-bold mb-4 mt-8 text-${color}-700 tracking-tight`}
+      className="text-xl md:text-2xl font-bold mb-4 mt-8 text-foreground tracking-tight"
     >
       {children}
     </h2>
@@ -34,17 +34,17 @@ export function ComprehensiveMetrics({
 
   // Summary Banner
   const SummaryBanner = () => (
-    <div className="rounded-xl bg-wine-600 text-white px-6 py-4 mb-8 shadow-md animate-fade-in">
+    <div className="rounded-xl bg-primary text-primary-foreground px-6 py-4 mb-8 shadow-md animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
             {current?.periodLabel || data?.periodLabel}
           </h1>
-          <p className="text-sm md:text-base text-wine-100 font-medium">
+          <p className="text-sm md:text-base text-primary-foreground/80 font-medium">
             {current?.dateRange?.start} to {current?.dateRange?.end}
           </p>
         </div>
-        <div className="text-amber-200 text-sm font-semibold">
+        <div className="text-amber-200 dark:text-amber-300 text-sm font-semibold">
           {data?.definitions?.totalRevenue}:{" "}
           <span className="ml-1">
             {current?.overallMetrics?.totalRevenue?.toLocaleString("en-US", {

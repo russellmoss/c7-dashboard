@@ -203,18 +203,18 @@ export default function MTDDashboard() {
       {/* Experience Type Breakdown */}
       {serviceTypeAnalysis && (
         <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-2 text-wine-700">
+          <h2 className="text-lg font-semibold mb-2 text-foreground">
             Experience Type Breakdown
           </h2>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-xs border rounded-lg bg-white">
+            <table className="min-w-full text-xs border rounded-lg bg-card">
               <thead>
-                <tr className="bg-wine-50">
+                <tr className="bg-muted">
                   {experienceColumns.map((col) => (
                     <th
                       key={col.key as string}
                       onClick={() => handleExpSort(col.key as any)}
-                      className="px-3 py-2 text-left cursor-pointer select-none group"
+                      className="px-3 py-2 text-left cursor-pointer select-none group text-card-foreground"
                     >
                       <span className="flex items-center">
                         {col.label}
@@ -230,35 +230,35 @@ export default function MTDDashboard() {
               </thead>
               <tbody>
                 {sortedExperienceRows.map((row, idx) => (
-                  <tr key={row.type || idx} className="border-t">
-                    <td className="px-3 py-2 font-medium capitalize">
+                  <tr key={row.type || idx} className="border-t border-border">
+                    <td className="px-3 py-2 font-medium capitalize text-card-foreground">
                       {row.type}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right text-card-foreground">
                       {row.orders ?? "-"}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right text-card-foreground">
                       {row.guests ?? "-"}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right text-card-foreground">
                       {row.bottles ?? "-"}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right text-card-foreground">
                       {row.revenue != null
                         ? `$${row.revenue.toLocaleString()}`
                         : "-"}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right text-card-foreground">
                       {row.bottleConversionRate != null
                         ? `${row.bottleConversionRate}%`
                         : "-"}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right text-card-foreground">
                       {row.clubConversionRate != null
                         ? `${row.clubConversionRate}%`
                         : "-"}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right text-card-foreground">
                       {row.aov != null ? `$${row.aov}` : "-"}
                     </td>
                   </tr>
@@ -279,7 +279,7 @@ export default function MTDDashboard() {
       </div>
       {/* Staff Table */}
       <div className="mt-10">
-        <h2 className="text-xl font-semibold mb-4 text-wine-700">
+        <h2 className="text-xl font-semibold mb-4 text-foreground">
           Staff Performance
         </h2>
         <StaffTable staff={staff} />

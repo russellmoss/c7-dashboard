@@ -536,37 +536,37 @@ export default function CompetitionAdmin() {
         <div className="flex items-center space-x-4">
           <a
             href="/"
-            className="inline-flex items-center px-4 py-2 rounded bg-wine-600 text-white hover:bg-wine-700 transition font-semibold text-sm shadow"
+            className="inline-flex items-center px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition font-semibold text-sm shadow"
           >
             Home
           </a>
           <a
             href="/admin"
-            className="inline-flex items-center px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition font-semibold text-sm shadow"
+            className="inline-flex items-center px-4 py-2 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition font-semibold text-sm shadow"
           >
             📧 Subscriptions
           </a>
           <a
             href="/admin/competitions"
-            className="inline-flex items-center px-4 py-2 rounded bg-wine-600 text-white hover:bg-wine-700 transition font-semibold text-sm shadow"
+            className="inline-flex items-center px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition font-semibold text-sm shadow"
           >
             🏆 Competitions
           </a>
           <a
             href="/admin/archive"
-            className="inline-flex items-center px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition font-semibold text-sm shadow"
+            className="inline-flex items-center px-4 py-2 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition font-semibold text-sm shadow"
           >
             📚 Archive
           </a>
           <a
             href="/admin/analytics"
-            className="inline-flex items-center px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition font-semibold text-sm shadow"
+            className="inline-flex items-center px-4 py-2 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition font-semibold text-sm shadow"
           >
             📊 Analytics
           </a>
           <a
             href="/admin/testing"
-            className="inline-flex items-center px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition font-semibold text-sm shadow"
+            className="inline-flex items-center px-4 py-2 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition font-semibold text-sm shadow"
           >
             🧪 Testing
           </a>
@@ -576,31 +576,31 @@ export default function CompetitionAdmin() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-foreground">
             Competition Management
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-muted-foreground mt-2">
             Manage staff competitions and SMS scheduling
           </p>
         </div>
         <Button
           onClick={() => setIsModalOpen(true)}
-          className="bg-wine-600 hover:bg-wine-700"
+          className="bg-primary hover:bg-primary/90"
         >
           ➕ Create Competition
         </Button>
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+      <div className="flex space-x-1 bg-muted p-1 rounded-lg">
         {(["active", "draft", "archived"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
               activeTab === tab
-                ? "bg-white text-wine-600 shadow-sm"
-                : "text-gray-600 hover:text-gray-900"
+                ? "bg-card text-primary shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)} Competitions
@@ -611,17 +611,17 @@ export default function CompetitionAdmin() {
       {/* Competitions List */}
       {loading ? (
         <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-wine-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading competitions...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading competitions...</p>
         </div>
       ) : competitions.length === 0 ? (
         <Card>
           <CardContent className="text-center py-8">
-            <p className="text-gray-600">No {activeTab} competitions found.</p>
+            <p className="text-muted-foreground">No {activeTab} competitions found.</p>
             {activeTab === "draft" && (
               <Button
                 onClick={() => setIsModalOpen(true)}
-                className="mt-4 bg-wine-600 hover:bg-wine-700"
+                className="mt-4 bg-primary hover:bg-primary/90"
               >
                 Create Your First Competition
               </Button>
@@ -638,10 +638,10 @@ export default function CompetitionAdmin() {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-xl">
+                    <CardTitle className="text-xl text-card-foreground">
                       {competition.name}
                     </CardTitle>
-                    <p className="text-sm text-gray-600 mt-2">
+                    <p className="text-sm text-muted-foreground mt-2">
                       {getTypeLabel(competition.type)} •{" "}
                       {getDashboardLabel(competition.dashboard)} •{" "}
                       {competition.competitionType === "ranking"
@@ -651,7 +651,7 @@ export default function CompetitionAdmin() {
                   </div>
                   <div className="flex items-center space-x-2">
                     {getStatusBadge(competition.status)}
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-muted-foreground">
                       {competition.totalParticipants} participants
                     </div>
                   </div>
@@ -660,28 +660,28 @@ export default function CompetitionAdmin() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <span className="font-medium">Start:</span>
-                    <div className="text-gray-600">
+                    <span className="font-medium text-card-foreground">Start:</span>
+                    <div className="text-muted-foreground">
                       {new Date(competition.startDate).toLocaleDateString()}
                     </div>
                   </div>
                   <div>
-                    <span className="font-medium">End:</span>
-                    <div className="text-gray-600">
+                    <span className="font-medium text-card-foreground">End:</span>
+                    <div className="text-muted-foreground">
                       {new Date(competition.endDate).toLocaleDateString()}
                     </div>
                   </div>
                   <div>
-                    <span className="font-medium">Welcome SMS:</span>
-                    <div className="text-gray-600">
+                    <span className="font-medium text-card-foreground">Welcome SMS:</span>
+                    <div className="text-muted-foreground">
                       {competition.welcomeMessage.sent
                         ? "✅ Sent"
                         : "⏳ Pending"}
                     </div>
                   </div>
                   <div>
-                    <span className="font-medium">Notifications:</span>
-                    <div className="text-gray-600">
+                    <span className="font-medium text-card-foreground">Notifications:</span>
+                    <div className="text-muted-foreground">
                       {competition.progressNotifications.length} scheduled
                     </div>
                   </div>
@@ -690,7 +690,7 @@ export default function CompetitionAdmin() {
                 <Separator className="my-4" />
 
                 <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     Created{" "}
                     {new Date(competition.createdAt).toLocaleDateString()}
                   </div>
@@ -805,9 +805,9 @@ export default function CompetitionAdmin() {
       {/* Create/Edit Competition Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-card rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">
+              <h2 className="text-2xl font-bold text-card-foreground">
                 {editingCompetition
                   ? "Edit Competition"
                   : "Create New Competition"}
@@ -818,7 +818,7 @@ export default function CompetitionAdmin() {
                   setEditingCompetition(null);
                   resetForm();
                 }}
-                className="text-gray-500 hover:text-gray-700 text-xl"
+                className="text-muted-foreground hover:text-foreground text-xl"
               >
                 ✕
               </button>
@@ -835,7 +835,7 @@ export default function CompetitionAdmin() {
               {/* Basic Information */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Competition Name *</Label>
+                  <Label htmlFor="name" className="text-card-foreground">Competition Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -906,7 +906,7 @@ export default function CompetitionAdmin() {
               {/* Target Goals - Only show for target competitions */}
               {formData.competitionType === "target" && (
                 <div>
-                  <Label className="text-base font-medium">
+                  <Label className="text-base font-medium text-card-foreground">
                     🎯 Target Goals
                   </Label>
                   <div className="grid grid-cols-3 gap-4 mt-2">
@@ -1016,7 +1016,7 @@ export default function CompetitionAdmin() {
               {/* Date Range */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="startDate">Start Date *</Label>
+                  <Label htmlFor="startDate" className="text-card-foreground">Start Date *</Label>
                   <Input
                     id="startDate"
                     type="datetime-local"
@@ -1028,7 +1028,7 @@ export default function CompetitionAdmin() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="endDate">End Date *</Label>
+                  <Label htmlFor="endDate" className="text-card-foreground">End Date *</Label>
                   <Input
                     id="endDate"
                     type="datetime-local"
@@ -1043,10 +1043,10 @@ export default function CompetitionAdmin() {
 
               {/* Prizes */}
               <div>
-                <Label className="text-base font-medium">Prizes</Label>
+                <Label className="text-base font-medium text-card-foreground">Prizes</Label>
                 <div className="grid grid-cols-3 gap-4 mt-2">
                   <div>
-                    <Label htmlFor="firstPrize">🥇 First Place</Label>
+                    <Label htmlFor="firstPrize" className="text-card-foreground">🥇 First Place</Label>
                     <Input
                       id="firstPrize"
                       value={formData.prizes.first}
@@ -1060,7 +1060,7 @@ export default function CompetitionAdmin() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="secondPrize">🥈 Second Place</Label>
+                    <Label htmlFor="secondPrize" className="text-card-foreground">🥈 Second Place</Label>
                     <Input
                       id="secondPrize"
                       value={formData.prizes.second}
@@ -1077,7 +1077,7 @@ export default function CompetitionAdmin() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="thirdPrize">🥉 Third Place</Label>
+                    <Label htmlFor="thirdPrize" className="text-card-foreground">🥉 Third Place</Label>
                     <Input
                       id="thirdPrize"
                       value={formData.prizes.third}
@@ -1109,17 +1109,17 @@ export default function CompetitionAdmin() {
                     })
                   }
                   placeholder="Welcome to the competition! This is your custom welcome message..."
-                  className="w-full p-3 border border-gray-300 rounded-md mt-2 h-24 resize-none"
+                  className="w-full p-3 border border-input rounded-md mt-2 h-24 resize-none bg-background text-foreground"
                   required
                 />
               </div>
 
               {/* Enrolled Subscribers */}
               <div>
-                <Label className="text-base font-medium">
+                <Label className="text-base font-medium text-card-foreground">
                   Enrolled Subscribers
                 </Label>
-                <div className="mt-2 space-y-2 max-h-32 overflow-y-auto border border-gray-300 rounded-md p-3">
+                <div className="mt-2 space-y-2 max-h-32 overflow-y-auto border border-input rounded-md p-3 bg-background">
                   {subscribers.map((subscriber) => (
                     <label
                       key={subscriber._id}
@@ -1151,7 +1151,7 @@ export default function CompetitionAdmin() {
                         }}
                         className="rounded"
                       />
-                      <span className="text-sm">
+                      <span className="text-sm text-card-foreground">
                         {subscriber.name} ({subscriber.email})
                       </span>
                     </label>
@@ -1161,18 +1161,18 @@ export default function CompetitionAdmin() {
 
               {/* SMS Scheduling */}
               <div>
-                <Label className="text-base font-medium">
+                <Label className="text-base font-medium text-card-foreground">
                   📱 SMS Scheduling
                 </Label>
 
                 {/* Welcome Message Scheduling */}
-                <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-                  <Label className="text-sm font-medium">
+                <div className="mt-4 p-4 border border-border rounded-lg bg-muted">
+                  <Label className="text-sm font-medium text-card-foreground">
                     🎉 Welcome Message
                   </Label>
                   <div className="grid grid-cols-2 gap-4 mt-2">
                     <div>
-                      <Label htmlFor="welcomeDate">Scheduled Date</Label>
+                      <Label htmlFor="welcomeDate" className="text-card-foreground">Scheduled Date</Label>
                       <Input
                         id="welcomeDate"
                         type="date"
@@ -1189,7 +1189,7 @@ export default function CompetitionAdmin() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="welcomeTime">Scheduled Time</Label>
+                      <Label htmlFor="welcomeTime" className="text-card-foreground">Scheduled Time</Label>
                       <Input
                         id="welcomeTime"
                         type="time"
@@ -1207,10 +1207,10 @@ export default function CompetitionAdmin() {
                     </div>
                   </div>
                   <div className="mt-2">
-                    <Label htmlFor="welcomeText">Welcome Message Text</Label>
+                    <Label htmlFor="welcomeText" className="text-card-foreground">Welcome Message Text</Label>
                     <textarea
                       id="welcomeText"
-                      className="w-full mt-1 p-2 border rounded-md"
+                      className="w-full mt-1 p-2 border border-input rounded-md bg-background text-foreground"
                       rows={3}
                       value={formData.welcomeMessage.customText}
                       onChange={(e) =>
@@ -1228,9 +1228,9 @@ export default function CompetitionAdmin() {
                 </div>
 
                 {/* Progress Notifications Scheduling */}
-                <div className="mt-4 p-4 border rounded-lg bg-blue-50">
+                <div className="mt-4 p-4 border border-border rounded-lg bg-muted">
                   <div className="flex justify-between items-center mb-2">
-                    <Label className="text-sm font-medium">
+                    <Label className="text-sm font-medium text-card-foreground">
                       📊 Progress Notifications
                     </Label>
                     <Button
@@ -1300,7 +1300,7 @@ export default function CompetitionAdmin() {
                           />
                         </div>
                         <div>
-                          <Label htmlFor={`progressTime${index}`}>Time</Label>
+                          <Label htmlFor={`progressTime${index}`} className="text-card-foreground">Time</Label>
                           <Input
                             id={`progressTime${index}`}
                             type="time"
@@ -1319,12 +1319,12 @@ export default function CompetitionAdmin() {
                         </div>
                       </div>
                       <div className="mt-2">
-                        <Label htmlFor={`progressMessage${index}`}>
+                        <Label htmlFor={`progressMessage${index}`} className="text-card-foreground">
                           Custom Message (Optional)
                         </Label>
                         <textarea
                           id={`progressMessage${index}`}
-                          className="w-full mt-1 p-2 border rounded-md"
+                          className="w-full mt-1 p-2 border border-input rounded-md bg-background text-foreground"
                           rows={2}
                           value={notification.customMessage}
                           onChange={(e) => {
@@ -1343,13 +1343,13 @@ export default function CompetitionAdmin() {
                 </div>
 
                 {/* Winner Announcement Scheduling */}
-                <div className="mt-4 p-4 border rounded-lg bg-green-50">
-                  <Label className="text-sm font-medium">
+                <div className="mt-4 p-4 border border-border rounded-lg bg-muted">
+                  <Label className="text-sm font-medium text-card-foreground">
                     🏆 Winner Announcement
                   </Label>
                   <div className="grid grid-cols-2 gap-4 mt-2">
                     <div>
-                      <Label htmlFor="winnerDate">Scheduled Date</Label>
+                      <Label htmlFor="winnerDate" className="text-card-foreground">Scheduled Date</Label>
                       <Input
                         id="winnerDate"
                         type="date"
@@ -1366,7 +1366,7 @@ export default function CompetitionAdmin() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="winnerTime">Scheduled Time</Label>
+                      <Label htmlFor="winnerTime" className="text-card-foreground">Scheduled Time</Label>
                       <Input
                         id="winnerTime"
                         type="time"
@@ -1398,7 +1398,7 @@ export default function CompetitionAdmin() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-wine-600 hover:bg-wine-700">
+                <Button type="submit" className="bg-primary hover:bg-primary/90">
                   {editingCompetition
                     ? "Update Competition"
                     : "Create Competition"}
@@ -1412,9 +1412,9 @@ export default function CompetitionAdmin() {
       {/* Competition Details Modal */}
       {selectedCompetition && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-card rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start mb-4">
-              <h2 className="text-2xl font-bold">{selectedCompetition.name}</h2>
+              <h2 className="text-2xl font-bold text-card-foreground">{selectedCompetition.name}</h2>
               <Button
                 variant="outline"
                 onClick={() => setSelectedCompetition(null)}
@@ -1426,55 +1426,55 @@ export default function CompetitionAdmin() {
             <div className="grid grid-cols-2 gap-6">
               {/* Competition Details */}
               <div>
-                <h3 className="text-lg font-semibold mb-3">
+                <h3 className="text-lg font-semibold mb-3 text-card-foreground">
                   Competition Details
                 </h3>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="font-medium">Type:</span>{" "}
-                    {getTypeLabel(selectedCompetition.type)}
+                    <span className="font-medium text-card-foreground">Type:</span>{" "}
+                    <span className="text-muted-foreground">{getTypeLabel(selectedCompetition.type)}</span>
                   </div>
                   <div>
-                    <span className="font-medium">Dashboard:</span>{" "}
-                    {getDashboardLabel(selectedCompetition.dashboard)}
+                    <span className="font-medium text-card-foreground">Dashboard:</span>{" "}
+                    <span className="text-muted-foreground">{getDashboardLabel(selectedCompetition.dashboard)}</span>
                   </div>
                   <div>
-                    <span className="font-medium">Status:</span>{" "}
+                    <span className="font-medium text-card-foreground">Status:</span>{" "}
                     {getStatusBadge(selectedCompetition.status)}
                   </div>
                   <div>
-                    <span className="font-medium">Participants:</span>{" "}
-                    {selectedCompetition.totalParticipants}
+                    <span className="font-medium text-card-foreground">Participants:</span>{" "}
+                    <span className="text-muted-foreground">{selectedCompetition.totalParticipants}</span>
                   </div>
                   <div>
-                    <span className="font-medium">Start Date:</span>{" "}
-                    {new Date(selectedCompetition.startDate).toLocaleString()}
+                    <span className="font-medium text-card-foreground">Start Date:</span>{" "}
+                    <span className="text-muted-foreground">{new Date(selectedCompetition.startDate).toLocaleString()}</span>
                   </div>
                   <div>
-                    <span className="font-medium">End Date:</span>{" "}
-                    {new Date(selectedCompetition.endDate).toLocaleString()}
+                    <span className="font-medium text-card-foreground">End Date:</span>{" "}
+                    <span className="text-muted-foreground">{new Date(selectedCompetition.endDate).toLocaleString()}</span>
                   </div>
                 </div>
 
-                <h4 className="text-md font-semibold mt-4 mb-2">Prizes</h4>
+                <h4 className="text-md font-semibold mt-4 mb-2 text-card-foreground">Prizes</h4>
                 <div className="space-y-1 text-sm">
-                  <div>🥇 {selectedCompetition.prizes.first}</div>
-                  <div>🥈 {selectedCompetition.prizes.second}</div>
-                  <div>🥉 {selectedCompetition.prizes.third}</div>
+                  <div className="text-muted-foreground">🥇 {selectedCompetition.prizes.first}</div>
+                  <div className="text-muted-foreground">🥈 {selectedCompetition.prizes.second}</div>
+                  <div className="text-muted-foreground">🥉 {selectedCompetition.prizes.third}</div>
                 </div>
               </div>
 
               {/* SMS Status */}
               <div>
-                <h3 className="text-lg font-semibold mb-3">SMS Status</h3>
+                <h3 className="text-lg font-semibold mb-3 text-card-foreground">SMS Status</h3>
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <span>Welcome SMS</span>
+                  <div className="flex justify-between items-center p-3 bg-muted rounded">
+                    <span className="text-card-foreground">Welcome SMS</span>
                     <Badge
                       className={
                         selectedCompetition.welcomeMessage.sent
-                          ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800"
+                          ? "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200"
+                          : "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200"
                       }
                     >
                       {selectedCompetition.welcomeMessage.sent
@@ -1483,9 +1483,9 @@ export default function CompetitionAdmin() {
                     </Badge>
                   </div>
 
-                  <div className="p-3 bg-gray-50 rounded">
+                  <div className="p-3 bg-muted rounded">
                     <div className="flex justify-between items-center mb-2">
-                      <span>Progress Notifications</span>
+                      <span className="text-card-foreground">Progress Notifications</span>
                       <Badge>
                         {selectedCompetition.progressNotifications.length}
                       </Badge>

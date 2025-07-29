@@ -101,7 +101,7 @@ export function StaffTable({ staff }: { staff: Staff[] }) {
     s.name.toLowerCase().includes(search.toLowerCase()),
   );
   return (
-    <div className="overflow-x-auto bg-white rounded-lg shadow-sm">
+    <div className="overflow-x-auto bg-card rounded-lg shadow-sm">
       <div className="flex p-2">
         <div className="w-[180px]">
           <input
@@ -109,7 +109,7 @@ export function StaffTable({ staff }: { staff: Staff[] }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search associate name..."
-            className="border border-slate-300 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-wine-400"
+            className="border border-input rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-wine-400 bg-background text-foreground"
             style={{ minWidth: 0, width: "100%" }}
           />
         </div>
@@ -122,7 +122,7 @@ export function StaffTable({ staff }: { staff: Staff[] }) {
                 key={col.key}
                 onClick={() => handleSort(col.key)}
                 className={
-                  "cursor-pointer select-none group" +
+                  "cursor-pointer select-none group text-card-foreground dark:text-red-400 font-semibold" +
                   (idx === 0 ? " relative" : "")
                 }
               >
@@ -143,7 +143,7 @@ export function StaffTable({ staff }: { staff: Staff[] }) {
             <TableRow>
               <TableCell
                 colSpan={staffColumns.length}
-                className="text-center text-slate-400 py-6"
+                className="text-center text-muted-foreground py-6"
               >
                 No associates found.
               </TableCell>
@@ -151,16 +151,16 @@ export function StaffTable({ staff }: { staff: Staff[] }) {
           ) : (
             filteredData.map((s) => (
               <TableRow key={s.name}>
-                <TableCell className="font-medium text-wine-700">
+                <TableCell className="font-medium text-card-foreground">
                   {s.name}
                 </TableCell>
-                <TableCell>{s.orders}</TableCell>
-                <TableCell>{s.guests}</TableCell>
-                <TableCell>${s.revenue.toLocaleString()}</TableCell>
-                <TableCell>{s.bottles}</TableCell>
-                <TableCell>{s.clubSignups}</TableCell>
+                <TableCell className="text-card-foreground">{s.orders}</TableCell>
+                <TableCell className="text-card-foreground">{s.guests}</TableCell>
+                <TableCell className="text-card-foreground">${s.revenue.toLocaleString()}</TableCell>
+                <TableCell className="text-card-foreground">{s.bottles}</TableCell>
+                <TableCell className="text-card-foreground">{s.clubSignups}</TableCell>
                 <TableCell>
-                  <span>
+                  <span className="text-card-foreground">
                     {s.wineBottleConversionRate != null
                       ? `${s.wineBottleConversionRate}%`
                       : "-"}
@@ -169,8 +169,8 @@ export function StaffTable({ staff }: { staff: Staff[] }) {
                     <span
                       className={
                         s.wineBottleConversionGoalVariance >= 0
-                          ? "ml-2 text-green-600 font-semibold"
-                          : "ml-2 text-red-600 font-semibold"
+                          ? "ml-2 text-green-600 dark:text-green-400 font-semibold"
+                          : "ml-2 text-red-600 dark:text-red-400 font-semibold"
                       }
                     >
                       {s.wineBottleConversionGoalVariance >= 0
@@ -180,7 +180,7 @@ export function StaffTable({ staff }: { staff: Staff[] }) {
                   )}
                 </TableCell>
                 <TableCell>
-                  <span>
+                  <span className="text-card-foreground">
                     {s.clubConversionRate != null
                       ? `${s.clubConversionRate}%`
                       : "-"}
@@ -189,8 +189,8 @@ export function StaffTable({ staff }: { staff: Staff[] }) {
                     <span
                       className={
                         s.clubConversionGoalVariance >= 0
-                          ? "ml-2 text-green-600 font-semibold"
-                          : "ml-2 text-red-600 font-semibold"
+                          ? "ml-2 text-green-600 dark:text-green-400 font-semibold"
+                          : "ml-2 text-red-600 dark:text-red-400 font-semibold"
                       }
                     >
                       {s.clubConversionGoalVariance >= 0
@@ -200,7 +200,7 @@ export function StaffTable({ staff }: { staff: Staff[] }) {
                   )}
                 </TableCell>
                 <TableCell>
-                  <span>
+                  <span className="text-card-foreground">
                     {s.aov != null ? `$${s.aov.toLocaleString()}` : "-"}
                   </span>
                 </TableCell>

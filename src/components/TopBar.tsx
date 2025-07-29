@@ -1,5 +1,6 @@
 "use client";
 import { useAuth } from "./AuthProvider";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function TopBar() {
   const { user, signOut } = useAuth();
@@ -9,12 +10,15 @@ export function TopBar() {
   return (
     <div className="w-full bg-[#a92020] text-white flex items-center justify-between px-6 py-2 shadow">
       <span className="font-semibold">Hello {name}</span>
-      <button
-        className="bg-white text-[#a92020] px-4 py-1 rounded font-semibold hover:bg-gray-100 transition"
-        onClick={signOut}
-      >
-        Logout
-      </button>
+      <div className="flex items-center gap-3">
+        <ThemeToggle />
+        <button
+          className="bg-white text-[#a92020] px-4 py-1 rounded font-semibold hover:bg-gray-100 transition"
+          onClick={signOut}
+        >
+          Logout
+        </button>
+      </div>
     </div>
   );
 }

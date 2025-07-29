@@ -2,12 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS Variables for Light/Dark Themes */
+:root {
+  --background: 0 0% 99%;
+  --foreground: 20 14% 4%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 14% 4%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 14% 4%;
+  --primary: 0 72% 51%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 100% 97%;
+  --secondary-foreground: 20 14% 4%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 8% 46%;
+  --accent: 0 100% 97%;
+  --accent-foreground: 20 14% 4%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 13% 91%;
+  --input: 0 0% 100%;
+  --ring: 0 72% 51%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 222 84% 5%;
+  --foreground: 210 40% 98%;
+  --card: 222 84% 5%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222 84% 5%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 0 72% 51%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 217 32% 17%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217 32% 17%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 217 32% 17%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62% 30%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 217 32% 17%;
+  --input: 222 84% 5%;
+  --ring: 0 72% 51%;
+}
+
 /* Luxury winery custom styles */
+html {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
 html,
 body {
   font-family: "Inter", "system-ui", "sans-serif";
-  background: #fdf2f2;
-  color: #2d1a1a;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 h1,

@@ -52,18 +52,18 @@ export default function AIChat() {
   }
 
   return (
-    <div className="max-w-xl mx-auto bg-white rounded-lg shadow p-4 flex flex-col h-[500px]">
+    <div className="max-w-xl mx-auto bg-card rounded-lg shadow p-4 flex flex-col h-[500px]">
       <div className="flex items-center mb-2">
-        <span className="font-bold text-wine-700 text-lg mr-2">
+        <span className="font-bold text-primary text-lg mr-2">
           AI Assistant
         </span>
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-muted-foreground">
           (Ask about any dashboard or KPI)
         </span>
       </div>
-      <div className="flex-1 overflow-y-auto border rounded bg-slate-50 p-2 mb-2">
+      <div className="flex-1 overflow-y-auto border border-border rounded bg-muted p-2 mb-2">
         {messages.length === 0 && !loading && (
-          <div className="text-slate-400 text-center mt-10">
+          <div className="text-muted-foreground text-center mt-10">
             Ask a question about your business performance...
           </div>
         )}
@@ -77,8 +77,8 @@ export default function AIChat() {
             <div
               className={
                 msg.role === "user"
-                  ? "inline-block bg-wine-100 text-wine-900 px-3 py-2 rounded-lg"
-                  : "inline-block bg-slate-200 text-slate-800 px-3 py-2 rounded-lg"
+                  ? "inline-block bg-primary/20 text-primary px-3 py-2 rounded-lg"
+                  : "inline-block bg-muted text-card-foreground px-3 py-2 rounded-lg"
               }
             >
               {msg.content}
@@ -87,18 +87,18 @@ export default function AIChat() {
         ))}
         {loading && (
           <div className="text-left mb-2">
-            <div className="inline-block bg-slate-200 text-slate-800 px-3 py-2 rounded-lg animate-pulse">
+            <div className="inline-block bg-muted text-card-foreground px-3 py-2 rounded-lg animate-pulse">
               Thinking<span className="inline-block animate-blink">...</span>
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
-      {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+      {error && <div className="text-red-600 dark:text-red-400 text-sm mb-2">{error}</div>}
       <div className="flex gap-2">
         <input
           type="text"
-          className="flex-1 border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wine-400"
+          className="flex-1 border border-input rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
           placeholder="Type your question..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -107,7 +107,7 @@ export default function AIChat() {
         />
         <button
           onClick={sendMessage}
-          className="bg-wine-600 text-white px-4 py-2 rounded font-semibold hover:bg-wine-700 disabled:opacity-50"
+          className="bg-primary text-primary-foreground px-4 py-2 rounded font-semibold hover:bg-primary/90 disabled:opacity-50"
           disabled={loading || !input.trim()}
         >
           {loading ? "..." : "Send"}

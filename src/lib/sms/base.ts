@@ -1,5 +1,5 @@
 import twilio from "twilio";
-import { QueueManager } from "../queue-manager";
+import { QueueManager } from "../queue-manager.js";
 
 export const baseDebug = "base-runtime-value";
 

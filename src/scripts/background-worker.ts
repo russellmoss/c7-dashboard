@@ -721,7 +721,7 @@ async function gracefulShutdown() {
 // Cron jobs
 function setupCronJobs() {
   // KPI Data Generation - Daily at specific times
-  cron.schedule("25 8 * * *", () => executeKPIJob("mtd"), {
+  cron.schedule("40 8 * * *", () => executeKPIJob("mtd"), {
     timezone: "America/New_York",
     name: "mtd-generation",
   });

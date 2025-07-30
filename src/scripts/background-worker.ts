@@ -750,20 +750,20 @@ async function gracefulShutdown() {
 
 // Cron jobs
 function setupCronJobs() {
-  // KPI Data Generation - Daily at specific times (TESTING SCHEDULE)
-  cron.schedule("18 16 * * *", () => executeKPIJob("ytd"), {
-    timezone: "America/New_York",
-    name: "ytd-generation",
-  });
-  cron.schedule("15 12 * * *", () => executeKPIJob("qtd"), {
-    timezone: "America/New_York",
-    name: "qtd-generation",
-  });
-  cron.schedule("50 16 * * *", () => executeKPIJob("mtd"), {
+  // KPI Data Generation - Daily at specific times (PRODUCTION SCHEDULE)
+  cron.schedule("0 1 * * *", () => executeKPIJob("mtd"), {
     timezone: "America/New_York",
     name: "mtd-generation",
   });
-  cron.schedule("0 14 * * *", () => executeKPIJob("all-quarters"), {
+  cron.schedule("0 2 * * *", () => executeKPIJob("ytd"), {
+    timezone: "America/New_York",
+    name: "ytd-generation",
+  });
+  cron.schedule("0 3 * * *", () => executeKPIJob("qtd"), {
+    timezone: "America/New_York",
+    name: "qtd-generation",
+  });
+  cron.schedule("0 4 * * *", () => executeKPIJob("all-quarters"), {
     timezone: "America/New_York",
     name: "all-quarters-generation",
   });

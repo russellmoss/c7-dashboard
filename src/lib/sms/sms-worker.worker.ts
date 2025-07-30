@@ -113,7 +113,7 @@ export async function generateCoachingMessage(
   let usedStrategiesText = "";
   try {
     // @ts-ignore
-    const models = await import("../models");
+    const models = await import(process.env.NODE_ENV === 'production' ? "../models-cjs.cjs" : "../models");
     const lastMessages: Array<{ coachingMessage: string }> =
       await models.CoachingSMSHistoryModel.find({
         staffName: performance.name,

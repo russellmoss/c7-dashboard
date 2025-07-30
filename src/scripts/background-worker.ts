@@ -30,7 +30,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 // In production, the script should be in the src folder, not dist
 const scriptPath = process.env.NODE_ENV === 'production' 
-  ? join(process.cwd(), "scripts/optimized-kpi-dashboard.cjs")
+  ? join(process.cwd(), "src/scripts/optimized-kpi-dashboard.cjs")
   : join(__dirname, "optimized-kpi-dashboard.cjs");
 
 console.log(`[Worker] Script path: ${scriptPath}`);
@@ -751,17 +751,17 @@ async function gracefulShutdown() {
 // Cron jobs
 function setupCronJobs() {
   // KPI Data Generation - Daily at specific times (TESTING SCHEDULE)
-  cron.schedule("15 16 * * *", () => executeKPIJob("mtd"), {
+  cron.schedule("18 16 * * *", () => executeKPIJob("ytd"), {
     timezone: "America/New_York",
-    name: "mtd-generation",
+    name: "ytd-generation",
   });
   cron.schedule("15 12 * * *", () => executeKPIJob("qtd"), {
     timezone: "America/New_York",
     name: "qtd-generation",
   });
-  cron.schedule("45 15 * * *", () => executeKPIJob("ytd"), {
+  cron.schedule("50 16 * * *", () => executeKPIJob("mtd"), {
     timezone: "America/New_York",
-    name: "ytd-generation",
+    name: "mtd-generation",
   });
   cron.schedule("0 14 * * *", () => executeKPIJob("all-quarters"), {
     timezone: "America/New_York",

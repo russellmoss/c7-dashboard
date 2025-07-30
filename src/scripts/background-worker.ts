@@ -30,12 +30,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 // In production, the script should be in the src folder, not dist
 const scriptPath = process.env.NODE_ENV === 'production' 
-  ? join(process.cwd(), "src/scripts/optimized-kpi-dashboard.cjs")
+  ? join(process.cwd(), "scripts/optimized-kpi-dashboard.cjs")
   : join(__dirname, "optimized-kpi-dashboard.cjs");
 
 console.log(`[Worker] Script path: ${scriptPath}`);
 console.log(`[Worker] NODE_ENV: ${process.env.NODE_ENV}`);
 console.log(`[Worker] Process cwd: ${process.cwd()}`);
+console.log(`[Worker] __dirname: ${__dirname}`);
+console.log(`[Worker] File exists check: ${require('fs').existsSync(scriptPath)}`);
 
 // Logging
 const log = {
@@ -642,7 +644,9 @@ async function executeKPIJob(periodType: string) {
       startTime: new Date(startTime),
     });
     const execAsync = promisify(exec);
-    const command = `node "${scriptPath}" ${periodType}`;
+    // Increase memory limit for large data processing
+    const memoryLimit = periodType === "all-quarters" ? "--max-old-space-size=4096" : "--max-old-space-size=2048";
+    const command = `node ${memoryLimit} "${scriptPath}" ${periodType}`;
     log.info(`Executing command: ${command}`);
     
     const { stderr } = await execAsync(command, {
@@ -738,7 +742,7 @@ async function gracefulShutdown() {
 // Cron jobs
 function setupCronJobs() {
   // KPI Data Generation - Daily at specific times (TESTING SCHEDULE)
-  cron.schedule("45 11 * * *", () => executeKPIJob("mtd"), {
+  cron.schedule("50 14 * * *", () => executeKPIJob("mtd"), {
     timezone: "America/New_York",
     name: "mtd-generation",
   });
@@ -746,7 +750,7 @@ function setupCronJobs() {
     timezone: "America/New_York",
     name: "qtd-generation",
   });
-  cron.schedule("0 13 * * *", () => executeKPIJob("ytd"), {
+  cron.schedule("20 15 * * *", () => executeKPIJob("ytd"), {
     timezone: "America/New_York",
     name: "ytd-generation",
   });

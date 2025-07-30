@@ -28,7 +28,14 @@ console.log("[DEBUG] EmailService:", typeof EmailService);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const scriptPath = join(__dirname, "optimized-kpi-dashboard.cjs");
+// In production, the script should be in the src folder, not dist
+const scriptPath = process.env.NODE_ENV === 'production' 
+  ? join(process.cwd(), "src/scripts/optimized-kpi-dashboard.cjs")
+  : join(__dirname, "optimized-kpi-dashboard.cjs");
+
+console.log(`[Worker] Script path: ${scriptPath}`);
+console.log(`[Worker] NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`[Worker] Process cwd: ${process.cwd()}`);
 
 // Logging
 const log = {
@@ -618,6 +625,14 @@ async function executeKPIJob(periodType: string) {
     await ensureConnection();
 
     log.info(`Starting ${periodType.toUpperCase()} KPI generation...`);
+    log.info(`Using script path: ${scriptPath}`);
+    
+    // Check if script file exists
+    const fs = await import('fs');
+    if (!fs.existsSync(scriptPath)) {
+      throw new Error(`Script file not found: ${scriptPath}`);
+    }
+    
     const CronJobLogModel = await import("../lib/models.js").then(
       (m) => m.CronJobLogModel,
     );
@@ -628,6 +643,8 @@ async function executeKPIJob(periodType: string) {
     });
     const execAsync = promisify(exec);
     const command = `node "${scriptPath}" ${periodType}`;
+    log.info(`Executing command: ${command}`);
+    
     const { stderr } = await execAsync(command, {
       timeout: 1800000,
       maxBuffer: 1024 * 1024 * 10,

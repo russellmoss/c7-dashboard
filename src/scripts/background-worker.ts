@@ -636,6 +636,10 @@ async function executeKPIJob(periodType: string) {
     
     // Check if script file exists
     const fs = await import('fs');
+    log.info(`File exists check: ${fs.default.existsSync(scriptPath)}`);
+    log.info(`Current working directory: ${process.cwd()}`);
+    log.info(`Directory contents: ${fs.default.readdirSync(process.cwd()).join(', ')}`);
+    
     if (!fs.default.existsSync(scriptPath)) {
       throw new Error(`Script file not found: ${scriptPath}`);
     }
@@ -747,7 +751,7 @@ async function gracefulShutdown() {
 // Cron jobs
 function setupCronJobs() {
   // KPI Data Generation - Daily at specific times (TESTING SCHEDULE)
-  cron.schedule("50 14 * * *", () => executeKPIJob("mtd"), {
+  cron.schedule("15 16 * * *", () => executeKPIJob("mtd"), {
     timezone: "America/New_York",
     name: "mtd-generation",
   });
@@ -755,7 +759,7 @@ function setupCronJobs() {
     timezone: "America/New_York",
     name: "qtd-generation",
   });
-  cron.schedule("20 15 * * *", () => executeKPIJob("ytd"), {
+  cron.schedule("45 15 * * *", () => executeKPIJob("ytd"), {
     timezone: "America/New_York",
     name: "ytd-generation",
   });

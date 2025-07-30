@@ -37,7 +37,12 @@ console.log(`[Worker] Script path: ${scriptPath}`);
 console.log(`[Worker] NODE_ENV: ${process.env.NODE_ENV}`);
 console.log(`[Worker] Process cwd: ${process.cwd()}`);
 console.log(`[Worker] __dirname: ${__dirname}`);
-console.log(`[Worker] File exists check: ${require('fs').existsSync(scriptPath)}`);
+// Use dynamic import for fs instead of require
+import('fs').then(fs => {
+  console.log(`[Worker] File exists check: ${fs.default.existsSync(scriptPath)}`);
+}).catch(err => {
+  console.log(`[Worker] File exists check failed: ${err.message}`);
+});
 
 // Logging
 const log = {
@@ -631,7 +636,7 @@ async function executeKPIJob(periodType: string) {
     
     // Check if script file exists
     const fs = await import('fs');
-    if (!fs.existsSync(scriptPath)) {
+    if (!fs.default.existsSync(scriptPath)) {
       throw new Error(`Script file not found: ${scriptPath}`);
     }
     

@@ -21,7 +21,7 @@ export class EmailService {
         kpiData,
       );
       const emailData = {
-        from: "Milea Estate Vineyard <onboarding@resend.dev>",
+        from: "Milea Estate Vineyard <russell@mileaestatevineyard.com>",
         to: [subscription.email],
         subject: `Milea Estate Vineyard - ${kpiData.periodType.toUpperCase()} KPI Report`,
         html: emailContent,
@@ -85,7 +85,7 @@ export class EmailService {
       const result = await QueueManager.queueEmail(async () => {
         const resend = getResendInstance();
         return await resend.emails.send({
-          from: "Milea Estate Vineyard <onboarding@resend.dev>",
+          from: "Milea Estate Vineyard <russell@mileaestatevineyard.com>",
           to: [subscription.email],
           subject: "Test Email - KPI Dashboard System",
           html: testEmailContent,

@@ -419,15 +419,25 @@ function calculateKPIsForPeriod(
   console.log(`   - Orders in period: ${periodOrders.length}`);
   console.log(`   - Revenue-generating orders: ${revenueOrders.length}`);
 
-  // Filter club signups for this period
+  // Filter club signups for this period and track by associate
   const periodClubSignups = clubMemberships.filter((mem) => {
     const signupDate = mem.signupDate ? new Date(mem.signupDate) : null;
     return signupDate && signupDate >= startDate && signupDate <= endDate;
   });
 
-  const clubSignupCustomers = new Map(
-    periodClubSignups.map((mem) => [mem.customerId, true]),
-  );
+  // Track club signups by associate
+  const clubSignupsByAssociate = new Map();
+
+  periodClubSignups.forEach((mem) => {
+    // Get the sales associate from the club membership record
+    const associateName = mem.salesAssociate?.name || "Unknown";
+    
+    // Track club signups by associate
+    if (!clubSignupsByAssociate.has(associateName)) {
+      clubSignupsByAssociate.set(associateName, []);
+    }
+    clubSignupsByAssociate.get(associateName).push(mem);
+  });
 
   // Initialize KPI structure
   const kpiData = {
@@ -526,7 +536,7 @@ function calculateKPIsForPeriod(
     kpiData.clubSignupBreakdown[name] = 0;
   });
 
-  const customerClubSignupAttribution = new Map();
+
 
   // Process orders (same logic as original)
   for (const order of revenueOrders) {
@@ -599,7 +609,7 @@ function calculateKPIsForPeriod(
       }
     }
 
-    const customerSignedUpForClub = clubSignupCustomers.has(order.customerId);
+
 
     kpiData.overallMetrics.totalBottlesSold += orderBottleCount;
     if (orderDate.toDateString() === today.toDateString())
@@ -623,14 +633,7 @@ function calculateKPIsForPeriod(
       serviceMetrics.guestsWhoBoughtBottles += orderGuestCount;
     }
 
-    if (customerSignedUpForClub) {
-      if (!customerClubSignupAttribution.has(order.customerId)) {
-        customerClubSignupAttribution.set(order.customerId, associateName);
-        kpiData.associatePerformance[associateName].clubSignups += 1;
-        kpiData.overallMetrics.totalCustomersWhoSignedUpForClub += 1;
-        serviceMetrics.guestsWhoSignedUpForClub += 1;
-      }
-    }
+
 
     if (orderGuestCount > 0) {
       kpiData.overallMetrics.totalGuests += orderGuestCount;
@@ -659,6 +662,59 @@ function calculateKPIsForPeriod(
   periodClubSignups.forEach((mem) => {
     const clubName = CLUB_NAMES[mem.clubId];
     if (clubName) kpiData.clubSignupBreakdown[clubName]++;
+  });
+
+  // Process club signup attribution from membership records
+  clubSignupsByAssociate.forEach((memberships, associateName) => {
+    // Initialize associate performance if not exists
+    if (!kpiData.associatePerformance[associateName]) {
+      kpiData.associatePerformance[associateName] = {
+        orders: 0,
+        guests: 0,
+        revenue: 0,
+        bottles: 0,
+        wineBottleSales: 0,
+        clubSignups: 0,
+        wineBottleConversionRate: 0,
+        clubConversionRate: 0,
+        nonClubGuests: 0,
+        wineBottleConversionGoalVariance: "n/a",
+        clubConversionGoalVariance: "n/a",
+      };
+    }
+    
+    // Count club signups for this associate
+    kpiData.associatePerformance[associateName].clubSignups += memberships.length;
+    kpiData.overallMetrics.totalCustomersWhoSignedUpForClub += memberships.length;
+    
+    // Update service type metrics for customers who signed up
+    memberships.forEach((mem) => {
+      // Find which service type this customer used
+      const customerOrders = revenueOrders.filter(order => order.customerId === mem.customerId);
+      customerOrders.forEach(order => {
+        let serviceType;
+        const hasItems = (deptId) => order.items?.some(item => item.departmentId === deptId);
+        
+        if (hasItems(TASTING_DEPARTMENT_ID)) serviceType = "tasting";
+        else if (hasItems(DINING_DEPARTMENT_ID)) serviceType = "dining";
+        else if (hasItems(WINE_BY_THE_GLASS_DEPARTMENT_ID)) serviceType = "byTheGlass";
+        else serviceType = "retail";
+        
+        // Only count once per customer per service type
+        if (!kpiData.serviceTypeAnalysis[serviceType]._countedClubSignups) {
+          kpiData.serviceTypeAnalysis[serviceType]._countedClubSignups = new Set();
+        }
+        if (!kpiData.serviceTypeAnalysis[serviceType]._countedClubSignups.has(mem.customerId)) {
+          kpiData.serviceTypeAnalysis[serviceType].guestsWhoSignedUpForClub += 1;
+          kpiData.serviceTypeAnalysis[serviceType]._countedClubSignups.add(mem.customerId);
+        }
+      });
+    });
+  });
+
+  // Clean up temporary tracking sets
+  Object.values(kpiData.serviceTypeAnalysis).forEach(metrics => {
+    delete metrics._countedClubSignups;
   });
 
   // Final calculations (same as original)

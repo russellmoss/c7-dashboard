@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, TrendingUp, Wine, Crown, Users } from "lucide-react";
 import { AIInsightsPanel } from "@/components/dashboard/AIInsightsPanel";
 import PDFExportButton from "@/components/dashboard/PDFExportButton";
+import { TeamPerformanceAnalysis } from "@/components/dashboard/TeamPerformanceAnalysis";
 import Link from "next/link";
 import dynamicImport from "next/dynamic";
 
@@ -204,6 +205,14 @@ export default function AllQuartersDashboard() {
                 <div className="mt-8">
                   <StaffTable staff={staff} />
                 </div>
+              )}
+
+              {/* Team Performance Analysis */}
+              {qData?.associatePerformance && (
+                <TeamPerformanceAnalysis 
+                  associatePerformance={qData.associatePerformance}
+                  periodLabel={`${quarter.toUpperCase()} ${new Date().getFullYear()}`}
+                />
               )}
             </div>
           );

@@ -90,7 +90,7 @@ export default function HomePage() {
               Comprehensive quarterly comparison analysis
             </p>
             <a
-              href="/dashboard/ytd"
+              href="/dashboard/all-quarters"
               className="inline-block bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors"
             >
               View All Quarters

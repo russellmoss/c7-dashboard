@@ -255,6 +255,9 @@ export default function QTDDashboard() {
         <div>
           <AIInsightsPanel insights={insights} loading={loading} />
         </div>
+        <div>
+          <AIChat />
+        </div>
       </div>
       {staff.length > 0 && (
         <div className="mt-8">

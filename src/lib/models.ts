@@ -24,6 +24,7 @@ const KPIDataSchema = new Schema<KPIData>(
       required: true,
       index: true,
     },
+    
     data: {
       type: Schema.Types.Mixed,
       required: true,
@@ -74,15 +75,10 @@ KPIDataSchema.index(
     partialFilterExpression: { periodType: "custom" },
   },
 );
-// For standard reports (mtd, qtd, ytd, all-quarters), use the original unique constraint
+// Unique constraint for periodType and year
 KPIDataSchema.index(
   { periodType: 1, year: 1 },
-  {
-    unique: true,
-    partialFilterExpression: {
-      periodType: { $in: ["mtd", "qtd", "ytd", "all-quarters"] },
-    },
-  },
+  { unique: true }
 );
 KPIDataSchema.index({ createdAt: -1 });
 

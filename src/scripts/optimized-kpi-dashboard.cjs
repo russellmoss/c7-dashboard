@@ -1001,14 +1001,17 @@ async function saveKPIDataToMongoDB(
         },
       };
 
+      
+
       // Add custom date fields if provided
       if (periodType === "custom" && startDate && endDate) {
         dataDocument.startDate = startDate;
         dataDocument.endDate = endDate;
       }
 
-      // Build query for upsert
-      const query = { periodType, year: dataDocument.year };
+        // Build query for upsert
+  const query = { periodType, year: dataDocument.year };
+      
       if (periodType === "custom" && startDate && endDate) {
         query.startDate = startDate;
         query.endDate = endDate;

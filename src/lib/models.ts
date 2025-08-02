@@ -648,6 +648,65 @@ export interface EmailSubscriptionDoc {
   };
 }
 
+// Text Campaign Schema and Type
+export interface TextCampaign {
+  _id?: string;
+  name: string;
+  message: string;
+  subscribers: mongoose.Types.ObjectId[];
+  status: "active" | "archived";
+  createdAt: Date;
+  sentAt?: Date;
+  replies: TextReply[];
+}
+
+const TextCampaignSchema = new Schema<TextCampaign>(
+  {
+    name: { type: String, required: true },
+    message: { type: String, required: true },
+    subscribers: [{ type: Schema.Types.ObjectId, ref: "EmailSubscription" }],
+    status: {
+      type: String,
+      enum: ["active", "archived"],
+      default: "active",
+    },
+    createdAt: { type: Date, default: Date.now },
+    sentAt: { type: Date },
+    replies: [{ type: Schema.Types.ObjectId, ref: "TextReply" }],
+  },
+  {
+    timestamps: true,
+    collection: "text_campaigns",
+  },
+);
+
+// Text Reply Schema and Type
+export interface TextReply {
+  _id?: string;
+  campaignId?: mongoose.Types.ObjectId;
+  fromPhone: string;
+  fromName: string;
+  message: string;
+  timestamp: Date;
+  isRead: boolean;
+  isSentMessage?: boolean;
+}
+
+const TextReplySchema = new Schema<TextReply>(
+  {
+    campaignId: { type: Schema.Types.ObjectId, ref: "TextCampaign" },
+    fromPhone: { type: String, required: true },
+    fromName: { type: String, required: true },
+    message: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now },
+    isRead: { type: Boolean, default: false },
+    isSentMessage: { type: Boolean, default: false },
+  },
+  {
+    timestamps: true,
+    collection: "text_replies",
+  },
+);
 
 
 // Export models with proper typing
@@ -667,3 +726,9 @@ export const ScheduledJobLogModel =
 export const CompetitionModel: Model<Competition> =
   mongoose.models.Competition ||
   mongoose.model("Competition", CompetitionSchema);
+export const TextCampaignModel: Model<TextCampaign> =
+  mongoose.models.TextCampaign ||
+  mongoose.model("TextCampaign", TextCampaignSchema);
+export const TextReplyModel: Model<TextReply> =
+  mongoose.models.TextReply ||
+  mongoose.model("TextReply", TextReplySchema);

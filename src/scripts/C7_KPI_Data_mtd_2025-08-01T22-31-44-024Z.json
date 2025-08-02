@@ -1,0 +1,438 @@
+{
+  "generatedAt": "2025-08-01T22:31:19.069Z",
+  "periodType": "mtd",
+  "definitions": {
+    "totalRevenue": "Total Revenue generated from orders within the selected period.",
+    "totalOrders": "Total number of orders placed within the selected period.",
+    "totalClubMemberships": "Total number of new club memberships acquired within the selected period.",
+    "wineBottleConversionRate": "Percentage of orders that resulted in a new club membership, specifically for wine bottle purchases.",
+    "clubConversionRate": "Percentage of orders that resulted in a new club membership, regardless of product type."
+  },
+  "current": {
+    "periodLabel": "August 2025 (MTD)",
+    "dateRange": {
+      "start": "2025-08-01",
+      "end": "2025-08-02"
+    },
+    "overallMetrics": {
+      "totalRevenue": 4420.71,
+      "totalOrders": 25,
+      "totalGuests": 43,
+      "totalBottlesSold": 89,
+      "avgOrderValue": 176.83,
+      "avgGuestsPerOrder": 1.72,
+      "conversionRate": 64.71,
+      "wineBottleConversionRate": 48.84,
+      "clubConversionRate": 7.69,
+      "totalCustomersWhoSignedUpForClub": 3,
+      "totalGuestsWhoBoughtWineBottles": 21,
+      "totalNonClubAndTradeGuests": 39,
+      "subTotal": 4077.25,
+      "shippingTotal": 0,
+      "taxTotal": 343.46,
+      "tipTotal": 0,
+      "grandTotal": 4420.71,
+      "wineBottleConversionGoalVariance": -4.16,
+      "clubConversionGoalVariance": 1.69
+    },
+    "todayMetrics": {
+      "totalRevenue": 4420.71,
+      "totalOrders": 25,
+      "totalGuests": 43,
+      "totalBottlesSold": 89
+    },
+    "guestBreakdown": {
+      "Non-Club Guest": 39,
+      "Club Member": 4,
+      "Trade Guest": 0
+    },
+    "clubSignupBreakdown": {
+      "Jumper Club": 1,
+      "Grand Prix Club": 2,
+      "Triple Crown Club": 0
+    },
+    "associatePerformance": {
+      "Jennifer O'Toole": {
+        "orders": 7,
+        "guests": 17,
+        "revenue": 1213.47,
+        "bottles": 13,
+        "wineBottleSales": 6,
+        "clubSignups": 2,
+        "wineBottleConversionRate": 35.29,
+        "clubConversionRate": 11.76,
+        "nonClubGuests": 17,
+        "wineBottleConversionGoalVariance": -17.71,
+        "clubConversionGoalVariance": 5.76,
+        "aov": 173.35
+      },
+      "Marie Gouldsbury": {
+        "orders": 7,
+        "guests": 16,
+        "revenue": 1200.3,
+        "bottles": 15,
+        "wineBottleSales": 9,
+        "clubSignups": 0,
+        "wineBottleConversionRate": 56.25,
+        "clubConversionRate": 0,
+        "nonClubGuests": 14,
+        "wineBottleConversionGoalVariance": 3.25,
+        "clubConversionGoalVariance": "n/a",
+        "aov": 171.47
+      },
+      "Benjamin Barnes": {
+        "orders": 5,
+        "guests": 10,
+        "revenue": 894.33,
+        "bottles": 14,
+        "wineBottleSales": 6,
+        "clubSignups": 0,
+        "wineBottleConversionRate": 60,
+        "clubConversionRate": 0,
+        "nonClubGuests": 8,
+        "wineBottleConversionGoalVariance": 7,
+        "clubConversionGoalVariance": "n/a",
+        "aov": 178.87
+      },
+      "Jenny Lee": {
+        "orders": 4,
+        "guests": 0,
+        "revenue": 823.38,
+        "bottles": 40,
+        "wineBottleSales": 0,
+        "clubSignups": 0,
+        "wineBottleConversionRate": 0,
+        "clubConversionRate": "n/a",
+        "nonClubGuests": 0,
+        "wineBottleConversionGoalVariance": "n/a",
+        "clubConversionGoalVariance": "n/a",
+        "aov": 205.85
+      },
+      "Callie McGuire": {
+        "orders": 1,
+        "guests": 0,
+        "revenue": 24.33,
+        "bottles": 1,
+        "wineBottleSales": 0,
+        "clubSignups": 0,
+        "wineBottleConversionRate": 0,
+        "clubConversionRate": "n/a",
+        "nonClubGuests": 0,
+        "wineBottleConversionGoalVariance": "n/a",
+        "clubConversionGoalVariance": "n/a",
+        "aov": 24.33
+      },
+      "Mina Do": {
+        "orders": 1,
+        "guests": 0,
+        "revenue": 264.9,
+        "bottles": 6,
+        "wineBottleSales": 0,
+        "clubSignups": 0,
+        "wineBottleConversionRate": 0,
+        "clubConversionRate": "n/a",
+        "nonClubGuests": 0,
+        "wineBottleConversionGoalVariance": "n/a",
+        "clubConversionGoalVariance": "n/a",
+        "aov": 264.9
+      },
+      "Jamie Greene": {
+        "orders": 0,
+        "guests": 0,
+        "revenue": 0,
+        "bottles": 0,
+        "wineBottleSales": 0,
+        "clubSignups": 1,
+        "wineBottleConversionRate": 0,
+        "clubConversionRate": "n/a",
+        "nonClubGuests": 0,
+        "wineBottleConversionGoalVariance": "n/a",
+        "clubConversionGoalVariance": "n/a",
+        "aov": 0
+      }
+    },
+    "serviceTypeAnalysis": {
+      "tasting": {
+        "orders": 12,
+        "guests": 32,
+        "bottles": 19,
+        "revenue": 1943.24,
+        "guestsWhoBoughtBottles": 14,
+        "guestsWhoSignedUpForClub": 0,
+        "nonClubGuests": 28,
+        "bottleConversionRate": 43.75,
+        "clubConversionRate": 0,
+        "aov": 161.94,
+        "bottleConversionGoalVariance": -9.25,
+        "clubConversionGoalVariance": -6
+      },
+      "dining": {
+        "orders": 6,
+        "guests": 10,
+        "bottles": 14,
+        "revenue": 1046.97,
+        "guestsWhoBoughtBottles": 6,
+        "guestsWhoSignedUpForClub": 2,
+        "nonClubGuests": 10,
+        "bottleConversionRate": 60,
+        "clubConversionRate": 20,
+        "aov": 174.5,
+        "bottleConversionGoalVariance": 7,
+        "clubConversionGoalVariance": 14
+      },
+      "byTheGlass": {
+        "orders": 0,
+        "guests": 0,
+        "bottles": 0,
+        "revenue": 0,
+        "guestsWhoBoughtBottles": 0,
+        "guestsWhoSignedUpForClub": 0,
+        "nonClubGuests": 0,
+        "bottleConversionRate": 0,
+        "clubConversionRate": 0,
+        "aov": 0,
+        "bottleConversionGoalVariance": -53,
+        "clubConversionGoalVariance": -6
+      },
+      "retail": {
+        "orders": 7,
+        "guests": 1,
+        "bottles": 56,
+        "revenue": 1430.5,
+        "guestsWhoBoughtBottles": 1,
+        "guestsWhoSignedUpForClub": 1,
+        "nonClubGuests": 1,
+        "bottleConversionRate": 100,
+        "clubConversionRate": 100,
+        "aov": 204.36,
+        "bottleConversionGoalVariance": 47,
+        "clubConversionGoalVariance": 94
+      }
+    },
+    "conversionFunnel": {
+      "guestOnlyOrders": 6,
+      "wineOrders": 7,
+      "mixedOrders": 11
+    }
+  },
+  "previous": {
+    "periodLabel": "August 2024 (Same period)",
+    "dateRange": {
+      "start": "2024-08-01",
+      "end": "2024-08-02"
+    },
+    "overallMetrics": {
+      "totalRevenue": 1793.02,
+      "totalOrders": 21,
+      "totalGuests": 18,
+      "totalBottlesSold": 17,
+      "avgOrderValue": 85.38,
+      "avgGuestsPerOrder": 0.86,
+      "conversionRate": 57.14,
+      "wineBottleConversionRate": 66.67,
+      "clubConversionRate": 6.25,
+      "totalCustomersWhoSignedUpForClub": 1,
+      "totalGuestsWhoBoughtWineBottles": 12,
+      "totalNonClubAndTradeGuests": 16,
+      "subTotal": 1678.9,
+      "shippingTotal": 0,
+      "taxTotal": 114.12,
+      "tipTotal": 0,
+      "grandTotal": 1793.02,
+      "wineBottleConversionGoalVariance": 13.67,
+      "clubConversionGoalVariance": 0.25
+    },
+    "todayMetrics": {
+      "totalRevenue": 0,
+      "totalOrders": 0,
+      "totalGuests": 0,
+      "totalBottlesSold": 0
+    },
+    "guestBreakdown": {
+      "Non-Club Guest": 16,
+      "Club Member": 2,
+      "Trade Guest": 0
+    },
+    "clubSignupBreakdown": {
+      "Jumper Club": 1,
+      "Grand Prix Club": 0,
+      "Triple Crown Club": 0
+    },
+    "associatePerformance": {
+      "Russell Moss": {
+        "orders": 3,
+        "guests": 0,
+        "revenue": 88.88,
+        "bottles": 0,
+        "wineBottleSales": 0,
+        "clubSignups": 0,
+        "wineBottleConversionRate": 0,
+        "clubConversionRate": "n/a",
+        "nonClubGuests": 0,
+        "wineBottleConversionGoalVariance": "n/a",
+        "clubConversionGoalVariance": "n/a",
+        "aov": 29.63
+      },
+      "Mina Do": {
+        "orders": 3,
+        "guests": 2,
+        "revenue": 346.61,
+        "bottles": 1,
+        "wineBottleSales": 2,
+        "clubSignups": 0,
+        "wineBottleConversionRate": 100,
+        "clubConversionRate": "n/a",
+        "nonClubGuests": 0,
+        "wineBottleConversionGoalVariance": 47,
+        "clubConversionGoalVariance": "n/a",
+        "aov": 115.54
+      },
+      "Danielle Chrysler": {
+        "orders": 8,
+        "guests": 16,
+        "revenue": 1175.18,
+        "bottles": 13,
+        "wineBottleSales": 10,
+        "clubSignups": 0,
+        "wineBottleConversionRate": 62.5,
+        "clubConversionRate": 0,
+        "nonClubGuests": 16,
+        "wineBottleConversionGoalVariance": 9.5,
+        "clubConversionGoalVariance": "n/a",
+        "aov": 146.9
+      },
+      "Katrina Salvati": {
+        "orders": 7,
+        "guests": 0,
+        "revenue": 182.35,
+        "bottles": 3,
+        "wineBottleSales": 0,
+        "clubSignups": 0,
+        "wineBottleConversionRate": 0,
+        "clubConversionRate": "n/a",
+        "nonClubGuests": 0,
+        "wineBottleConversionGoalVariance": "n/a",
+        "clubConversionGoalVariance": "n/a",
+        "aov": 26.05
+      },
+      "Unknown": {
+        "orders": 0,
+        "guests": 0,
+        "revenue": 0,
+        "bottles": 0,
+        "wineBottleSales": 0,
+        "clubSignups": 1,
+        "wineBottleConversionRate": 0,
+        "clubConversionRate": "n/a",
+        "nonClubGuests": 0,
+        "wineBottleConversionGoalVariance": "n/a",
+        "clubConversionGoalVariance": "n/a",
+        "aov": 0
+      }
+    },
+    "serviceTypeAnalysis": {
+      "tasting": {
+        "orders": 6,
+        "guests": 14,
+        "bottles": 10,
+        "revenue": 1041.97,
+        "guestsWhoBoughtBottles": 8,
+        "guestsWhoSignedUpForClub": 0,
+        "nonClubGuests": 14,
+        "bottleConversionRate": 57.14,
+        "clubConversionRate": 0,
+        "aov": 173.66,
+        "bottleConversionGoalVariance": 4.14,
+        "clubConversionGoalVariance": -6
+      },
+      "dining": {
+        "orders": 5,
+        "guests": 0,
+        "bottles": 1,
+        "revenue": 86.29,
+        "guestsWhoBoughtBottles": 0,
+        "guestsWhoSignedUpForClub": 0,
+        "nonClubGuests": 0,
+        "bottleConversionRate": 0,
+        "clubConversionRate": 0,
+        "aov": 17.26,
+        "bottleConversionGoalVariance": -53,
+        "clubConversionGoalVariance": -6
+      },
+      "byTheGlass": {
+        "orders": 2,
+        "guests": 4,
+        "bottles": 3,
+        "revenue": 134.4,
+        "guestsWhoBoughtBottles": 4,
+        "guestsWhoSignedUpForClub": 0,
+        "nonClubGuests": 2,
+        "bottleConversionRate": 100,
+        "clubConversionRate": 0,
+        "aov": 67.2,
+        "bottleConversionGoalVariance": 47,
+        "clubConversionGoalVariance": -6
+      },
+      "retail": {
+        "orders": 8,
+        "guests": 0,
+        "bottles": 3,
+        "revenue": 530.36,
+        "guestsWhoBoughtBottles": 0,
+        "guestsWhoSignedUpForClub": 0,
+        "nonClubGuests": 0,
+        "bottleConversionRate": 0,
+        "clubConversionRate": 0,
+        "aov": 66.3,
+        "bottleConversionGoalVariance": -53,
+        "clubConversionGoalVariance": -6
+      }
+    },
+    "conversionFunnel": {
+      "guestOnlyOrders": 3,
+      "wineOrders": 5,
+      "mixedOrders": 4
+    }
+  },
+  "yearOverYear": {
+    "revenue": {
+      "current": 4420.71,
+      "previous": 1793.02,
+      "change": 146.55
+    },
+    "guests": {
+      "current": 43,
+      "previous": 18,
+      "change": 138.89
+    },
+    "orders": {
+      "current": 25,
+      "previous": 21,
+      "change": 19.05
+    },
+    "bottlesSold": {
+      "current": 89,
+      "previous": 17,
+      "change": 423.53
+    },
+    "avgOrderValue": {
+      "current": 176.83,
+      "previous": 85.38,
+      "change": 107.11
+    },
+    "wineConversionRate": {
+      "current": 48.84,
+      "previous": 66.67,
+      "change": -17.83,
+      "goal": 53,
+      "goalVariance": -4.16
+    },
+    "clubConversionRate": {
+      "current": 7.69,
+      "previous": 6.25,
+      "change": 1.4400000000000004,
+      "goal": 6,
+      "goalVariance": 1.69
+    }
+  }
+}

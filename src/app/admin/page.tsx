@@ -249,6 +249,12 @@ export default function AdminDashboard() {
             📧 Subscriptions
           </a>
           <a
+            href="/admin/text-campaigns"
+            className="inline-flex items-center px-4 py-2 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition font-semibold text-sm shadow"
+          >
+            📱 Text Campaigns
+          </a>
+          <a
             href="/admin/competitions"
             className="inline-flex items-center px-4 py-2 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition font-semibold text-sm shadow"
           >

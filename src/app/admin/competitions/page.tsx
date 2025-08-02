@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -102,6 +102,26 @@ export default function CompetitionAdmin() {
     setIsWinnerAnnouncementPreviewLoading,
   ] = useState(false);
   const [customWinnerMessage, setCustomWinnerMessage] = useState("");
+
+  const fetchCompetitions = useCallback(async () => {
+    try {
+      setLoading(true);
+      const url =
+        activeTab === "archived"
+          ? "/api/competitions/archived"
+          : `/api/competitions?status=${activeTab}`;
+
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        setCompetitions(data.data.competitions || []);
+      }
+    } catch (error) {
+      console.error("Error fetching competitions:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTab]);
 
   // Form data for create/edit
   const [formData, setFormData] = useState({
@@ -219,27 +239,7 @@ export default function CompetitionAdmin() {
   useEffect(() => {
     fetchCompetitions();
     fetchSubscribers();
-  }, [activeTab]);
-
-  const fetchCompetitions = async () => {
-    try {
-      setLoading(true);
-      const url =
-        activeTab === "archived"
-          ? "/api/competitions/archived"
-          : `/api/competitions?status=${activeTab}`;
-
-      const response = await fetch(url);
-      if (response.ok) {
-        const data = await response.json();
-        setCompetitions(data.data.competitions || []);
-      }
-    } catch (error) {
-      console.error("Error fetching competitions:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [activeTab, fetchCompetitions]);
 
   const fetchSubscribers = async () => {
     try {

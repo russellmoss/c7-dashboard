@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ComprehensiveMetrics } from "@/components/dashboard/comprehensive-metrics";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ export default function DashboardPage({
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/kpi/${params.period}`);
@@ -33,14 +33,14 @@ export default function DashboardPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.period]);
 
   useEffect(() => {
     fetchData();
     // Auto-refresh every 5 minutes
     const interval = setInterval(fetchData, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [params.period]);
+  }, [fetchData]);
 
   if (loading) {
     return (

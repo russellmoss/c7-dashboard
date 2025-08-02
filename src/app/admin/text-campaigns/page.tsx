@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,12 @@ import {
   Archive, 
   Plus, 
   Users, 
-  Calendar
+  Calendar,
+  Search,
+  Trash2,
+  SortAsc,
+  SortDesc,
+  X
 } from "lucide-react";
 import { EmailSubscription } from "@/types/email";
 
@@ -38,6 +43,22 @@ interface TextReply {
   isSentMessage?: boolean;
 }
 
+interface SearchResult {
+  type: "campaign" | "reply";
+  id: string;
+  campaignId?: string;
+  campaignName?: string;
+  name?: string;
+  fromName?: string;
+  fromPhone?: string;
+  message: string;
+  timestamp?: Date;
+  createdAt?: Date;
+  status?: string;
+  matchType: string;
+  highlightedText: string;
+}
+
 export default function TextCampaignsPage() {
   const [campaigns, setCampaigns] = useState<TextCampaign[]>([]);
   const [subscribers, setSubscribers] = useState<EmailSubscription[]>([]);
@@ -55,6 +76,15 @@ export default function TextCampaignsPage() {
   const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);
   const [alertSubscribers, setAlertSubscribers] = useState<string[]>([]);
 
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"createdAt" | "name" | "sentAt">("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [contentSearchTerm, setContentSearchTerm] = useState("");
+
   // Form state for new campaign
   const [newCampaign, setNewCampaign] = useState({
     name: "",
@@ -62,26 +92,25 @@ export default function TextCampaignsPage() {
     selectedSubscribers: [] as string[],
   });
 
-  useEffect(() => {
-    fetchCampaigns();
-    fetchSubscribers();
-    fetchAlertPhoneNumbers(); // Fetch alert phone numbers on mount
-    
-    // Set up polling for real-time updates
-    const interval = setInterval(fetchCampaigns, 10000); // Poll every 10 seconds
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchCampaigns = async () => {
+  const fetchCampaigns = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/text-campaigns");
+      const params = new URLSearchParams({
+        status: activeTab,
+        search: searchTerm,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        page: "1",
+        limit: "100"
+      });
+      
+      const response = await fetch(`/api/admin/text-campaigns?${params}`);
       if (response.ok) {
         const data = await response.json();
-        setCampaigns(data);
+        setCampaigns(data.campaigns || data);
         
-        // Update selected campaign if it's open
-        if (selectedCampaign) {
-          const updatedCampaign = data.find((c: TextCampaign) => c._id === selectedCampaign._id);
+        // Only update selected campaign if it's open and we're not in a chat modal
+        if (selectedCampaign && !isChatModalOpen) {
+          const updatedCampaign = (data.campaigns || data).find((c: TextCampaign) => c._id === selectedCampaign._id);
           if (updatedCampaign) {
             setSelectedCampaign(updatedCampaign);
           }
@@ -92,7 +121,17 @@ export default function TextCampaignsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedCampaign, isChatModalOpen, activeTab, searchTerm, sortBy, sortOrder]);
+
+  useEffect(() => {
+    fetchCampaigns();
+    fetchSubscribers();
+    fetchAlertPhoneNumbers();
+    
+    // Set up polling for real-time updates
+    const interval = setInterval(fetchCampaigns, 10000);
+    return () => clearInterval(interval);
+  }, [fetchCampaigns]);
 
   const fetchSubscribers = async () => {
     try {
@@ -117,8 +156,6 @@ export default function TextCampaignsPage() {
       console.error("Error fetching alert phone numbers:", error);
     }
   };
-
-
 
   const addAlertSubscriber = async (subscriberId: string) => {
     try {
@@ -209,7 +246,23 @@ export default function TextCampaignsPage() {
     }
   };
 
+  const handleDeleteCampaign = async (campaignId: string) => {
+    if (!confirm("Are you sure you want to delete this campaign? This will also delete all associated replies.")) {
+      return;
+    }
 
+    try {
+      const response = await fetch(`/api/admin/text-campaigns?id=${campaignId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        fetchCampaigns();
+      }
+    } catch (error) {
+      console.error("Error deleting campaign:", error);
+    }
+  };
 
   const handleSendToSubscribers = async () => {
     if (!selectedCampaign || !chatMessage.trim()) return;
@@ -251,7 +304,26 @@ export default function TextCampaignsPage() {
         setSelectedSubscribers([]);
         setSendToAll(true);
         setReplyToSpecific(null);
+        // Refresh campaigns and update selected campaign
         fetchCampaigns();
+        // Update the selected campaign with fresh data after sending
+        if (selectedCampaign) {
+          const refreshSelectedCampaign = async () => {
+            try {
+              const response = await fetch("/api/admin/text-campaigns");
+              if (response.ok) {
+                const data = await response.json();
+                const updatedCampaign = (data.campaigns || data).find((c: TextCampaign) => c._id === selectedCampaign._id);
+                if (updatedCampaign) {
+                  setSelectedCampaign(updatedCampaign);
+                }
+              }
+            } catch (error) {
+              console.error("Error refreshing selected campaign:", error);
+            }
+          };
+          refreshSelectedCampaign();
+        }
       }
     } catch (error) {
       console.error("Error sending to subscribers:", error);
@@ -269,6 +341,52 @@ export default function TextCampaignsPage() {
     setReplyToSpecific(null);
   };
 
+  const closeChatModal = () => {
+    setIsChatModalOpen(false);
+    // Refresh the selected campaign data when closing the modal
+    if (selectedCampaign) {
+      const updatedCampaign = campaigns.find((c: TextCampaign) => c._id === selectedCampaign._id);
+      if (updatedCampaign) {
+        setSelectedCampaign(updatedCampaign);
+      }
+    }
+  };
+
+  const handleContentSearch = async () => {
+    if (!contentSearchTerm.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/admin/text-campaigns/search-content?q=${encodeURIComponent(contentSearchTerm)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.results || []);
+        setIsSearchModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Error searching content:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const openCampaignFromSearch = async (campaignId: string) => {
+    try {
+      const response = await fetch("/api/admin/text-campaigns");
+      if (response.ok) {
+        const data = await response.json();
+        const campaign = (data.campaigns || data).find((c: TextCampaign) => c._id === campaignId);
+        if (campaign) {
+          setSelectedCampaign(campaign);
+          setIsChatModalOpen(true);
+          setIsSearchModalOpen(false);
+        }
+      }
+    } catch (error) {
+      console.error("Error opening campaign from search:", error);
+    }
+  };
+
   const filteredCampaigns = campaigns.filter(campaign => campaign.status === activeTab);
 
   const formatTime = (date: Date) => {
@@ -277,8 +395,6 @@ export default function TextCampaignsPage() {
       minute: '2-digit' 
     });
   };
-
-
 
   if (isLoading) {
     return (
@@ -302,6 +418,12 @@ export default function TextCampaignsPage() {
               <h1 className="text-2xl font-bold">Admin Dashboard</h1>
             </div>
             <div className="flex space-x-4">
+              <a
+                href="/"
+                className="inline-flex items-center px-4 py-2 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition font-semibold text-sm shadow"
+              >
+                🏠 Home
+              </a>
               <a
                 href="/admin"
                 className="inline-flex items-center px-4 py-2 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition font-semibold text-sm shadow"
@@ -351,225 +473,56 @@ export default function TextCampaignsPage() {
             </Button>
             <Button
               variant="outline"
-              onClick={async () => {
-                try {
-                  const response = await fetch("/api/admin/test-chat-interface", {
-                    method: "POST",
-                  });
-                  if (response.ok) {
-                    fetchCampaigns();
-                    alert("Sample replies added! Check your campaigns for the Chat button.");
-                  } else {
-                    alert("Error adding sample replies. Please create a campaign first.");
-                  }
-                } catch (error) {
-                  console.error("Error:", error);
-                  alert("Error adding sample replies.");
-                }
-              }}
+              onClick={() => setIsSearchModalOpen(true)}
             >
-              🧪 Test Chat
+              <Search className="h-4 w-4 mr-2" />
+              Search Content
             </Button>
-                         <Button
-               variant="outline"
-               onClick={async () => {
-                 try {
-                   const response = await fetch("/api/admin/test-webhook", {
-                     method: "POST",
-                     headers: { "Content-Type": "application/json" },
-                     body: JSON.stringify({
-                       fromPhone: "+1234567890",
-                       message: "This is a test reply from my phone!",
-                       subscriberName: "Test User",
-                     }),
-                   });
-                   if (response.ok) {
-                     fetchCampaigns();
-                     alert("Test SMS received! Check your campaigns for the new message.");
-                   } else {
-                     alert("Error simulating incoming SMS.");
-                   }
-                 } catch (error) {
-                   console.error("Error:", error);
-                   alert("Error simulating incoming SMS.");
-                 }
-               }}
-             >
-               📱 Test SMS
-             </Button>
-             <Button
-               variant="outline"
-               onClick={async () => {
-                 try {
-                   const response = await fetch("/api/admin/test-webhook-direct", {
-                     method: "POST",
-                   });
-                   if (response.ok) {
-                     const result = await response.json();
-                     fetchCampaigns();
-                     alert(`Webhook test completed: ${result.message}`);
-                   } else {
-                     alert("Error testing webhook directly.");
-                   }
-                 } catch (error) {
-                   console.error("Error:", error);
-                   alert("Error testing webhook directly.");
-                 }
-               }}
-             >
-               🧪 Test Webhook Direct
-               </Button>
-             <Button
-               variant="outline"
-               onClick={async () => {
-                 try {
-                   const response = await fetch("/api/admin/test-fast-webhook", {
-                     method: "POST",
-                   });
-                   if (response.ok) {
-                     const result = await response.json();
-                     fetchCampaigns();
-                     alert(`Fast webhook test completed: ${result.message}`);
-                   } else {
-                     alert("Error testing fast webhook.");
-                   }
-                 } catch (error) {
-                   console.error("Error:", error);
-                   alert("Error testing fast webhook.");
-                 }
-               }}
-             >
-                               ⚡ Test Fast Webhook
-              </Button>
+          </div>
+        </div>
+
+        {/* Search and Filter Bar */}
+        <div className="mb-6 p-4 bg-card rounded-lg border">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search campaigns by name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as "createdAt" | "name" | "sentAt")}
+                className="px-3 py-2 border rounded-md text-sm"
+              >
+                <option value="createdAt">Date Created</option>
+                <option value="name">Name</option>
+                <option value="sentAt">Date Sent</option>
+              </select>
+              
               <Button
                 variant="outline"
-                onClick={async () => {
-                  try {
-                    const response = await fetch("/api/admin/debug-subscriber");
-                    if (response.ok) {
-                      const result = await response.json();
-                      console.log("Subscriber debug info:", result);
-                      alert(`Found ${result.subscribers.length} subscribers with SMS coaching. Check console for details.`);
-                    } else {
-                      alert("Error fetching subscriber debug info.");
-                    }
-                  } catch (error) {
-                    console.error("Error:", error);
-                    alert("Error fetching subscriber debug info.");
-                  }
-                }}
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
               >
-                                 🔍 Debug Subscribers
-               </Button>
-               <Button
-                 variant="outline"
-                 onClick={async () => {
-                   try {
-                     const response = await fetch("/api/admin/enable-sms-coaching", {
-                       method: "POST",
-                     });
-                     if (response.ok) {
-                       const result = await response.json();
-                       console.log("SMS coaching enabled:", result);
-                       alert(`SMS coaching enabled for ${result.subscriber.name}!`);
-                     } else {
-                       alert("Error enabling SMS coaching.");
-                     }
-                   } catch (error) {
-                     console.error("Error:", error);
-                     alert("Error enabling SMS coaching.");
-                   }
-                 }}
-               >
-                                   ✅ Enable SMS Coaching
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch("/api/admin/test-phone-matching");
-                      if (response.ok) {
-                        const result = await response.json();
-                        console.log("Phone matching test:", result);
-                        alert(`Phone matching test completed. Check console for details.`);
-                      } else {
-                        alert("Error testing phone matching.");
-                      }
-                    } catch (error) {
-                      console.error("Error:", error);
-                      alert("Error testing phone matching.");
-                    }
-                  }}
-                >
-                                     📞 Test Phone Matching
-                 </Button>
-                 <Button
-                   variant="outline"
-                   onClick={async () => {
-                     try {
-                       const response = await fetch("/api/admin/test-fast-webhook-local", {
-                         method: "POST",
-                       });
-                       if (response.ok) {
-                         const result = await response.json();
-                         console.log("Local fast webhook test:", result);
-                         fetchCampaigns();
-                         alert(`Local fast webhook test completed: ${result.message}`);
-                       } else {
-                         alert("Error testing local fast webhook.");
-                       }
-                     } catch (error) {
-                       console.error("Error:", error);
-                       alert("Error testing local fast webhook.");
-                     }
-                   }}
-                 >
-                   🧪 Test Local Fast Webhook
-                 </Button>
-                 <Button
-                   variant="outline"
-                   onClick={async () => {
-                     try {
-                       const response = await fetch("/api/test-response-time", {
-                         method: "POST",
-                         body: new FormData(),
-                       });
-                       if (response.ok) {
-                         const result = await response.json();
-                         console.log("Response time test:", result);
-                         alert(`Response time test: ${result.responseTime}`);
-                       } else {
-                         alert("Error testing response time.");
-                       }
-                     } catch (error) {
-                       console.error("Error:", error);
-                       alert("Error testing response time.");
-                     }
-                   }}
-                 >
-                   ⚡ Test Response Time
-                 </Button>
-                 <Button
-                   variant="outline"
-                   onClick={async () => {
-                     try {
-                       const response = await fetch("/api/admin/test-alert", {
-                         method: "POST",
-                       });
-                       if (response.ok) {
-                         const result = await response.json();
-                         alert(`Alert test completed: ${result.message}`);
-                       } else {
-                         alert("Error testing alert system.");
-                       }
-                     } catch (error) {
-                       console.error("Error:", error);
-                       alert("Error testing alert system.");
-                     }
-                   }}
-                 >
-                   🔔 Test Alert System
-                 </Button>
+                {sortOrder === "asc" ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -613,6 +566,12 @@ export default function TextCampaignsPage() {
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4 mr-1" />
                   {new Date(campaign.createdAt).toLocaleDateString()}
+                  {campaign.sentAt && (
+                    <>
+                      <span className="mx-2">•</span>
+                      Sent: {new Date(campaign.sentAt).toLocaleDateString()}
+                    </>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -664,6 +623,14 @@ export default function TextCampaignsPage() {
                       <Archive className="h-4 w-4" />
                     </Button>
                   )}
+
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDeleteCampaign(campaign._id!)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -776,6 +743,126 @@ export default function TextCampaignsPage() {
         </div>
       )}
 
+      {/* Content Search Modal */}
+      {isSearchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold">Search SMS Content</h2>
+                <button
+                  className="text-gray-400 hover:text-gray-600"
+                  onClick={() => setIsSearchModalOpen(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="flex space-x-2">
+                <Input
+                  placeholder="Search for messages, replies, or campaign names..."
+                  value={contentSearchTerm}
+                  onChange={(e) => setContentSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleContentSearch()}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleContentSearch}
+                  disabled={isSearching || !contentSearchTerm.trim()}
+                >
+                  {isSearching ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {searchResults.length > 0 ? (
+                <div className="space-y-4">
+                  {searchResults.map((result, index) => (
+                    <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer" onClick={() => result.campaignId && openCampaignFromSearch(result.campaignId)}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Badge variant={result.type === "campaign" ? "default" : "secondary"}>
+                              {result.type === "campaign" ? "Campaign" : "Reply"}
+                            </Badge>
+                            {result.type === "reply" && result.campaignName && (
+                              <span className="text-sm text-muted-foreground">
+                                in "{result.campaignName}"
+                              </span>
+                            )}
+                          </div>
+                          
+                          {result.type === "campaign" && (
+                            <h3 className="font-semibold text-lg mb-1">{result.name}</h3>
+                          )}
+                          
+                          {result.type === "reply" && (
+                            <div className="mb-2">
+                              <span className="font-medium">{result.fromName}</span>
+                              <span className="text-sm text-muted-foreground ml-2">
+                                ({result.fromPhone})
+                              </span>
+                            </div>
+                          )}
+                          
+                          <p className="text-sm text-gray-600 mb-2">{result.message}</p>
+                          
+                          <div className="text-xs text-muted-foreground">
+                            <span className="font-medium">Match:</span> {result.highlightedText}
+                          </div>
+                          
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {new Date(result.timestamp || result.createdAt || "").toLocaleString()}
+                          </div>
+                        </div>
+                        
+                        {result.type === "reply" && result.campaignId && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openCampaignFromSearch(result.campaignId!);
+                            }}
+                          >
+                            Open Chat
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : contentSearchTerm && !isSearching ? (
+                <div className="text-center py-8">
+                  <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    No results found
+                  </h3>
+                  <p className="text-muted-foreground">
+                    Try searching for different terms or check your spelling.
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    Search SMS Content
+                  </h3>
+                  <p className="text-muted-foreground">
+                    Enter a search term to find messages and replies across all campaigns.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Chat Modal */}
       {isChatModalOpen && selectedCampaign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
@@ -790,7 +877,7 @@ export default function TextCampaignsPage() {
               </div>
               <button
                 className="text-gray-400 hover:text-gray-600"
-                onClick={() => setIsChatModalOpen(false)}
+                onClick={closeChatModal}
               >
                 ✕
               </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,7 +102,7 @@ export default function SubscriptionModal({
   ];
 
   // Define the allowed report keys as a union type
-  const reportKeys = ["mtd", "qtd", "ytd", "all-quarters"] as const;
+  const reportKeys = useMemo(() => ["mtd", "qtd", "ytd", "all-quarters"] as const, []);
   type ReportKey = (typeof reportKeys)[number];
 
   const frequencyOptions = [
@@ -232,7 +232,7 @@ export default function SubscriptionModal({
       setAvailableStaffByReport(newStaff);
     }
     fetchStaff();
-  }, [isOpen]);
+  }, [isOpen, reportKeys]);
 
   // Fetch SMS archive when modal is opened
   useEffect(() => {

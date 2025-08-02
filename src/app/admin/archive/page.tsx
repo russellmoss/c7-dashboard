@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,7 +113,7 @@ export default function ArchiveManagement() {
   });
 
   // Fetch competitions and statistics
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -164,11 +164,11 @@ export default function ArchiveManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, pagination.limit, sort, filters, searchTerm]);
 
   useEffect(() => {
     fetchData();
-  }, [pagination.page, sort, filters, searchTerm]);
+  }, [fetchData]);
 
   // Handle archive/restore action
   const handleArchiveAction = async (

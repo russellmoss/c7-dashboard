@@ -9,9 +9,8 @@ export async function POST(request: NextRequest) {
     
     const formData = await request.formData();
     const fromPhone = formData.get("From") as string;
-    const toPhone = formData.get("To") as string;
     const messageBody = formData.get("Body") as string;
-    const messageSid = formData.get("MessageSid") as string;
+    const toPhone = formData.get("To") as string;
 
     console.log(`Processing SMS from ${fromPhone} to ${toPhone}: ${messageBody}`);
 

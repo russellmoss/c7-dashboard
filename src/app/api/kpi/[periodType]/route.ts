@@ -1,6 +1,5 @@
 import { connectToDatabase } from "@/lib/mongodb";
 import { NextRequest, NextResponse } from "next/server";
-import { KPIDashboardData } from "@/types/kpi";
 import { KPIDataModel } from "@/lib/models";
 
 export const dynamic = 'force-dynamic';

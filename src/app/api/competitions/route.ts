@@ -183,8 +183,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Set default winner announcement time (1 hour after end date)
-    const winnerAnnouncementTime = new Date(endDate.getTime() + 60 * 60 * 1000);
+
 
     // Process SMS scheduling
     let welcomeMessageSendAt = null;

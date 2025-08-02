@@ -296,7 +296,7 @@ export default function SubscriptionModal({
         subscribedReports: formData.subscribedReports || [],
         reportSchedules: formData.reportSchedules || {},
         smsCoaching: {
-          ...formData.smsCoaching,
+          ...(formData.smsCoaching as any),
           phoneNumber: formData.smsCoaching?.phoneNumber || "",
         },
         isActive: formData.isActive ?? true,
@@ -318,7 +318,7 @@ export default function SubscriptionModal({
               name: dataToSave.name,
               email: dataToSave.email,
               phone: dataToSave.phone,
-              password: adminPassword,
+              password: adminPassword || "",
             }),
           });
           const result = await res.json();
@@ -341,7 +341,7 @@ export default function SubscriptionModal({
         subscribedReports: formData.subscribedReports || [],
         reportSchedules: formData.reportSchedules || {},
         smsCoaching: {
-          ...formData.smsCoaching,
+          ...(formData.smsCoaching as any),
           phoneNumber: formData.smsCoaching?.phoneNumber || "",
         },
         isActive: formData.isActive ?? true,
@@ -382,7 +382,7 @@ export default function SubscriptionModal({
           [field]: value,
         },
       },
-    }));
+    } as any));
   };
 
 

@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
       // Send SMS with personal goals
       const message = await generateCoachingMessage(
         staffData,
-        subscription.smsCoaching,
+        subscription.smsCoaching as any,
         periodType,
         subscription.personalizedGoals,
       );

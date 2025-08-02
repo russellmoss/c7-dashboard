@@ -2,7 +2,6 @@ import mongoose, { Schema, Model } from "mongoose";
 import {
   KPIData,
   CronJobLog,
-  EmailSubscription,
 } from "../types/kpi";
 import { CoachingSMSHistory } from "../types/sms"; // type-only, no .js needed
 
@@ -707,6 +706,32 @@ const TextReplySchema = new Schema<TextReply>(
     collection: "text_replies",
   },
 );
+
+export interface AlertPhoneNumber {
+  _id?: string;
+  phoneNumber: string;
+  createdAt: Date;
+}
+
+export const AlertPhoneNumberSchema = new mongoose.Schema<AlertPhoneNumber>({
+  phoneNumber: { type: String, required: true, unique: true },
+  createdAt: { type: Date, default: Date.now },
+});
+
+export const AlertPhoneNumberModel = mongoose.models.AlertPhoneNumber || mongoose.model<AlertPhoneNumber>('AlertPhoneNumber', AlertPhoneNumberSchema);
+
+export interface AlertSubscriber {
+  _id?: string;
+  subscriberId: string;
+  createdAt: Date;
+}
+
+export const AlertSubscriberSchema = new mongoose.Schema<AlertSubscriber>({
+  subscriberId: { type: String, required: true, unique: true },
+  createdAt: { type: Date, default: Date.now },
+});
+
+export const AlertSubscriberModel = mongoose.models.AlertSubscriber || mongoose.model<AlertSubscriber>('AlertSubscriber', AlertSubscriberSchema);
 
 
 // Export models with proper typing

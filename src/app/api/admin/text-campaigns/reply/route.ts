@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
-import { TextCampaignModel, TextReplyModel } from "@/lib/models";
+import { TextReplyModel } from "@/lib/models";
 import { sendSMS } from "@/lib/sms/client";
 
 export async function POST(request: NextRequest) {

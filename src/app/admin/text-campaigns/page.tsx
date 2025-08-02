@@ -1,13 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Send, Plus, Archive, MessageSquare, Users, Calendar, Phone, Clock, Check, CheckCheck } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { 
+  MessageSquare, 
+  Send, 
+  Archive, 
+  Plus, 
+  Users, 
+  Calendar
+} from "lucide-react";
 import { EmailSubscription } from "@/types/email";
 
 interface TextCampaign {
@@ -38,13 +44,16 @@ export default function TextCampaignsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<TextCampaign | null>(null);
-  const [selectedReplies, setSelectedReplies] = useState<TextReply[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
   const [chatMessage, setChatMessage] = useState("");
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [selectedSubscribers, setSelectedSubscribers] = useState<string[]>([]);
   const [sendToAll, setSendToAll] = useState(true);
+  const [replyToSpecific, setReplyToSpecific] = useState<{name: string, phone: string} | null>(null);
+  const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);
+  const [alertSubscribers, setAlertSubscribers] = useState<string[]>([]);
 
   // Form state for new campaign
   const [newCampaign, setNewCampaign] = useState({
@@ -56,6 +65,7 @@ export default function TextCampaignsPage() {
   useEffect(() => {
     fetchCampaigns();
     fetchSubscribers();
+    fetchAlertPhoneNumbers(); // Fetch alert phone numbers on mount
     
     // Set up polling for real-time updates
     const interval = setInterval(fetchCampaigns, 10000); // Poll every 10 seconds
@@ -93,6 +103,52 @@ export default function TextCampaignsPage() {
       }
     } catch (error) {
       console.error("Error fetching subscribers:", error);
+    }
+  };
+
+  const fetchAlertPhoneNumbers = async () => {
+    try {
+      const response = await fetch("/api/admin/alert-phone-numbers");
+      if (response.ok) {
+        const data = await response.json();
+        setAlertSubscribers(data.subscriberIds || []);
+      }
+    } catch (error) {
+      console.error("Error fetching alert phone numbers:", error);
+    }
+  };
+
+
+
+  const addAlertSubscriber = async (subscriberId: string) => {
+    try {
+      const response = await fetch("/api/admin/alert-phone-numbers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscriberId }),
+      });
+      
+      if (response.ok) {
+        fetchAlertPhoneNumbers();
+      }
+    } catch (error) {
+      console.error("Error adding alert subscriber:", error);
+    }
+  };
+
+  const removeAlertSubscriber = async (subscriberId: string) => {
+    try {
+      const response = await fetch("/api/admin/alert-phone-numbers", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscriberId }),
+      });
+      
+      if (response.ok) {
+        fetchAlertPhoneNumbers();
+      }
+    } catch (error) {
+      console.error("Error removing alert subscriber:", error);
     }
   };
 
@@ -153,46 +209,40 @@ export default function TextCampaignsPage() {
     }
   };
 
-  const handleSendReply = async () => {
-    if (!selectedCampaign || selectedReplies.length === 0 || !chatMessage.trim()) return;
 
-    setIsSendingReply(true);
-    try {
-      const response = await fetch("/api/admin/text-campaigns/reply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          campaignId: selectedCampaign._id,
-          replies: selectedReplies.map(r => r._id),
-          message: chatMessage,
-        }),
-      });
-
-      if (response.ok) {
-        setChatMessage("");
-        setSelectedReplies([]);
-        fetchCampaigns();
-      }
-    } catch (error) {
-      console.error("Error sending reply:", error);
-    } finally {
-      setIsSendingReply(false);
-    }
-  };
 
   const handleSendToSubscribers = async () => {
     if (!selectedCampaign || !chatMessage.trim()) return;
 
     setIsSendingReply(true);
     try {
+      // If replying to a specific person, find their subscriber ID
+      let subscribersToSendTo: string[] = [];
+      
+      if (replyToSpecific) {
+        // Find the subscriber by phone number
+        const specificSubscriber = subscribers.find(sub => 
+          sub.smsCoaching?.phoneNumber === replyToSpecific.phone ||
+          sub.smsCoaching?.phoneNumber === replyToSpecific.phone.replace(/^\+/, '') ||
+          sub.smsCoaching?.phoneNumber === replyToSpecific.phone.replace(/^\+1/, '')
+        );
+        if (specificSubscriber) {
+          subscribersToSendTo = [specificSubscriber._id!];
+        }
+      } else if (sendToAll) {
+        subscribersToSendTo = selectedCampaign.subscribers.map(id => id.toString());
+      } else {
+        subscribersToSendTo = selectedSubscribers;
+      }
+
       const response = await fetch("/api/admin/text-campaigns/send-to-subscribers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           campaignId: selectedCampaign._id,
           message: chatMessage,
-          sendToAll,
-          selectedSubscribers,
+          sendToAll: !replyToSpecific && sendToAll,
+          selectedSubscribers: subscribersToSendTo,
         }),
       });
 
@@ -200,6 +250,7 @@ export default function TextCampaignsPage() {
         setChatMessage("");
         setSelectedSubscribers([]);
         setSendToAll(true);
+        setReplyToSpecific(null);
         fetchCampaigns();
       }
     } catch (error) {
@@ -215,6 +266,7 @@ export default function TextCampaignsPage() {
     setSelectedSubscribers([]);
     setSendToAll(true);
     setChatMessage("");
+    setReplyToSpecific(null);
   };
 
   const filteredCampaigns = campaigns.filter(campaign => campaign.status === activeTab);
@@ -226,14 +278,7 @@ export default function TextCampaignsPage() {
     });
   };
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString([], { 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
+
 
   if (isLoading) {
     return (
@@ -297,6 +342,12 @@ export default function TextCampaignsPage() {
             >
               <Plus className="h-4 w-4 mr-2" />
               New Campaign
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsAlertsModalOpen(true)}
+            >
+              🔔 Alert Settings
             </Button>
             <Button
               variant="outline"
@@ -497,6 +548,27 @@ export default function TextCampaignsPage() {
                    }}
                  >
                    ⚡ Test Response Time
+                 </Button>
+                 <Button
+                   variant="outline"
+                   onClick={async () => {
+                     try {
+                       const response = await fetch("/api/admin/test-alert", {
+                         method: "POST",
+                       });
+                       if (response.ok) {
+                         const result = await response.json();
+                         alert(`Alert test completed: ${result.message}`);
+                       } else {
+                         alert("Error testing alert system.");
+                       }
+                     } catch (error) {
+                       console.error("Error:", error);
+                       alert("Error testing alert system.");
+                     }
+                   }}
+                 >
+                   🔔 Test Alert System
                  </Button>
           </div>
         </div>
@@ -706,10 +778,10 @@ export default function TextCampaignsPage() {
 
       {/* Chat Modal */}
       {isChatModalOpen && selectedCampaign && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg max-w-6xl w-full h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-6xl w-full h-[90vh] flex flex-col max-h-[90vh]">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b">
+            <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
               <div>
                 <h2 className="text-2xl font-bold">{selectedCampaign.name}</h2>
                 <p className="text-sm text-muted-foreground">
@@ -725,9 +797,9 @@ export default function TextCampaignsPage() {
             </div>
 
             {/* Chat Interface - iPhone Style */}
-            <div className="flex-1 flex flex-col bg-gray-50">
+            <div className="flex-1 flex flex-col bg-gray-50 min-h-0">
               {/* Messages Canvas */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
                 {/* Initial Campaign Message */}
                 <div className="flex justify-end">
                   <div className="bg-blue-500 text-white rounded-2xl rounded-br-md px-4 py-2 max-w-xs">
@@ -741,11 +813,32 @@ export default function TextCampaignsPage() {
                 {/* Replies */}
                 {selectedCampaign.replies.map((reply) => (
                   <div key={reply._id} className={`flex ${reply.isSentMessage ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`rounded-2xl px-4 py-2 max-w-xs ${
-                      reply.isSentMessage 
-                        ? 'bg-blue-500 text-white rounded-br-md' 
-                        : 'bg-white text-gray-800 rounded-bl-md border border-gray-200'
-                    }`}>
+                    <div 
+                      className={`rounded-2xl px-4 py-2 max-w-xs cursor-pointer transition-all hover:shadow-md ${
+                        reply.isSentMessage 
+                          ? 'bg-blue-500 text-white rounded-br-md' 
+                          : 'bg-white text-gray-800 rounded-bl-md border border-gray-200 hover:border-blue-300'
+                      }`}
+                      onClick={() => {
+                        if (!reply.isSentMessage && reply.fromName && reply.fromPhone) {
+                          setReplyToSpecific({ name: reply.fromName, phone: reply.fromPhone });
+                          setSendToAll(false);
+                          setSelectedSubscribers([]);
+                        }
+                      }}
+                    >
+                      {/* Show subscriber name for incoming messages */}
+                      {!reply.isSentMessage && reply.fromName && (
+                        <p className="text-xs font-semibold text-gray-600 mb-1">
+                          {reply.fromName}
+                        </p>
+                      )}
+                      {/* Show "You" for sent messages */}
+                      {reply.isSentMessage && (
+                        <p className="text-xs font-semibold text-blue-100 mb-1">
+                          You
+                        </p>
+                      )}
                       <p className="text-sm">{reply.message}</p>
                       <p className={`text-xs mt-1 ${reply.isSentMessage ? 'opacity-70 text-right' : 'text-gray-500'}`}>
                         {formatTime(reply.timestamp)}
@@ -756,14 +849,18 @@ export default function TextCampaignsPage() {
               </div>
 
               {/* Message Input - iPhone Style */}
-              <div className="border-t bg-white p-3">
+              <div className="border-t bg-white p-3 flex-shrink-0">
                 {/* Send Options */}
                 <div className="mb-3 flex items-center space-x-4 text-sm">
                   <label className="flex items-center space-x-2">
                     <input
                       type="radio"
-                      checked={sendToAll}
-                      onChange={() => setSendToAll(true)}
+                      checked={sendToAll && !replyToSpecific}
+                      onChange={() => {
+                        setSendToAll(true);
+                        setReplyToSpecific(null);
+                        setSelectedSubscribers([]);
+                      }}
                       className="text-blue-500"
                     />
                     <span>Send to all</span>
@@ -771,12 +868,33 @@ export default function TextCampaignsPage() {
                   <label className="flex items-center space-x-2">
                     <input
                       type="radio"
-                      checked={!sendToAll}
-                      onChange={() => setSendToAll(false)}
+                      checked={!sendToAll && !replyToSpecific}
+                      onChange={() => {
+                        setSendToAll(false);
+                        setReplyToSpecific(null);
+                        setSelectedSubscribers([]);
+                      }}
                       className="text-blue-500"
                     />
                     <span>Send to selected</span>
                   </label>
+                  {replyToSpecific && (
+                    <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full">
+                      <span className="text-blue-700 font-medium">
+                        Reply to {replyToSpecific.name}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setReplyToSpecific(null);
+                          setSendToAll(true);
+                          setSelectedSubscribers([]);
+                        }}
+                        className="text-blue-500 hover:text-blue-700 text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Subscriber Selection */}
@@ -820,7 +938,7 @@ export default function TextCampaignsPage() {
                   </div>
                   <button
                     onClick={handleSendToSubscribers}
-                    disabled={!chatMessage.trim() || (!sendToAll && selectedSubscribers.length === 0) || isSendingReply}
+                    disabled={!chatMessage.trim() || (!sendToAll && !replyToSpecific && selectedSubscribers.length === 0) || isSendingReply}
                     className="bg-blue-500 text-white rounded-full p-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSendingReply ? (
@@ -834,6 +952,87 @@ export default function TextCampaignsPage() {
                   {chatMessage.length}/160 characters
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alerts Modal */}
+      {isAlertsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Alert Settings</h2>
+              <button
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() => setIsAlertsModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Select subscribers who will receive SMS alerts when replies come in to any campaign.
+            </p>
+
+            {/* Subscribers List */}
+            <div className="space-y-2 mb-4">
+              <h3 className="font-semibold text-sm text-gray-700 mb-2">Available Subscribers:</h3>
+              <div className="max-h-64 overflow-y-auto border rounded-md p-2 space-y-1">
+                {subscribers.map((subscriber) => (
+                  <div key={subscriber._id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                    <div className="flex-1">
+                      <span className="text-sm font-medium">{subscriber.name}</span>
+                      <span className="text-xs text-gray-500 ml-2">({subscriber.smsCoaching?.phoneNumber})</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (alertSubscribers.includes(subscriber._id!)) {
+                          removeAlertSubscriber(subscriber._id!);
+                        } else {
+                          addAlertSubscriber(subscriber._id!);
+                        }
+                      }}
+                      className={`px-3 py-1 text-xs rounded-full ${
+                        alertSubscribers.includes(subscriber._id!)
+                          ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                          : 'bg-green-100 text-green-700 hover:bg-green-200'
+                      }`}
+                    >
+                      {alertSubscribers.includes(subscriber._id!) ? 'Remove' : 'Add'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Current Alert Subscribers */}
+            <div className="space-y-2">
+              <h3 className="font-semibold text-sm text-gray-700 mb-2">Current Alert Recipients:</h3>
+              {alertSubscribers.length > 0 ? (
+                <div className="space-y-2">
+                  {subscribers
+                    .filter(sub => alertSubscribers.includes(sub._id!))
+                    .map((subscriber) => (
+                      <div key={subscriber._id} className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                        <div>
+                          <span className="text-sm font-medium">{subscriber.name}</span>
+                          <span className="text-xs text-gray-500 ml-2">({subscriber.smsCoaching?.phoneNumber})</span>
+                        </div>
+                        <button
+                          onClick={() => removeAlertSubscriber(subscriber._id!)}
+                          className="text-red-500 hover:text-red-700 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  No alert recipients configured
+                </p>
+              )}
             </div>
           </div>
         </div>

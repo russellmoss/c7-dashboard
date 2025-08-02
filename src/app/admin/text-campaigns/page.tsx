@@ -84,6 +84,9 @@ export default function TextCampaignsPage() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [contentSearchTerm, setContentSearchTerm] = useState("");
+  const [lastReplyCount, setLastReplyCount] = useState(0);
+  const [showNewMessageIndicator, setShowNewMessageIndicator] = useState(false);
+  const [chatScrollRef, setChatScrollRef] = useState<HTMLDivElement | null>(null);
 
   // Form state for new campaign
   const [newCampaign, setNewCampaign] = useState({
@@ -94,25 +97,31 @@ export default function TextCampaignsPage() {
 
   const fetchCampaigns = useCallback(async () => {
     try {
-      const params = new URLSearchParams({
-        status: activeTab,
-        search: searchTerm,
-        sortBy: sortBy,
-        sortOrder: sortOrder,
-        page: "1",
-        limit: "100"
-      });
-      
-      const response = await fetch(`/api/admin/text-campaigns?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setCampaigns(data.campaigns || data);
+      // Fetch all campaigns for accurate counting
+      const allCampaignsResponse = await fetch("/api/admin/text-campaigns");
+      if (allCampaignsResponse.ok) {
+        const allData = await allCampaignsResponse.json();
+        const allCampaigns = allData.campaigns || allData;
+        setCampaigns(allCampaigns);
         
-        // Only update selected campaign if it's open and we're not in a chat modal
-        if (selectedCampaign && !isChatModalOpen) {
-          const updatedCampaign = (data.campaigns || data).find((c: TextCampaign) => c._id === selectedCampaign._id);
+        // Update selected campaign with fresh data if chat modal is open
+        if (selectedCampaign && isChatModalOpen) {
+          const updatedCampaign = allCampaigns.find((c: TextCampaign) => c._id === selectedCampaign._id);
           if (updatedCampaign) {
+            // Check if there are new replies
+            if (updatedCampaign.replies.length > lastReplyCount && lastReplyCount > 0) {
+              setShowNewMessageIndicator(true);
+              // Auto-hide the indicator after 3 seconds
+              setTimeout(() => setShowNewMessageIndicator(false), 3000);
+              // Auto-scroll to bottom for new messages
+              if (chatScrollRef) {
+                setTimeout(() => {
+                  chatScrollRef.scrollTop = chatScrollRef.scrollHeight;
+                }, 100);
+              }
+            }
             setSelectedCampaign(updatedCampaign);
+            setLastReplyCount(updatedCampaign.replies.length);
           }
         }
       }
@@ -121,7 +130,7 @@ export default function TextCampaignsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedCampaign, isChatModalOpen, activeTab, searchTerm, sortBy, sortOrder]);
+  }, [selectedCampaign, isChatModalOpen, lastReplyCount, chatScrollRef]);
 
   useEffect(() => {
     fetchCampaigns();
@@ -129,9 +138,19 @@ export default function TextCampaignsPage() {
     fetchAlertPhoneNumbers();
     
     // Set up polling for real-time updates
-    const interval = setInterval(fetchCampaigns, 10000);
+    // More frequent updates when chat modal is open
+    const interval = setInterval(fetchCampaigns, isChatModalOpen ? 3000 : 10000);
     return () => clearInterval(interval);
-  }, [fetchCampaigns]);
+  }, [fetchCampaigns, isChatModalOpen]);
+
+  // Auto-scroll to bottom when chat modal opens
+  useEffect(() => {
+    if (isChatModalOpen && chatScrollRef) {
+      setTimeout(() => {
+        chatScrollRef.scrollTop = chatScrollRef.scrollHeight;
+      }, 100);
+    }
+  }, [isChatModalOpen, chatScrollRef]);
 
   const fetchSubscribers = async () => {
     try {
@@ -339,6 +358,8 @@ export default function TextCampaignsPage() {
     setSendToAll(true);
     setChatMessage("");
     setReplyToSpecific(null);
+    setLastReplyCount(campaign.replies.length);
+    setShowNewMessageIndicator(false);
   };
 
   const closeChatModal = () => {
@@ -387,7 +408,31 @@ export default function TextCampaignsPage() {
     }
   };
 
-  const filteredCampaigns = campaigns.filter(campaign => campaign.status === activeTab);
+  const filteredCampaigns = campaigns
+    .filter(campaign => campaign.status === activeTab)
+    .filter(campaign => 
+      !searchTerm || 
+      campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      campaign.message.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      const aValue = a[sortBy as keyof TextCampaign];
+      const bValue = b[sortBy as keyof TextCampaign];
+      
+      if (sortBy === "name") {
+        return sortOrder === "asc" 
+          ? (aValue as string).localeCompare(bValue as string)
+          : (bValue as string).localeCompare(aValue as string);
+      }
+      
+      if (sortBy === "createdAt" || sortBy === "sentAt") {
+        const aDate = new Date(aValue as Date).getTime();
+        const bDate = new Date(bValue as Date).getTime();
+        return sortOrder === "asc" ? aDate - bDate : bDate - aDate;
+      }
+      
+      return 0;
+    });
 
   const formatTime = (date: Date) => {
     return new Date(date).toLocaleTimeString([], { 
@@ -874,6 +919,13 @@ export default function TextCampaignsPage() {
                 <p className="text-sm text-muted-foreground">
                   {selectedCampaign.replies.length} messages • {selectedCampaign.replies.filter(r => !r.isRead).length} unread
                 </p>
+                {showNewMessageIndicator && (
+                  <div className="mt-2 flex items-center space-x-2">
+                    <div className="animate-pulse bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                      ✨ New message received!
+                    </div>
+                  </div>
+                )}
               </div>
               <button
                 className="text-gray-400 hover:text-gray-600"
@@ -886,7 +938,7 @@ export default function TextCampaignsPage() {
             {/* Chat Interface - iPhone Style */}
             <div className="flex-1 flex flex-col bg-gray-50 min-h-0">
               {/* Messages Canvas */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0" ref={setChatScrollRef}>
                 {/* Initial Campaign Message */}
                 <div className="flex justify-end">
                   <div className="bg-blue-500 text-white rounded-2xl rounded-br-md px-4 py-2 max-w-xs">

@@ -657,7 +657,7 @@ export interface TextCampaign {
   status: "active" | "archived";
   createdAt: Date;
   sentAt?: Date;
-  replies: TextReply[];
+  replies: mongoose.Types.ObjectId[];
 }
 
 const TextCampaignSchema = new Schema<TextCampaign>(

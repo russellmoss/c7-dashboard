@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { TextReplyModel, EmailSubscriptionModel } from "@/lib/models";
+import mongoose from "mongoose";
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
       status: "active", // Only look for active campaigns
     }).sort({ createdAt: -1 }).then(async (campaign) => {
       if (campaign) {
-        campaign.replies.push(reply._id);
+        campaign.replies.push(new mongoose.Types.ObjectId(reply._id));
         await campaign.save();
         console.log(`Added reply to campaign: ${campaign.name}`);
       } else {

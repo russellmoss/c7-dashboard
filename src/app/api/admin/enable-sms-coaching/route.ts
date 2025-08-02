@@ -19,10 +19,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Enable SMS coaching
+    // Enable SMS coaching with all required properties
     subscriber.smsCoaching = {
       isActive: true,
-      phoneNumber: "8457073347"
+      phoneNumber: "8457073347",
+      staffMembers: [
+        {
+          name: "Russell moss",
+          isActive: true,
+          dashboards: [
+            {
+              periodType: "mtd",
+              frequency: "weekly",
+              timeEST: "09:00",
+              dayOfWeek: 1,
+              dayOfMonth: 1,
+              weekOfMonth: 1,
+              monthOfQuarter: 1,
+              isActive: true,
+              includeMetrics: {
+                wineConversionRate: true,
+                clubConversionRate: true,
+                goalVariance: true,
+                overallPerformance: true,
+              },
+            },
+          ],
+        },
+      ],
+      coachingStyle: "encouraging",
+      customMessage: "Keep up the great work!",
     };
 
     await subscriber.save();

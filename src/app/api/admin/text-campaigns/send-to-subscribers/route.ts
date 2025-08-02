@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { TextCampaignModel, EmailSubscriptionModel, TextReplyModel } from "@/lib/models";
 import { sendSMS } from "@/lib/sms/client";
+import mongoose from "mongoose";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,14 +26,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get subscribers to send to
     let subscribersToSendTo: string[] = [];
-
     if (sendToAll) {
-      // Send to all campaign subscribers
-      subscribersToSendTo = campaign.subscribers;
+      subscribersToSendTo = campaign.subscribers.map(id => id.toString());
     } else {
-      // Send to selected subscribers
-      subscribersToSendTo = selectedSubscribers || [];
+      subscribersToSendTo = selectedSubscribers;
     }
 
     if (subscribersToSendTo.length === 0) {
@@ -104,7 +103,7 @@ export async function POST(request: NextRequest) {
     await sentMessage.save();
 
     // Update campaign with the new message
-    campaign.replies.push(sentMessage._id);
+    campaign.replies.push(new mongoose.Types.ObjectId(sentMessage._id));
     await campaign.save();
 
     return NextResponse.json({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { TextReplyModel, EmailSubscriptionModel } from "@/lib/models";
+import mongoose from "mongoose";
 
 export async function POST(request: NextRequest) {
   try {
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
     // If we found a campaign, add this reply to it
     if (recentCampaign) {
       console.log("Adding reply to campaign...");
-      recentCampaign.replies.push(reply._id);
+      recentCampaign.replies.push(new mongoose.Types.ObjectId(reply._id));
       await recentCampaign.save();
       console.log("Campaign updated");
     }

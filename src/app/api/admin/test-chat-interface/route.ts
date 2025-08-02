@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { TextCampaignModel, TextReplyModel } from "@/lib/models";
+import mongoose from "mongoose";
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,8 +48,8 @@ export async function POST(request: NextRequest) {
     // Save the replies
     const savedReplies = await TextReplyModel.insertMany(sampleReplies);
     
-    // Update campaign with reply IDs
-    campaign.replies = savedReplies.map(reply => reply._id);
+    // Add the reply IDs to the campaign
+    campaign.replies = savedReplies.map(reply => new mongoose.Types.ObjectId(reply._id));
     await campaign.save();
 
     return NextResponse.json({

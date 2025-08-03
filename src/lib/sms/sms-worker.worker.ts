@@ -90,10 +90,13 @@ export async function generateCoachingMessage(
   periodType: string,
   personalizedGoals?: any,
 ): Promise<string> {
-  console.log(
-    "[DEBUG] generateCoachingMessage called with performance:",
-    JSON.stringify(performance, null, 2),
-  );
+  // Debug logging only in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log(
+      "[DEBUG] generateCoachingMessage called with performance:",
+      JSON.stringify(performance, null, 2),
+    );
+  }
 
   // Extract first name from staff member name
   const firstName = performance.name ? performance.name.split(" ")[0] : "there";
@@ -113,7 +116,7 @@ export async function generateCoachingMessage(
   let usedStrategiesText = "";
   try {
     // @ts-ignore
-    const models = await import(process.env.NODE_ENV === 'production' ? "../models-cjs.cjs" : "../models");
+    const models = await import("@/lib/models");
     const lastMessages: Array<{ coachingMessage: string }> =
       await models.CoachingSMSHistoryModel.find({
         staffName: performance.name,
@@ -158,8 +161,9 @@ export async function generateCoachingMessage(
       }
     }
   } catch (err) {
+    // Error logging for both development and production
     console.error(
-      "[DEBUG] Error fetching last 3 SMS messages for Claude prompt:",
+      "[ERROR] Error fetching last 3 SMS messages for Claude prompt:",
       err,
     );
   }
@@ -169,13 +173,18 @@ export async function generateCoachingMessage(
 
 
   const prompt = `Staff member's KPIs:\n${JSON.stringify(performance, null, 2)}\n\nPersonal Goals: ${personalizedGoals ? JSON.stringify(personalizedGoals, null, 2) : "None set"}\n\nSALES & RAPPORT TECHNIQUES:\n${SALES_TECHNIQUES_TEXT}\n${lastMessagesText}\n${usedStrategiesText}\n
-CRITICAL RESTRICTIONS - READ CAREFULLY:\n- You MUST ONLY use the specific techniques listed above in the SALES & RAPPORT TECHNIQUES section.\n- DO NOT invent, create, or hallucinate any new sales techniques, strategies, or approaches.\n- DO NOT invent wine names, varietals, or specific wines not mentioned in the techniques.\n- DO NOT invent club benefits, discounts, or membership details not explicitly listed.\n- DO NOT invent winery history, stories, or experiences not provided.\n- DO NOT invent new guest interactions or scenarios.\n- You can adapt and personalize the provided techniques, but you cannot add new information.\n- If you need to reference specific techniques, only use those from the SALES & RAPPORT TECHNIQUES section above.\n\nSMS LENGTH REQUIREMENTS:\n- Keep the entire message under 1300 characters to ensure it fits in SMS\n- Be concise and direct\n- Focus on 1-2 key coaching points maximum\n- Use short, punchy sentences\n\nIMPORTANT FORMATTING & STYLE REQUIREMENTS:\n- Use a beautiful, friendly, supportive, and encouraging tone.\n- Use relevant emojis sparingly (🍷, 👥, 💰)\n- Start with a friendly greeting using the staff member's first name and an emoji.\n- Show the performance metrics briefly with emojis, including BOTH company goals (53% wine, 6% club) AND personal goals if set.\n- Give a brief compliment, then ONE specific coaching tip, then an encouraging close.\n- DO NOT repeat the same advice, strategy, or tip as the last 3 messages or the strategies listed above.\n- Keep the message concise, actionable, and motivating.\n- DO NOT sign off like a manager - end naturally without "Keep up the great work!" or similar manager-style closings.\n\nEXAMPLE FORMAT (use as a template, but personalize for this staff member and their data):\nHi {firstName}! 🍷\n\n🍷 Wine: {wineConversion}% (Goal: 53%)\n👥 Club: {clubConversion}% (Goal: 6%)\n💰 AOV: ${"{aov}"}\n\nGreat work on wine conversion! For club sales, try this: When taking orders, mention "Our club members get 15% off today's bottles plus free tastings." 📺 https://youtu.be/cE5sfFjTe7Y\n\nYou're doing amazing! 🌟\n\nNow, write a personalized, actionable SMS to ${firstName}, referencing their performance and suggesting 1-2 specific things to try next shift.\n\nIMPORTANT REQUIREMENTS:\n1. Start with a genuine compliment about their performance\n2. ALWAYS include their specific metrics in the message: "Your wine bottle conversion rate is ${wineConversion}% (company goal: 53%) and club conversion rate is ${clubConversion}% (company goal: 6%)"\n3. If personal goals are set, mention them alongside company goals: "Your personal goal is X% and you're at Y%"\n4. Provide 1-2 specific, actionable coaching suggestions based ONLY on the techniques provided above\n5. End naturally without manager-style sign-offs\n6. Be encouraging and motivating throughout\n7. Use their first name: ${firstName}\n8. Keep it conversational and supportive\n9. Make sure to mention both conversion rates and their goals in the message\n10. Include AOV if available in performance data - AOV should be displayed as dollars (e.g., $113.44), NOT as a percentage\n11. REMEMBER: Only use techniques from the SALES & RAPPORT TECHNIQUES section - do not invent new ones\n12. CRITICAL: When suggesting club conversion techniques, ALWAYS include the corresponding YouTube training video link from the technique description. For example, if suggesting "Prime for the club", include: "📺 https://youtu.be/gKO-9_rO2vw"\n13. ALWAYS include the YouTube video link when recommending any club sales technique - this helps staff learn the technique properly
+CRITICAL RESTRICTIONS - READ CAREFULLY:\n- You MUST ONLY use the specific techniques listed above in the SALES & RAPPORT TECHNIQUES section.\n- DO NOT invent, create, or hallucinate any new sales techniques, strategies, or approaches.\n- DO NOT invent wine names, varietals, or specific wines not mentioned in the techniques.\n- DO NOT invent club benefits, discounts, or membership details not explicitly listed.\n- DO NOT invent winery history, stories, or experiences not provided.\n- DO NOT invent new guest interactions or scenarios.\n- You can adapt and personalize the provided techniques, but you cannot add new information.\n- If you need to reference specific techniques, only use those from the SALES & RAPPORT TECHNIQUES section above.\n\nSMS LENGTH REQUIREMENTS:\n- Keep the entire message under 1300 characters to ensure it fits in SMS\n- Be concise and direct\n- Focus on 1-2 key coaching points maximum\n- Use short, punchy sentences\n\nIMPORTANT FORMATTING & STYLE REQUIREMENTS:\n- Use a beautiful, friendly, supportive, and encouraging tone.\n- Use relevant emojis sparingly (🍷, 👥, 💰)\n- Start with a friendly greeting using the staff member's first name and an emoji.\n- Show the performance metrics briefly with emojis, including BOTH company goals (53% wine, 6% club) AND personal goals if set.\n- Give a brief compliment, then ONE specific coaching tip, then an encouraging close.\n- DO NOT repeat the same advice, strategy, or tip as the last 3 messages or the strategies listed above.\n- Keep the message concise, actionable, and motivating.\n- DO NOT sign off like a manager - end naturally without "Keep up the great work!" or similar manager-style closings.\n\nEXAMPLE FORMAT (use as a template, but personalize for this staff member and their data):\nHi {firstName}! 🍷\n\n🍷 Wine: {wineConversion}% (Company Goal: 53%)\n👥 Club: {clubConversion}% (Company Goal: 6%)\n💰 AOV: ${"{aov}"}\n\nGreat work on wine conversion! For club sales, try this: When taking orders, mention "Our club members get 15% off today's bottles plus free tastings." 📺 https://youtu.be/cE5sfFjTe7Y\n\nYou're doing amazing! 🌟\n\nNow, write a personalized, actionable SMS to ${firstName}, referencing their performance and suggesting 1-2 specific things to try next shift.\n\nIMPORTANT REQUIREMENTS:\n1. Start with a genuine compliment about their performance\n2. ALWAYS include their specific metrics in the message: "Your wine bottle conversion rate is ${wineConversion}% (company goal: 53%) and club conversion rate is ${clubConversion}% (company goal: 6%)"\n3. If personal goals are set, mention them alongside company goals: "Your personal goal is X% and you're at Y%"\n4. Provide 1-2 specific, actionable coaching suggestions based ONLY on the techniques provided above\n5. End naturally without manager-style sign-offs\n6. Be encouraging and motivating throughout\n7. Use their first name: ${firstName}\n8. Keep it conversational and supportive\n9. Make sure to mention both conversion rates and their goals in the message\n10. Include AOV if available in performance data - AOV should be displayed as dollars (e.g., $113.44), NOT as a percentage\n11. REMEMBER: Only use techniques from the SALES & RAPPORT TECHNIQUES section - do not invent new ones\n12. CRITICAL: When suggesting club conversion techniques, ALWAYS include the corresponding YouTube training video link from the technique description. For example, if suggesting "Prime for the club", include: "📺 https://youtu.be/gKO-9_rO2vw"\n13. ALWAYS include the YouTube video link when recommending any club sales technique - this helps staff learn the technique properly
 14. CRITICAL: When suggesting bottle sales techniques, ALWAYS include the corresponding YouTube training video link from the technique description. For example, if suggesting "Ask how they are enjoying the wine", include: "📺 https://youtu.be/i85VhGVTXP4"
 15. ALWAYS include the YouTube video link when recommending any bottle sales technique - this helps staff learn the technique properly\n\nStructure: Compliment → Include both conversion rates with company AND personal goals → Coaching → Natural ending`;
 
-  console.log("[DEBUG] Sending prompt to Claude:", prompt);
+  // Debug logging only in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log("[DEBUG] Sending prompt to Claude:", prompt);
+  }
   const response = await callClaude(prompt);
-  console.log("[DEBUG] Claude response:", response);
+  if (process.env.NODE_ENV === 'development') {
+    console.log("[DEBUG] Claude response:", response);
+  }
   return response;
 }
 

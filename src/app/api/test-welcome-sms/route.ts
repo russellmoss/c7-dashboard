@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
     // Test 4: Test SMS preview API
     console.log("[TEST] 🧪 Test 4: Testing SMS preview API...");
     const previewResponse = await fetch(
-      `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/competitions/${testCompetition._id}/welcome-sms/preview`,
+              `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/competitions/${testCompetition._id}/welcome-sms/preview`,
     );
     if (previewResponse.ok) {
       const previewData = await previewResponse.json();

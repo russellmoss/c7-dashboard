@@ -58,7 +58,23 @@ export interface EmailSubscription {
     phoneNumber: string;
     staffMembers: Array<{
       name: string;
-      dashboards: Array<{ periodType: string }>;
+      isActive: boolean;
+      dashboards: Array<{
+        periodType: string;
+        frequency: string;
+        timeEST: string;
+        dayOfWeek?: number;
+        dayOfMonth?: number;
+        weekOfMonth?: number;
+        monthOfQuarter?: number;
+        isActive: boolean;
+        includeMetrics?: {
+          wineConversionRate: boolean;
+          clubConversionRate: boolean;
+          goalVariance: boolean;
+          overallPerformance: boolean;
+        };
+      }>;
     }>;
     coachingStyle: string;
     customMessage: string;
@@ -80,7 +96,7 @@ export interface StaffMemberCoaching {
   name: string;
   phoneNumber?: string;
   enabled?: boolean;
-  isActive?: boolean;
+  isActive: boolean;
   dashboards: Array<DashboardSchedule>;
 }
 
@@ -89,13 +105,18 @@ export interface DashboardSchedule {
   frequency: string;
   timeEST: string;
   isActive: boolean;
-  dayOfWeek?: string;
+  dayOfWeek?: number;
   weekOfMonth?: number;
   monthOfQuarter?: number;
   dayOfMonth?: number;
   monthOfYear?: number;
   weekStart?: number;
-  includeMetrics?: any;
+  includeMetrics?: {
+    wineConversionRate: boolean;
+    clubConversionRate: boolean;
+    goalVariance: boolean;
+    overallPerformance: boolean;
+  };
 }
 
 export interface KPIData {

@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
 import { X } from "lucide-react";
 import { EmailSubscription, StaffMemberCoaching, DashboardSchedule } from "@/types/email";
-import { Loader2 } from "lucide-react";
 
 interface SubscriptionModalProps {
   subscription: EmailSubscription | null;
@@ -146,7 +145,8 @@ export default function SubscriptionModal({
     "December",
   ];
 
-  const [sendingSMS, setSendingSMS] = useState(false);
+
+
   const [smsArchiveOpen, setSmsArchiveOpen] = useState(false);
   const [smsArchive, setSmsArchive] = useState<any[]>([]);
   const [smsArchiveLoading, setSmsArchiveLoading] = useState(false);
@@ -2178,7 +2178,6 @@ export default function SubscriptionModal({
                   className="border rounded px-3 py-2 text-sm"
                   value={selectedSmsPeriod || "mtd"}
                   onChange={(e) => setSelectedSmsPeriod(e.target.value)}
-                  disabled={sendingSMS}
                 >
                   <option value="mtd">MTD (Month-to-Date)</option>
                   <option value="qtd">QTD (Quarter-to-Date)</option>
@@ -2188,13 +2187,9 @@ export default function SubscriptionModal({
                   type="button"
                   variant="outline"
                   onClick={() => onSendSMSCoaching(subscription, selectedSmsPeriod || "mtd")}
-                  disabled={sendingSMS}
                   className="text-sm"
                 >
-                  {sendingSMS ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : null}
-                  {sendingSMS ? "Sending..." : `Send ${(selectedSmsPeriod || "mtd").toUpperCase()} SMS`}
+                  {`Send ${(selectedSmsPeriod || "mtd").toUpperCase()} SMS`}
                 </Button>
               </div>
             )}

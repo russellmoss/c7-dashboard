@@ -266,7 +266,7 @@ export default function TextCampaignsPage() {
   };
 
   const handleDeleteCampaign = async (campaignId: string) => {
-    if (!confirm("Are you sure you want to delete this campaign? This will also delete all associated replies.")) {
+    if (!window.confirm("Are you sure you want to delete this campaign? This will also delete all associated replies.")) {
       return;
     }
 

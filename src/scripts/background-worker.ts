@@ -176,6 +176,13 @@ function isJobDueNow(schedule: any, now: Date) {
         );
         return weeksSinceEpoch % 2 === (schedule.weekStart || 0) % 2;
       }
+      case "bi-weekly": {
+        if (schedule.dayOfWeek !== dayOfWeek) return false;
+        const weeksSinceEpoch = Math.floor(
+          estNow.valueOf() / (7 * 24 * 60 * 60 * 1000),
+        );
+        return weeksSinceEpoch % 2 === (schedule.weekStart || 0) % 2;
+      }
       case "monthly":
         if (schedule.dayOfMonth) {
           return dayOfMonth === schedule.dayOfMonth;
@@ -192,7 +199,21 @@ function isJobDueNow(schedule: any, now: Date) {
         return false;
       case "quarterly": {
         const quarterStartMonth = Math.floor(estNow.month() / 3) * 3;
-        return estNow.month() === quarterStartMonth && dayOfMonth === 1;
+        if (estNow.month() !== quarterStartMonth) return false;
+        
+        // If weekOfMonth is specified, calculate the specific week
+        if (schedule.weekOfMonth) {
+          const firstDayOfMonth = estNow.clone().startOf("month");
+          const firstWeekdayOfMonth = firstDayOfMonth.day();
+          const nthWeekdayDate =
+            1 +
+            (schedule.weekOfMonth - 1) * 7 +
+            ((schedule.dayOfWeek - firstWeekdayOfMonth + 7) % 7);
+          return dayOfMonth === nthWeekdayDate;
+        }
+        
+        // Default to first day of quarter
+        return dayOfMonth === 1;
       }
       default:
         return false;
@@ -594,6 +615,131 @@ async function processScheduledJobs() {
           }
         }
       }
+      
+      // ADMIN SMS COACHING
+      if (
+        sub.smsCoaching?.adminCoaching?.isActive &&
+        sub.smsCoaching.adminCoaching.dashboards
+      ) {
+        log.info(
+          `[DEBUG] Processing admin coaching for ${sub.email}, adminActive: ${sub.smsCoaching.adminCoaching.isActive}, dashboardsCount: ${sub.smsCoaching.adminCoaching.dashboards.length}`,
+        );
+        
+        for (const dashboard of sub.smsCoaching.adminCoaching.dashboards) {
+          log.info(
+            `[DEBUG] Checking admin dashboard: periodType=${dashboard.periodType}, dashboardActive=${dashboard.isActive}, timeEST=${dashboard.timeEST}`,
+          );
+          
+          try {
+            if (!dashboard.isActive) {
+              log.info(
+                `[DEBUG] Skipping admin dashboard (${dashboard.periodType}) at ${dashboard.timeEST} (inactive)`,
+              );
+              continue;
+            }
+            
+            if (!isJobDueNow(dashboard, now)) {
+              log.info(
+                `[DEBUG] Admin dashboard not due now: periodType=${dashboard.periodType}, timeEST=${dashboard.timeEST}`,
+              );
+              continue;
+            }
+            
+            // Include scheduled time in job key to allow multiple times per day
+            const jobKey = `admin_sms_${dashboard.periodType}_${sub.email}_${dashboard.timeEST || "09:00"}`;
+            if (hasJobExecutedRecently(jobKey)) {
+              log.info(`Skipping duplicate admin SMS for ${jobKey}`);
+              continue;
+            }
+            
+            // Get KPI data for admin coaching
+            const kpiData = (await KPIDataModel.findOne({
+              periodType: dashboard.periodType,
+              status: "completed",
+            })
+              .sort({ createdAt: -1 })
+              .lean()) as KPIData | null;
+              
+            // Debug the KPI data structure
+            log.info(`[DEBUG] KPI data for ${dashboard.periodType}: ${JSON.stringify({
+              hasKpiData: !!kpiData,
+              hasData: !!kpiData?.data,
+              hasCurrent: !!kpiData?.data?.current,
+              hasOverallMetrics: !!kpiData?.data?.current?.overallMetrics,
+              hasAssociatePerformance: !!kpiData?.data?.current?.associatePerformance,
+              dataKeys: kpiData?.data ? Object.keys(kpiData.data) : 'N/A',
+              currentKeys: kpiData?.data?.current ? Object.keys(kpiData.data.current) : 'N/A'
+            })}`);
+              
+            if (!kpiData?.data?.current?.associatePerformance) {
+              log.warn(
+                `No KPI data for ${dashboard.periodType} admin SMS to ${sub.email}`,
+              );
+              continue;
+            }
+            
+            // Import admin coaching generator
+            const { generateAdminCoachingMessage } = await import("../lib/sms/admin-coaching-generator.js");
+            
+            // Get active staff member names for admin coaching
+            const activeStaffNames = sub.smsCoaching.staffMembers
+              ?.filter(staff => staff.isActive)
+              ?.map(staff => staff.name) || [];
+            
+            // Generate admin coaching message
+            const adminMessage = await generateAdminCoachingMessage(
+              sub.name,
+              kpiData,
+              dashboard.periodType,
+              activeStaffNames,
+              sub.smsCoaching.adminCoaching,
+              dashboard
+            );
+            
+            if (!adminMessage) {
+              log.warn(`Failed to generate admin coaching message for ${sub.email}`);
+              continue;
+            }
+            
+            // Send admin SMS
+            const smsSent = await sendSms(
+              sub.smsCoaching.phoneNumber,
+              adminMessage,
+            );
+            
+            if (smsSent) {
+              // Archive the sent admin SMS
+              const models = await import("../lib/models.js");
+              await models.CoachingSMSHistoryModel.create({
+                staffName: `${sub.name} (Admin)`,
+                phoneNumber: sub.smsCoaching.phoneNumber,
+                periodType: dashboard.periodType,
+                coachingMessage: adminMessage,
+                coachingTechnique: 'admin-team-update',
+                sentAt: new Date(),
+              });
+              markJobExecuted(jobKey);
+              log.success(
+                `Sent admin SMS to ${sub.smsCoaching.phoneNumber} for ${sub.name} (${dashboard.periodType}) at ${dashboard.timeEST || "09:00"}`,
+              );
+            } else {
+              log.error(
+                `Failed to send admin SMS to ${sub.smsCoaching.phoneNumber} for ${sub.name} (${dashboard.periodType})`,
+              );
+            }
+          } catch (err: unknown) {
+            if (err instanceof Error) {
+              log.error(
+                `Admin SMS coaching error for ${sub.name} (${dashboard.periodType}): ${err.message}`,
+              );
+            } else {
+              log.error(
+                `Admin SMS coaching error for ${sub.name} (${dashboard.periodType}): Unknown error`,
+              );
+            }
+          }
+        }
+      }
     }
     log.info("Completed processing scheduled jobs");
   } catch (error: unknown) {
@@ -768,26 +914,24 @@ function setupCronJobs() {
     name: "all-quarters-generation",
   });
 
-  // Scheduled Communications - Every 5 minutes
-  // This interval is optimal because:
-  // - Handles timezone edge cases (server vs. EST)
-  // - Catches jobs that might be slightly delayed
-  // - Good for real-time competition updates
-  // - Minimal resource usage (lightweight job checking)
-  // - Prevents jobs from being missed due to timing issues
+  // Scheduled Communications - Every 1 minute (TESTING MODE)
+  // This interval is for testing admin SMS coaching functionality
+  // - Allows immediate testing of scheduled jobs
+  // - More frequent checking for development purposes
+  // - Will be changed back to */5 * * * * for production
   cron.schedule(
-    "*/5 * * * *",
+    "* * * * *",
     async () => {
-      log.info("Scheduled communications cron triggered");
+      log.info("Scheduled communications cron triggered (TESTING MODE - every minute)");
       try {
         await processScheduledJobs();
       } catch (error: unknown) {
         if (error instanceof Error) {
           log.error(`Scheduled jobs failed: ${error.message}`);
-          setTimeout(processScheduledJobs, 5 * 60 * 1000);
+          setTimeout(processScheduledJobs, 1 * 60 * 1000);
         } else {
           log.error("Scheduled jobs failed: Unknown error");
-          setTimeout(processScheduledJobs, 5 * 60 * 1000);
+          setTimeout(processScheduledJobs, 1 * 60 * 1000);
         }
       }
     },

@@ -320,6 +320,73 @@ const EmailSubscriptionSchema = new Schema<EmailSubscriptionDoc>(
         default: "balanced",
       },
       customMessage: String,
+      // NEW: Admin coaching configuration
+      adminCoaching: {
+        isActive: {
+          type: Boolean,
+          default: false,
+        },
+        includeTeamMetrics: {
+          type: Boolean,
+          default: true,
+        },
+        includeTopPerformers: {
+          type: Boolean,
+          default: true,
+        },
+        includeBottomPerformers: {
+          type: Boolean,
+          default: true,
+        },
+        includeGoalComparison: {
+          type: Boolean,
+          default: true,
+        },
+        includeManagementTips: {
+          type: Boolean,
+          default: true,
+        },
+        // NEW: Dashboard selection and timing for admin coaching
+        dashboards: [{
+          periodType: {
+            type: String,
+            enum: ["mtd", "qtd", "ytd", "all-quarters"],
+            required: true,
+          },
+          frequency: {
+            type: String,
+            enum: ["daily", "weekly", "biweekly", "monthly", "quarterly"],
+            required: true,
+          },
+          timeEST: {
+            type: String,
+            default: "09:00",
+          },
+          dayOfWeek: Number,
+          dayOfMonth: Number,
+          weekOfMonth: Number,
+          monthOfQuarter: Number,
+          isActive: {
+            type: Boolean,
+            default: true,
+          },
+        }],
+      },
+    },
+    // NEW: Admin authentication fields
+    isAdmin: {
+      type: Boolean,
+      default: false,
+    },
+    adminPassword: {
+      type: String,
+      trim: true,
+      select: false, // Don't include in queries by default
+    },
+    adminPasswordHash: {
+      type: String,
+      trim: true,
+      select: false, // Don't include in queries by default
     },
     isActive: {
       type: Boolean,
@@ -637,7 +704,31 @@ export interface EmailSubscriptionDoc {
     }[];
     coachingStyle: string;
     customMessage: string;
+    // NEW: Admin coaching configuration
+    adminCoaching?: {
+      isActive: boolean;
+      includeTeamMetrics: boolean;
+      includeTopPerformers: boolean;
+      includeBottomPerformers: boolean;
+      includeGoalComparison: boolean;
+      includeManagementTips: boolean;
+      // NEW: Dashboard selection and timing for admin coaching
+      dashboards: Array<{
+        periodType: string;
+        frequency: string;
+        timeEST: string;
+        dayOfWeek?: number;
+        dayOfMonth?: number;
+        weekOfMonth?: number;
+        monthOfQuarter?: number;
+        isActive: boolean;
+      }>;
+    };
   };
+  // NEW: Admin authentication fields
+  isAdmin?: boolean;
+  adminPassword?: string;
+  adminPasswordHash?: string;
   isActive: boolean;
   unsubscribeToken: string;
   personalizedGoals?: {

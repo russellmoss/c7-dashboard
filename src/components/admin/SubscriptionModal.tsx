@@ -70,13 +70,22 @@ export default function SubscriptionModal({
         isActive: true,
       },
     },
-    smsCoaching: {
-      isActive: false,
-      phoneNumber: "",
-      staffMembers: [],
-      coachingStyle: "balanced",
-      customMessage: "",
-    },
+            smsCoaching: {
+          isActive: false,
+          phoneNumber: "",
+          staffMembers: [],
+          coachingStyle: "balanced",
+          customMessage: "",
+          adminCoaching: {
+            isActive: false,
+            includeTeamMetrics: true,
+            includeTopPerformers: true,
+            includeBottomPerformers: true,
+            includeGoalComparison: true,
+            includeManagementTips: true,
+            dashboards: []
+          },
+        },
     createdAt: new Date(),
     updatedAt: new Date(),
     unsubscribeToken: "",
@@ -151,11 +160,11 @@ export default function SubscriptionModal({
   const [smsArchive, setSmsArchive] = useState<any[]>([]);
   const [smsArchiveLoading, setSmsArchiveLoading] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<any | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
   const [adminSuccess, setAdminSuccess] = useState("");
   const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
 
 
@@ -200,8 +209,20 @@ export default function SubscriptionModal({
           staffMembers: subscription.smsCoaching?.staffMembers ?? [],
           coachingStyle: subscription.smsCoaching?.coachingStyle ?? "balanced",
           customMessage: subscription.smsCoaching?.customMessage ?? "",
+          adminCoaching: subscription.smsCoaching?.adminCoaching || {
+            isActive: false,
+            includeTeamMetrics: true,
+            includeTopPerformers: true,
+            includeBottomPerformers: true,
+            includeGoalComparison: true,
+            includeManagementTips: true,
+            dashboards: []
+          },
         },
         isActive: subscription.isActive ?? true,
+        isAdmin: subscription.isAdmin ?? false,
+        adminPassword: subscription.adminPassword || "",
+        adminPasswordHash: subscription.adminPasswordHash || "",
         personalizedGoals: subscription.personalizedGoals || {
           bottleConversionRate: { enabled: false, value: undefined },
           clubConversionRate: { enabled: false, value: undefined },
@@ -255,110 +276,217 @@ export default function SubscriptionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAdminError("");
-    setAdminSuccess("");
-    // Ensure all goal values are numbers or null, never undefined
-    const safeGoals = {
-      bottleConversionRate: {
-        enabled: !!formData.personalizedGoals?.bottleConversionRate?.enabled,
-        value:
-          formData.personalizedGoals?.bottleConversionRate?.value ===
-            undefined ||
-          (typeof formData.personalizedGoals?.bottleConversionRate?.value ===
-            "string" &&
-            formData.personalizedGoals?.bottleConversionRate?.value === "")
-            ? null
-            : Number(formData.personalizedGoals?.bottleConversionRate?.value),
-      },
-      clubConversionRate: {
-        enabled: !!formData.personalizedGoals?.clubConversionRate?.enabled,
-        value:
-          formData.personalizedGoals?.clubConversionRate?.value === undefined ||
-          (typeof formData.personalizedGoals?.clubConversionRate?.value ===
-            "string" &&
-            formData.personalizedGoals?.clubConversionRate?.value === "")
-            ? null
-            : Number(formData.personalizedGoals?.clubConversionRate?.value),
-      },
-      aov: {
-        enabled: !!formData.personalizedGoals?.aov?.enabled,
-        value:
-          formData.personalizedGoals?.aov?.value === undefined ||
-          (typeof formData.personalizedGoals?.aov?.value === "string" &&
-            formData.personalizedGoals?.aov?.value === "")
-            ? null
-            : Number(formData.personalizedGoals?.aov?.value),
-      },
-    };
+    setIsSubmitting(true);
 
-    if (subscription) {
-      // Existing subscriber (PUT)
-      const dataToSave = {
-        _id: subscription._id,
-        name: formData.name || "",
-        email: formData.email || "",
-        phone: formData.smsCoaching?.phoneNumber || "",
-        subscribedReports: formData.subscribedReports || [],
-        reportSchedules: formData.reportSchedules || {},
-        smsCoaching: {
-          ...(formData.smsCoaching as any),
-          phoneNumber: formData.smsCoaching?.phoneNumber || "",
+    try {
+      console.log('[DEBUG] SubscriptionModal - Starting handleSubmit');
+      console.log('[DEBUG] SubscriptionModal - Current formData:', JSON.stringify(formData, null, 2));
+      console.log('[DEBUG] SubscriptionModal - formData.isAdmin:', formData.isAdmin);
+      console.log('[DEBUG] SubscriptionModal - formData.adminPassword:', formData.adminPassword);
+      console.log('[DEBUG] SubscriptionModal - formData.adminPasswordHash:', formData.adminPasswordHash);
+      console.log('[DEBUG] SubscriptionModal - formData.smsCoaching.adminCoaching:', JSON.stringify(formData.smsCoaching?.adminCoaching, null, 2));
+
+      setAdminError("");
+      setAdminSuccess("");
+
+      // Ensure all goal values are numbers or null, never undefined
+      const safeGoals = {
+        bottleConversionRate: {
+          enabled: !!formData.personalizedGoals?.bottleConversionRate?.enabled,
+          value:
+            formData.personalizedGoals?.bottleConversionRate?.value ===
+              undefined ||
+            (typeof formData.personalizedGoals?.bottleConversionRate?.value ===
+              "string" &&
+              formData.personalizedGoals?.bottleConversionRate?.value === "")
+              ? null
+              : Number(formData.personalizedGoals?.bottleConversionRate?.value),
         },
-        isActive: formData.isActive ?? true,
-        createdAt: formData.createdAt || new Date(),
-        updatedAt: new Date(),
-        unsubscribeToken: subscription.unsubscribeToken,
-        admin: isAdmin,
-        adminPassword: isAdmin ? adminPassword : undefined,
-        personalizedGoals: safeGoals,
+        clubConversionRate: {
+          enabled: !!formData.personalizedGoals?.clubConversionRate?.enabled,
+          value:
+            formData.personalizedGoals?.clubConversionRate?.value === undefined ||
+            (typeof formData.personalizedGoals?.clubConversionRate?.value ===
+              "string" &&
+              formData.personalizedGoals?.clubConversionRate?.value === "")
+              ? null
+              : Number(formData.personalizedGoals?.clubConversionRate?.value),
+        },
+        aov: {
+          enabled: !!formData.personalizedGoals?.aov?.enabled,
+          value:
+            formData.personalizedGoals?.aov?.value === undefined ||
+            (typeof formData.personalizedGoals?.aov?.value === "string" &&
+              formData.personalizedGoals?.aov?.value === "")
+              ? null
+              : Number(formData.personalizedGoals?.aov?.value),
+        },
       };
 
-      if (isAdmin && adminPassword) {
-        // Call Supabase user creation API
-        try {
-          const res = await fetch("/api/admin/create-user", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: dataToSave.name,
-              email: dataToSave.email,
-              phone: dataToSave.phone,
-              password: adminPassword || "",
-            }),
-          });
-          const result = await res.json();
-          if (!res.ok) {
-            setAdminError(result.error || "Failed to create user");
-          } else {
-            setAdminSuccess("User created in Supabase!");
-          }
-        } catch (err: any) {
-          setAdminError(err.message || "Failed to create user");
+      if (subscription) {
+        // Update existing subscription
+        console.log('[DEBUG] SubscriptionModal - Updating existing subscription');
+        
+        const dataToSave = {
+          name: formData.name,
+          email: formData.email,
+          subscribedReports: formData.subscribedReports,
+          reportSchedules: formData.reportSchedules,
+          smsCoaching: formData.smsCoaching,
+          unsubscribeToken: subscription.unsubscribeToken,
+          isAdmin: formData.isAdmin ?? false,
+          adminPassword: formData.adminPassword || undefined,
+          adminPasswordHash: formData.adminPasswordHash || undefined,
+          personalizedGoals: safeGoals,
+        };
+
+        console.log('[DEBUG] SubscriptionModal - PUT dataToSave:', JSON.stringify(dataToSave, null, 2));
+
+        const response = await fetch(`/api/admin/subscriptions/${subscription._id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(dataToSave),
+        });
+
+        console.log('[DEBUG] SubscriptionModal - PUT response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.log('[DEBUG] SubscriptionModal - PUT error response:', errorText);
+          throw new Error(`Failed to update subscription: ${errorText}`);
         }
-      }
-      onSave(dataToSave as EmailSubscription);
-    } else {
-      // New subscriber (POST)
-      const dataToSave = {
-        name: formData.name || "",
-        email: formData.email || "",
-        phone: formData.smsCoaching?.phoneNumber || "",
-        subscribedReports: formData.subscribedReports || [],
-        reportSchedules: formData.reportSchedules || {},
-        smsCoaching: {
-          ...(formData.smsCoaching as any),
-          phoneNumber: formData.smsCoaching?.phoneNumber || "",
-        },
-        isActive: formData.isActive ?? true,
-        createdAt: formData.createdAt || new Date(),
-        updatedAt: new Date(),
-        unsubscribeToken: formData.unsubscribeToken,
-        admin: isAdmin,
-        adminPassword: isAdmin ? adminPassword : undefined,
-        personalizedGoals: safeGoals,
-      };
 
-      onSave(dataToSave as EmailSubscription);
+        const updatedSubscription = await response.json();
+        console.log('[DEBUG] SubscriptionModal - PUT response data:', JSON.stringify(updatedSubscription, null, 2));
+
+        // Create Supabase user if admin is enabled
+        if (formData.isAdmin && formData.adminPassword) {
+          console.log('[DEBUG] SubscriptionModal - Creating Supabase user for admin');
+          try {
+            const supabaseResponse = await fetch("/api/admin/create-user", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: formData.email,
+                password: formData.adminPassword,
+                name: formData.name,
+              }),
+            });
+
+            console.log('[DEBUG] SubscriptionModal - Supabase response status:', supabaseResponse.status);
+            
+            if (!supabaseResponse.ok) {
+              const supabaseError = await supabaseResponse.text();
+              console.log('[DEBUG] SubscriptionModal - Supabase error:', supabaseError);
+              // Don't throw error for Supabase creation failure
+            } else {
+              const supabaseData = await supabaseResponse.json();
+              console.log('[DEBUG] SubscriptionModal - Supabase success:', JSON.stringify(supabaseData, null, 2));
+            }
+          } catch (supabaseError) {
+            console.log('[DEBUG] SubscriptionModal - Supabase creation error:', supabaseError);
+            // Don't throw error for Supabase creation failure
+          }
+        }
+
+        onSave(updatedSubscription);
+      } else {
+        // Create new subscription
+        console.log('[DEBUG] SubscriptionModal - Creating new subscription');
+        
+                 const safeGoals = {
+           bottleConversionRate: {
+             enabled: formData.personalizedGoals?.bottleConversionRate?.enabled || false,
+             value: formData.personalizedGoals?.bottleConversionRate?.value || undefined,
+           },
+           clubConversionRate: {
+             enabled: formData.personalizedGoals?.clubConversionRate?.enabled || false,
+             value: formData.personalizedGoals?.clubConversionRate?.value || undefined,
+           },
+           aov: {
+             enabled: formData.personalizedGoals?.aov?.enabled || false,
+             value: formData.personalizedGoals?.aov?.value || undefined,
+           },
+         };
+
+        const dataToSave = {
+          name: formData.name,
+          email: formData.email,
+          subscribedReports: formData.subscribedReports,
+          reportSchedules: formData.reportSchedules,
+          smsCoaching: formData.smsCoaching,
+          isAdmin: formData.isAdmin ?? false,
+          adminPassword: formData.adminPassword || undefined,
+          adminPasswordHash: formData.adminPasswordHash || undefined,
+          personalizedGoals: safeGoals,
+        };
+
+        console.log('[DEBUG] SubscriptionModal - POST dataToSave:', JSON.stringify(dataToSave, null, 2));
+
+        const response = await fetch("/api/admin/subscriptions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(dataToSave),
+        });
+
+        console.log('[DEBUG] SubscriptionModal - POST response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.log('[DEBUG] SubscriptionModal - POST error response:', errorText);
+          throw new Error(`Failed to create subscription: ${errorText}`);
+        }
+
+        const newSubscription = await response.json();
+        console.log('[DEBUG] SubscriptionModal - POST response data:', JSON.stringify(newSubscription, null, 2));
+
+        // Create Supabase user if admin is enabled
+        if (formData.isAdmin && formData.adminPassword) {
+          console.log('[DEBUG] SubscriptionModal - Creating Supabase user for new admin');
+          try {
+            const supabaseResponse = await fetch("/api/admin/create-user", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: formData.email,
+                password: formData.adminPassword,
+                name: formData.name,
+              }),
+            });
+
+            console.log('[DEBUG] SubscriptionModal - Supabase response status:', supabaseResponse.status);
+            
+            if (!supabaseResponse.ok) {
+              const supabaseError = await supabaseResponse.text();
+              console.log('[DEBUG] SubscriptionModal - Supabase error:', supabaseError);
+              // Don't throw error for Supabase creation failure
+            } else {
+              const supabaseData = await supabaseResponse.json();
+              console.log('[DEBUG] SubscriptionModal - Supabase success:', JSON.stringify(supabaseData, null, 2));
+            }
+          } catch (supabaseError) {
+            console.log('[DEBUG] SubscriptionModal - Supabase creation error:', supabaseError);
+            // Don't throw error for Supabase creation failure
+          }
+        }
+
+        onSave(newSubscription);
+      }
+
+      onClose();
+    } catch (error) {
+      console.error("Error saving subscription:", error);
+      setError(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -437,8 +565,8 @@ export default function SubscriptionModal({
           <label className="mr-2 font-medium">Admin</label>
           <input
             type="checkbox"
-            checked={isAdmin}
-            onChange={(e) => setIsAdmin(e.target.checked)}
+            checked={formData.isAdmin ?? false}
+            onChange={(e) => setFormData(prev => ({ ...prev, isAdmin: e.target.checked }))}
             className="accent-[#a92020]"
           />
         </div>
@@ -450,22 +578,22 @@ export default function SubscriptionModal({
             <input
               type={showAdminPassword ? "text" : "password"}
               className="w-full border rounded px-3 py-2 pr-10"
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              disabled={!isAdmin}
+              value={formData.adminPassword ?? ""}
+              onChange={(e) => setFormData(prev => ({ ...prev, adminPassword: e.target.value }))}
+              disabled={!(formData.isAdmin ?? false)}
               placeholder={
-                isAdmin
+                (formData.isAdmin ?? false)
                   ? "Enter password for dashboard login"
                   : "Enable admin to set password"
               }
-              style={{ backgroundColor: isAdmin ? "white" : "#f3f3f3" }}
+              style={{ backgroundColor: (formData.isAdmin ?? false) ? "white" : "#f3f3f3" }}
             />
             <button
               type="button"
               tabIndex={-1}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
               onClick={() => setShowAdminPassword((v) => !v)}
-              disabled={!isAdmin}
+              disabled={!(formData.isAdmin ?? false)}
             >
               {showAdminPassword ? (
                 // Eye open SVG
@@ -1970,6 +2098,615 @@ export default function SubscriptionModal({
             }
             placeholder="Enter custom message"
           />
+        </div>
+
+        {/* Admin Team Coaching Section */}
+        {formData.smsCoaching?.isActive && formData.isAdmin && (
+          <div className="mb-8">
+            <div className="mt-4 p-4 border rounded-lg bg-purple-50">
+              <h4 className="font-semibold mb-2 text-gray-700">Admin Team Coaching</h4>
+              <div className="flex items-start mb-2">
+                <input
+                  type="checkbox"
+                  id="enable-admin-sms"
+                  className="mr-2 mt-1"
+                  checked={!!formData.smsCoaching?.adminCoaching?.isActive}
+                  onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      smsCoaching: {
+                        ...prev.smsCoaching!,
+                        adminCoaching: {
+                          isActive: e.target.checked,
+                          includeTeamMetrics: true,
+                          includeTopPerformers: true,
+                          includeBottomPerformers: true,
+                          includeGoalComparison: true,
+                          includeManagementTips: true,
+                          dashboards: prev.smsCoaching?.adminCoaching?.dashboards || [
+                            {
+                              periodType: 'mtd',
+                              frequency: 'weekly',
+                              timeEST: '09:00',
+                              dayOfWeek: 3,
+                              isActive: true
+                            },
+                            {
+                              periodType: 'qtd',
+                              frequency: 'monthly',
+                              timeEST: '09:00',
+                              dayOfWeek: 3,
+                              weekOfMonth: 1,
+                              isActive: true
+                            }
+                          ]
+                        }
+                      }
+                    }));
+                  }}
+                />
+                <div>
+                  <label htmlFor="enable-admin-sms" className="text-sm font-medium">
+                    Enable Admin SMS Coaching
+                  </label>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Receive management-focused team performance summaries
+                  </p>
+                </div>
+              </div>
+              
+              {formData.smsCoaching?.adminCoaching?.isActive && (
+                <div className="ml-6 space-y-4">
+                  <div className="text-xs text-gray-600 space-y-1">
+                    <p className="font-medium">Admin messages include:</p>
+                    <ul className="list-disc list-inside ml-2 space-y-0.5">
+                      <li>Critical metrics first (conversions, AOV, revenue)</li>
+                      <li>Comparison to company goals (53% bottles, 6% club, $140 AOV)</li>
+                      <li>Top 2 performers in each category</li>
+                      <li>Specific management strategies</li>
+                      <li>Staff pairing suggestions for improvement</li>
+                    </ul>
+                  </div>
+                  
+                  {/* Admin Dashboard Selection */}
+                  <div className="mt-4">
+                    <h5 className="text-sm font-medium text-gray-700 mb-2">Admin Dashboard Selection</h5>
+                    <div className="grid grid-cols-2 gap-2">
+                      {['mtd', 'qtd', 'ytd', 'all-quarters'].map((periodType) => {
+                        const dashboard = formData.smsCoaching?.adminCoaching?.dashboards?.find(d => d.periodType === periodType);
+                        const isActive = dashboard?.isActive || false;
+                        
+                        return (
+                          <div key={periodType} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`admin-${periodType}`}
+                              className="text-xs"
+                              checked={isActive}
+                              onChange={(e) => {
+                                setFormData(prev => {
+                                  const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                  let newDashboards;
+                                  
+                                  if (e.target.checked) {
+                                    // Add dashboard if not exists
+                                    if (!currentDashboards.find(d => d.periodType === periodType)) {
+                                      newDashboards = [...currentDashboards, {
+                                        periodType,
+                                        frequency: periodType === 'mtd' ? 'weekly' : 'monthly',
+                                        timeEST: '09:00',
+                                        dayOfWeek: 3,
+                                        weekOfMonth: periodType === 'qtd' ? 1 : undefined,
+                                        monthOfQuarter: periodType === 'ytd' ? 1 : undefined,
+                                        isActive: true
+                                      }];
+                                    } else {
+                                      // Update existing dashboard
+                                      newDashboards = currentDashboards.map(d => 
+                                        d.periodType === periodType ? { ...d, isActive: true } : d
+                                      );
+                                    }
+                                  } else {
+                                    // Deactivate dashboard
+                                    newDashboards = currentDashboards.map(d => 
+                                      d.periodType === periodType ? { ...d, isActive: false } : d
+                                    );
+                                  }
+                                  
+                                  return {
+                                    ...prev,
+                                    smsCoaching: {
+                                      ...prev.smsCoaching!,
+                                      adminCoaching: {
+                                        ...prev.smsCoaching!.adminCoaching!,
+                                        dashboards: newDashboards
+                                      }
+                                    }
+                                  };
+                                });
+                              }}
+                            />
+                            <label htmlFor={`admin-${periodType}`} className="text-xs font-medium">
+                              {periodType.toUpperCase()}
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  {/* Admin Timing Configuration */}
+                  <div className="mt-4">
+                    <h5 className="text-sm font-medium text-gray-700 mb-2">Admin Coaching Schedule</h5>
+                    {formData.smsCoaching?.adminCoaching?.dashboards?.filter(d => d.isActive).map((dashboard, index) => (
+                      <div key={dashboard.periodType} className="mb-3 p-3 border rounded bg-white">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">{dashboard.periodType.toUpperCase()}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => {
+                                const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                const newDashboards = currentDashboards.map(d => 
+                                  d.periodType === dashboard.periodType ? { ...d, isActive: false } : d
+                                );
+                                
+                                return {
+                                  ...prev,
+                                  smsCoaching: {
+                                    ...prev.smsCoaching!,
+                                    adminCoaching: {
+                                      ...prev.smsCoaching!.adminCoaching!,
+                                      dashboards: newDashboards
+                                    }
+                                  }
+                                };
+                              });
+                            }}
+                            className="text-xs text-red-600 hover:text-red-800"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        
+                        <div className="space-y-2 text-xs">
+                          <div>
+                            <label className="block text-gray-600 mb-1">Frequency</label>
+                            <select
+                              value={dashboard.frequency}
+                              onChange={(e) => {
+                                setFormData(prev => {
+                                  const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                  const newDashboards = currentDashboards.map(d => 
+                                    d.periodType === dashboard.periodType ? { ...d, frequency: e.target.value } : d
+                                  );
+                                  
+                                  return {
+                                    ...prev,
+                                    smsCoaching: {
+                                      ...prev.smsCoaching!,
+                                      adminCoaching: {
+                                        ...prev.smsCoaching!.adminCoaching!,
+                                        dashboards: newDashboards
+                                      }
+                                    }
+                                  };
+                                });
+                              }}
+                              className="w-full px-2 py-1 border rounded text-xs"
+                            >
+                              <option value="daily">Daily</option>
+                              <option value="weekly">Weekly</option>
+                              <option value="biweekly">Bi-weekly</option>
+                              <option value="monthly">Monthly</option>
+                              <option value="quarterly">Quarterly</option>
+                            </select>
+                          </div>
+                          
+                          {/* Weekly: day of week and time */}
+                          {dashboard.frequency === "weekly" && (
+                            <>
+                              <div>
+                                <label className="block text-gray-600 mb-1">Day of Week</label>
+                                <select
+                                  value={String(dashboard.dayOfWeek ?? "0")}
+                                  onChange={(e) => {
+                                    setFormData(prev => {
+                                      const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                      const newDashboards = currentDashboards.map(d => 
+                                        d.periodType === dashboard.periodType ? { ...d, dayOfWeek: parseInt(e.target.value) } : d
+                                      );
+                                      
+                                      return {
+                                        ...prev,
+                                        smsCoaching: {
+                                          ...prev.smsCoaching!,
+                                          adminCoaching: {
+                                            ...prev.smsCoaching!.adminCoaching!,
+                                            dashboards: newDashboards
+                                          }
+                                        }
+                                      };
+                                    });
+                                  }}
+                                  className="w-full px-2 py-1 border rounded text-xs"
+                                >
+                                  {daysOfWeek.map((d, i) => (
+                                    <option key={i} value={String(i)}>{d}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-gray-600 mb-1">Time (EST)</label>
+                                <input
+                                  type="time"
+                                  value={dashboard.timeEST}
+                                  onChange={(e) => {
+                                    setFormData(prev => {
+                                      const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                      const newDashboards = currentDashboards.map(d => 
+                                        d.periodType === dashboard.periodType ? { ...d, timeEST: e.target.value } : d
+                                      );
+                                      
+                                      return {
+                                        ...prev,
+                                        smsCoaching: {
+                                          ...prev.smsCoaching!,
+                                          adminCoaching: {
+                                            ...prev.smsCoaching!.adminCoaching!,
+                                            dashboards: newDashboards
+                                          }
+                                        }
+                                      };
+                                    });
+                                  }}
+                                  className="w-full px-2 py-1 border rounded text-xs"
+                                />
+                              </div>
+                            </>
+                          )}
+                          
+                          {/* Monthly: week of month, day of week, time */}
+                          {dashboard.frequency === "monthly" && (
+                            <>
+                              <div>
+                                <label className="block text-gray-600 mb-1">Week of Month</label>
+                                <select
+                                  value={String(dashboard.weekOfMonth ?? 1)}
+                                  onChange={(e) => {
+                                    setFormData(prev => {
+                                      const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                      const newDashboards = currentDashboards.map(d => 
+                                        d.periodType === dashboard.periodType ? { ...d, weekOfMonth: Number(e.target.value) } : d
+                                      );
+                                      
+                                      return {
+                                        ...prev,
+                                        smsCoaching: {
+                                          ...prev.smsCoaching!,
+                                          adminCoaching: {
+                                            ...prev.smsCoaching!.adminCoaching!,
+                                            dashboards: newDashboards
+                                          }
+                                        }
+                                      };
+                                    });
+                                  }}
+                                  className="w-full px-2 py-1 border rounded text-xs"
+                                >
+                                  {weeksOfMonth.map((w, i) => (
+                                    <option key={i} value={String(i + 1)}>{w}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-gray-600 mb-1">Day of Week</label>
+                                <select
+                                  value={String(dashboard.dayOfWeek ?? "0")}
+                                  onChange={(e) => {
+                                    setFormData(prev => {
+                                      const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                      const newDashboards = currentDashboards.map(d => 
+                                        d.periodType === dashboard.periodType ? { ...d, dayOfWeek: parseInt(e.target.value) } : d
+                                      );
+                                      
+                                      return {
+                                        ...prev,
+                                        smsCoaching: {
+                                          ...prev.smsCoaching!,
+                                          adminCoaching: {
+                                            ...prev.smsCoaching!.adminCoaching!,
+                                            dashboards: newDashboards
+                                          }
+                                        }
+                                      };
+                                    });
+                                  }}
+                                  className="w-full px-2 py-1 border rounded text-xs"
+                                >
+                                  {daysOfWeek.map((d, i) => (
+                                    <option key={i} value={String(i)}>{d}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-gray-600 mb-1">Time (EST)</label>
+                                <input
+                                  type="time"
+                                  value={dashboard.timeEST}
+                                  onChange={(e) => {
+                                    setFormData(prev => {
+                                      const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                      const newDashboards = currentDashboards.map(d => 
+                                        d.periodType === dashboard.periodType ? { ...d, timeEST: e.target.value } : d
+                                      );
+                                      
+                                      return {
+                                        ...prev,
+                                        smsCoaching: {
+                                          ...prev.smsCoaching!,
+                                          adminCoaching: {
+                                            ...prev.smsCoaching!.adminCoaching!,
+                                            dashboards: newDashboards
+                                          }
+                                        }
+                                      };
+                                    });
+                                  }}
+                                  className="w-full px-2 py-1 border rounded text-xs"
+                                />
+                              </div>
+                            </>
+                          )}
+                          
+                          {/* Quarterly: week of quarter (always 1st), day of week, time */}
+                          {dashboard.frequency === "quarterly" && (
+                            <>
+                              <div>
+                                <label className="block text-gray-600 mb-1">Week of Quarter</label>
+                                <select
+                                  value={String(dashboard.weekOfMonth ?? 1)}
+                                  onChange={(e) => {
+                                    setFormData(prev => {
+                                      const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                      const newDashboards = currentDashboards.map(d => 
+                                        d.periodType === dashboard.periodType ? { ...d, weekOfMonth: Number(e.target.value) } : d
+                                      );
+                                      
+                                      return {
+                                        ...prev,
+                                        smsCoaching: {
+                                          ...prev.smsCoaching!,
+                                          adminCoaching: {
+                                            ...prev.smsCoaching!.adminCoaching!,
+                                            dashboards: newDashboards
+                                          }
+                                        }
+                                      };
+                                    });
+                                  }}
+                                  className="w-full px-2 py-1 border rounded text-xs"
+                                >
+                                  <option value="1">First Week</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-gray-600 mb-1">Day of Week</label>
+                                <select
+                                  value={String(dashboard.dayOfWeek ?? "0")}
+                                  onChange={(e) => {
+                                    setFormData(prev => {
+                                      const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                      const newDashboards = currentDashboards.map(d => 
+                                        d.periodType === dashboard.periodType ? { ...d, dayOfWeek: parseInt(e.target.value) } : d
+                                      );
+                                      
+                                      return {
+                                        ...prev,
+                                        smsCoaching: {
+                                          ...prev.smsCoaching!,
+                                          adminCoaching: {
+                                            ...prev.smsCoaching!.adminCoaching!,
+                                            dashboards: newDashboards
+                                          }
+                                        }
+                                      };
+                                    });
+                                  }}
+                                  className="w-full px-2 py-1 border rounded text-xs"
+                                >
+                                  {daysOfWeek.map((d, i) => (
+                                    <option key={i} value={String(i)}>{d}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-gray-600 mb-1">Time (EST)</label>
+                                <input
+                                  type="time"
+                                  value={dashboard.timeEST}
+                                  onChange={(e) => {
+                                    setFormData(prev => {
+                                      const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                      const newDashboards = currentDashboards.map(d => 
+                                        d.periodType === dashboard.periodType ? { ...d, timeEST: e.target.value } : d
+                                      );
+                                      
+                                      return {
+                                        ...prev,
+                                        smsCoaching: {
+                                          ...prev.smsCoaching!,
+                                          adminCoaching: {
+                                            ...prev.smsCoaching!.adminCoaching!,
+                                            dashboards: newDashboards
+                                          }
+                                        }
+                                      };
+                                    });
+                                  }}
+                                  className="w-full px-2 py-1 border rounded text-xs"
+                                />
+                              </div>
+                            </>
+                          )}
+                          
+                          {/* Biweekly: day of week, time */}
+                          {dashboard.frequency === "biweekly" && (
+                            <>
+                              <div>
+                                <label className="block text-gray-600 mb-1">Day of Week</label>
+                                <select
+                                  value={String(dashboard.dayOfWeek ?? "0")}
+                                  onChange={(e) => {
+                                    setFormData(prev => {
+                                      const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                      const newDashboards = currentDashboards.map(d => 
+                                        d.periodType === dashboard.periodType ? { ...d, dayOfWeek: parseInt(e.target.value) } : d
+                                      );
+                                      
+                                      return {
+                                        ...prev,
+                                        smsCoaching: {
+                                          ...prev.smsCoaching!,
+                                          adminCoaching: {
+                                            ...prev.smsCoaching!.adminCoaching!,
+                                            dashboards: newDashboards
+                                          }
+                                        }
+                                      };
+                                    });
+                                  }}
+                                  className="w-full px-2 py-1 border rounded text-xs"
+                                >
+                                  {daysOfWeek.map((d, i) => (
+                                    <option key={i} value={String(i)}>{d}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-gray-600 mb-1">Time (EST)</label>
+                                <input
+                                  type="time"
+                                  value={dashboard.timeEST}
+                                  onChange={(e) => {
+                                    setFormData(prev => {
+                                      const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                      const newDashboards = currentDashboards.map(d => 
+                                        d.periodType === dashboard.periodType ? { ...d, timeEST: e.target.value } : d
+                                      );
+                                      
+                                      return {
+                                        ...prev,
+                                        smsCoaching: {
+                                          ...prev.smsCoaching!,
+                                          adminCoaching: {
+                                            ...prev.smsCoaching!.adminCoaching!,
+                                            dashboards: newDashboards
+                                          }
+                                        }
+                                      };
+                                    });
+                                  }}
+                                  className="w-full px-2 py-1 border rounded text-xs"
+                                />
+                              </div>
+                            </>
+                          )}
+                          
+                          {/* Daily: just time */}
+                          {dashboard.frequency === "daily" && (
+                            <div>
+                              <label className="block text-gray-600 mb-1">Time (EST)</label>
+                              <input
+                                type="time"
+                                value={dashboard.timeEST}
+                                onChange={(e) => {
+                                  setFormData(prev => {
+                                    const currentDashboards = prev.smsCoaching?.adminCoaching?.dashboards || [];
+                                    const newDashboards = currentDashboards.map(d => 
+                                      d.periodType === dashboard.periodType ? { ...d, timeEST: e.target.value } : d
+                                    );
+                                    
+                                    return {
+                                      ...prev,
+                                      smsCoaching: {
+                                        ...prev.smsCoaching!,
+                                        adminCoaching: {
+                                          ...prev.smsCoaching!.adminCoaching!,
+                                          dashboards: newDashboards
+                                        }
+                                      }
+                                    };
+                                  });
+                                }}
+                                className="w-full px-2 py-1 border rounded text-xs"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Admin Authentication Section */}
+        <div className="mb-8">
+          <div className="mt-4 p-4 border rounded-lg bg-blue-50">
+            <h4 className="font-semibold mb-2 text-gray-700">Admin Access</h4>
+            <div className="flex items-start mb-2">
+              <input
+                type="checkbox"
+                id="enable-admin-access"
+                className="mr-2 mt-1"
+                checked={!!formData.isAdmin}
+                onChange={(e) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    isAdmin: e.target.checked,
+                    adminPassword: e.target.checked ? prev.adminPassword || '' : undefined
+                  }));
+                }}
+              />
+              <div>
+                <label htmlFor="enable-admin-access" className="text-sm font-medium">
+                  Grant Admin Access
+                </label>
+                <p className="text-xs text-gray-600 mt-1">
+                  Allow this user to access admin dashboard and features
+                </p>
+              </div>
+            </div>
+            
+            {formData.isAdmin && (
+              <div className="ml-6 space-y-2">
+                <div>
+                  <label htmlFor="admin-password" className="text-xs font-medium text-gray-700">
+                    Admin Password
+                  </label>
+                  <input
+                    type="password"
+                    id="admin-password"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
+                    placeholder="Enter admin password"
+                    value={formData.adminPassword || ''}
+                    onChange={(e) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        adminPassword: e.target.value
+                      }));
+                    }}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Password will be hashed and stored securely
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Personal Goals Section */}

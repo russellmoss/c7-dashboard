@@ -32,12 +32,32 @@ export interface StaffMemberCoaching {
   dashboards: DashboardSchedule[];
 }
 
+export interface AdminCoachingConfig {
+  isActive: boolean;
+  includeTeamMetrics: boolean;
+  includeTopPerformers: boolean;
+  includeBottomPerformers: boolean;
+  includeGoalComparison: boolean;
+  includeManagementTips: boolean;
+  dashboards: Array<{
+    periodType: string;
+    frequency: string;
+    timeEST: string;
+    dayOfWeek?: number;
+    dayOfMonth?: number;
+    weekOfMonth?: number;
+    monthOfQuarter?: number;
+    isActive: boolean;
+  }>;
+}
+
 export interface SMSCoaching {
   isActive: boolean;
   phoneNumber: string;
   staffMembers: StaffMemberCoaching[];
   coachingStyle: "encouraging" | "analytical" | "motivational" | "balanced";
   customMessage?: string;
+  adminCoaching?: AdminCoachingConfig;
 }
 
 export interface CoachingSMSHistory {

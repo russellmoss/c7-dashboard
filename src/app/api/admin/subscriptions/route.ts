@@ -31,6 +31,9 @@ export async function POST(request: NextRequest) {
       smsCoaching,
       personalizedGoals,
       isActive,
+      isAdmin,
+      adminPassword,
+      adminPasswordHash,
     } = body;
 
     // Validate required fields
@@ -69,6 +72,15 @@ export async function POST(request: NextRequest) {
       isActive: isActive !== undefined ? isActive : true,
       ...(typeof personalizedGoals !== "undefined"
         ? { personalizedGoals }
+        : {}),
+      ...(typeof isAdmin !== "undefined"
+        ? { isAdmin }
+        : {}),
+      ...(typeof adminPassword !== "undefined"
+        ? { adminPassword }
+        : {}),
+      ...(typeof adminPasswordHash !== "undefined"
+        ? { adminPasswordHash }
         : {}),
     });
 

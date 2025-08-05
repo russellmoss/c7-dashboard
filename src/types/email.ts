@@ -1,3 +1,23 @@
+export interface AdminCoachingConfig {
+  isActive: boolean;
+  includeTeamMetrics: boolean;
+  includeTopPerformers: boolean;
+  includeBottomPerformers: boolean;
+  includeGoalComparison: boolean;
+  includeManagementTips: boolean;
+  // NEW: Dashboard selection and timing for admin coaching
+  dashboards: Array<{
+    periodType: string;
+    frequency: string;
+    timeEST: string;
+    dayOfWeek?: number;
+    dayOfMonth?: number;
+    weekOfMonth?: number;
+    monthOfQuarter?: number;
+    isActive: boolean;
+  }>;
+}
+
 export interface EmailSubscription {
   _id?: string;
   name: string;
@@ -78,6 +98,8 @@ export interface EmailSubscription {
     }>;
     coachingStyle: string;
     customMessage: string;
+    // NEW: Admin coaching configuration
+    adminCoaching?: AdminCoachingConfig;
   };
   personalizedGoals?: {
     bottleConversionRate?: { enabled?: boolean; value?: string | number };
@@ -89,6 +111,9 @@ export interface EmailSubscription {
   unsubscribeToken?: string;
   admin?: boolean;
   adminPassword?: string;
+  // NEW: Admin authentication fields
+  isAdmin?: boolean;
+  adminPasswordHash?: string;
 }
 
 export interface StaffMemberCoaching {

@@ -32,10 +32,16 @@ export async function PUT(
   { params }: { params: { id: string } },
 ) {
   try {
-    const body = await request.json();
-    console.log("🔍 [API DEBUG] PUT request received for subscription:", params.id);
-    console.log("📝 [API DEBUG] Request body:", JSON.stringify(body, null, 2));
+    console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - Starting request');
+    console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - params.id:', params.id);
     
+    const body = await request.json();
+    console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - Request body:', JSON.stringify(body, null, 2));
+    console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - body.isAdmin:', body.isAdmin);
+    console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - body.adminPassword:', body.adminPassword);
+    console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - body.adminPasswordHash:', body.adminPasswordHash);
+    console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - body.smsCoaching:', JSON.stringify(body.smsCoaching, null, 2));
+
     const {
       name,
       email,
@@ -44,29 +50,14 @@ export async function PUT(
       smsCoaching,
       personalizedGoals,
       isActive,
+      isAdmin,
+      adminPassword,
+      adminPasswordHash,
     } = body;
 
-    // Validate required fields
-    if (!name || !email) {
-      return NextResponse.json(
-        { error: "Name and email are required fields" },
-        { status: 400 },
-      );
-    }
-
-    await connectToDatabase();
-
-    // Check if email already exists for different subscription
-    const existingSubscription = await EmailSubscriptionModel.findOne({
-      email,
-      _id: { $ne: params.id },
-    });
-    if (existingSubscription) {
-      return NextResponse.json(
-        { error: "Email already subscribed" },
-        { status: 400 },
-      );
-    }
+    console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - Extracted isAdmin:', isAdmin);
+    console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - Extracted adminPassword:', adminPassword);
+    console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - Extracted adminPasswordHash:', adminPasswordHash);
 
     const updatePayload: any = {
       name,
@@ -79,34 +70,55 @@ export async function PUT(
         staffMembers: [],
         coachingStyle: "balanced",
         customMessage: "",
+        adminCoaching: {
+          isActive: false,
+          includeTeamMetrics: true,
+          includeTopPerformers: true,
+          includeBottomPerformers: true,
+          includeGoalComparison: true,
+          includeManagementTips: true,
+          dashboards: [],
+        },
       },
       isActive: isActive !== undefined ? isActive : true,
     };
     
-    if (typeof personalizedGoals !== "undefined") {
-      updatePayload.personalizedGoals = personalizedGoals;
+    // Add admin-related fields if they exist in the request
+    if (typeof isAdmin !== "undefined") {
+      updatePayload.isAdmin = isAdmin;
+      console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - Adding isAdmin to updatePayload:', isAdmin);
+    }
+    if (typeof adminPassword !== "undefined") {
+      updatePayload.adminPassword = adminPassword;
+      console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - Adding adminPassword to updatePayload:', adminPassword);
+    }
+    if (typeof adminPasswordHash !== "undefined") {
+      updatePayload.adminPasswordHash = adminPasswordHash;
+      console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - Adding adminPasswordHash to updatePayload:', adminPasswordHash);
     }
 
-    console.log("📝 [API DEBUG] Update payload:", JSON.stringify(updatePayload, null, 2));
-    
+    console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - Final updatePayload:', JSON.stringify(updatePayload, null, 2));
+
     const subscription = await EmailSubscriptionModel.findByIdAndUpdate(
       params.id,
       updatePayload,
       { new: true, runValidators: true },
     );
 
+    console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - Updated subscription:', JSON.stringify(subscription, null, 2));
+
     if (!subscription) {
-      console.log("❌ [API DEBUG] Subscription not found");
+      console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - Subscription not found');
       return NextResponse.json(
         { error: "Subscription not found" },
         { status: 404 },
       );
     }
 
-    console.log("✅ [API DEBUG] Subscription updated successfully:", subscription._id);
+    console.log('[DEBUG] PUT /api/admin/subscriptions/[id] - Success, returning subscription');
     return NextResponse.json(subscription);
   } catch (error) {
-    console.error("Error updating subscription:", error);
+    console.error('[DEBUG] PUT /api/admin/subscriptions/[id] - Error:', error);
     return NextResponse.json(
       { error: "Failed to update subscription" },
       { status: 500 },

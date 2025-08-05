@@ -914,24 +914,23 @@ function setupCronJobs() {
     name: "all-quarters-generation",
   });
 
-  // Scheduled Communications - Every 1 minute (TESTING MODE)
-  // This interval is for testing admin SMS coaching functionality
-  // - Allows immediate testing of scheduled jobs
-  // - More frequent checking for development purposes
-  // - Will be changed back to */5 * * * * for production
+  // Scheduled Communications - Every 5 minutes (PRODUCTION MODE)
+  // This interval checks for scheduled jobs like admin SMS coaching
+  // - More efficient for production use
+  // - Reduces server load while still being responsive
   cron.schedule(
-    "* * * * *",
+    "*/5 * * * *",
     async () => {
-      log.info("Scheduled communications cron triggered (TESTING MODE - every minute)");
+      log.info("Scheduled communications cron triggered (PRODUCTION MODE - every 5 minutes)");
       try {
         await processScheduledJobs();
       } catch (error: unknown) {
         if (error instanceof Error) {
           log.error(`Scheduled jobs failed: ${error.message}`);
-          setTimeout(processScheduledJobs, 1 * 60 * 1000);
+          setTimeout(processScheduledJobs, 5 * 60 * 1000);
         } else {
           log.error("Scheduled jobs failed: Unknown error");
-          setTimeout(processScheduledJobs, 1 * 60 * 1000);
+          setTimeout(processScheduledJobs, 5 * 60 * 1000);
         }
       }
     },

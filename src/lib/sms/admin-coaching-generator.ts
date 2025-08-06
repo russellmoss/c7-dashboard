@@ -244,6 +244,7 @@ export async function generateAdminCoachingMessage(
     
     // Filter and analyze individual employee performance (ENHANCED FILTERING)
     console.log('[Admin Coaching Debug] Raw associate performance data:', Object.keys(associatePerformance));
+    console.log('[Admin Coaching Debug] Active staff members for filtering:', staffMembers);
     
          const employeeAnalysis = Object.entries(associatePerformance)
        .filter(([name, data]: [string, any]) => {
@@ -260,17 +261,22 @@ export async function generateAdminCoachingMessage(
            return false;
          }
          
-         // Additional check: exclude if name matches any admin users in staffMembers
-         const isAdminUser = staffMembers.some(staff => 
-           staff.toLowerCase() === name.toLowerCase() || 
-           staff.toLowerCase().includes(name.toLowerCase()) ||
-           name.toLowerCase().includes(staff.toLowerCase())
-         );
+         // NEW: Only include staff members who are selected in the subscription's SMS coaching staff list
+         // This ensures we only report on active staff members who are still with the company
+         const isSelectedStaff = staffMembers.some(staff => {
+           const staffLower = staff.toLowerCase();
+           const nameLower = name.toLowerCase();
+           return staffLower === nameLower || 
+                  staffLower.includes(nameLower) ||
+                  nameLower.includes(staffLower);
+         });
          
-         if (isAdminUser) {
-           console.log(`[Admin Coaching Debug] Excluding ${name}: found in admin staffMembers`);
+         if (!isSelectedStaff) {
+           console.log(`[Admin Coaching Debug] Excluding ${name}: not found in selected staff members`);
            return false;
          }
+         
+         console.log(`[Admin Coaching Debug] Including ${name}: found in selected staff members`);
         
         // Exclude employees with no orders
         if (!hasOrders) {

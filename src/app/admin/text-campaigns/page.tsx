@@ -837,7 +837,7 @@ export default function TextCampaignsPage() {
                             </Badge>
                             {result.type === "reply" && result.campaignName && (
                               <span className="text-sm text-muted-foreground">
-                                in "{result.campaignName}"
+                                in &quot;{result.campaignName}&quot;
                               </span>
                             )}
                           </div>

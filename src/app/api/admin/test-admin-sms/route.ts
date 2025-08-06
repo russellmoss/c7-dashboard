@@ -100,16 +100,26 @@ export async function POST(request: NextRequest) {
     const kpiData = await kpiResponse.json();
     console.log('[DEBUG] POST /api/admin/test-admin-sms - KPI data received');
 
-    // Get active staff members
-    const activeStaffNames = subscription.smsCoaching?.staffMembers?.map((s: any) => s.name) || [];
-    console.log('[DEBUG] POST /api/admin/test-admin-sms - Active staff names:', activeStaffNames);
+    // Get ALL selected staff member names from ALL active subscriptions for admin coaching
+    // This ensures we include staff members selected across all subscriptions, not just the current one
+    const allSubscriptions = await EmailSubscriptionModel.find({ isActive: true }).lean();
+    const allSelectedStaffNames = allSubscriptions
+      .filter(sub => sub.smsCoaching?.staffMembers)
+      .flatMap(sub => 
+        sub.smsCoaching?.staffMembers
+          ?.map((s: any) => s.name) || []
+      );
+    
+    // Remove duplicates while preserving order
+    const selectedStaffNames = [...new Set(allSelectedStaffNames)];
+    console.log('[DEBUG] POST /api/admin/test-admin-sms - All selected staff names from all subscriptions:', selectedStaffNames);
 
     // Generate admin message
     const adminMessage = await generateAdminCoachingMessage(
       subscription.name,
       kpiData,
       periodType,
-      activeStaffNames,
+      selectedStaffNames,
       subscription.smsCoaching.adminCoaching,
       dashboardConfig
     );

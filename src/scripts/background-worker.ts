@@ -421,6 +421,27 @@ async function processScheduledJobs() {
       `Processing scheduled jobs for ${subs.length} active subscriptions`,
     );
 
+    // Get ALL selected staff member names from ALL active subscriptions for admin coaching
+    // This ensures we include staff members selected across all subscriptions, not just the current one
+    console.log(`[Admin SMS Debug] Processing ${subs.length} active subscriptions for staff aggregation`);
+    
+    const allSelectedStaffNames = subs
+      .filter(subscription => subscription.smsCoaching?.staffMembers)
+      .flatMap(subscription => 
+        subscription.smsCoaching?.staffMembers
+          ?.map(staff => staff.name) || []
+      );
+    
+    // Remove duplicates while preserving order
+    const selectedStaffNames = [...new Set(allSelectedStaffNames)];
+    console.log(`[Admin SMS Debug] All selected staff names from all subscriptions (before loop):`, selectedStaffNames);
+    
+    // Debug: Show what each subscription has
+    subs.forEach((sub, index) => {
+      console.log(`[Admin SMS Debug] Subscription ${index + 1}: ${sub.email} - Staff members:`, 
+        sub.smsCoaching?.staffMembers?.map(s => s.name) || 'none');
+    });
+
     for (const sub of subs) {
       log.info(
         `[DEBUG] Processing subscription: ${sub.email}, hasSmsCoaching: ${!!sub.smsCoaching}, smsCoachingActive: ${sub.smsCoaching?.isActive}, staffMembersCount: ${sub.smsCoaching?.staffMembers?.length || 0}`,
@@ -616,82 +637,77 @@ async function processScheduledJobs() {
         }
       }
       
-      // ADMIN SMS COACHING
-      if (
-        sub.smsCoaching?.adminCoaching?.isActive &&
-        sub.smsCoaching.adminCoaching.dashboards
-      ) {
-        log.info(
-          `[DEBUG] Processing admin coaching for ${sub.email}, adminActive: ${sub.smsCoaching.adminCoaching.isActive}, dashboardsCount: ${sub.smsCoaching.adminCoaching.dashboards.length}`,
-        );
-        
-        for (const dashboard of sub.smsCoaching.adminCoaching.dashboards) {
-          log.info(
-            `[DEBUG] Checking admin dashboard: periodType=${dashboard.periodType}, dashboardActive=${dashboard.isActive}, timeEST=${dashboard.timeEST}`,
-          );
-          
-          try {
-            if (!dashboard.isActive) {
-              log.info(
-                `[DEBUG] Skipping admin dashboard (${dashboard.periodType}) at ${dashboard.timeEST} (inactive)`,
-              );
-              continue;
-            }
-            
-            if (!isJobDueNow(dashboard, now)) {
-              log.info(
-                `[DEBUG] Admin dashboard not due now: periodType=${dashboard.periodType}, timeEST=${dashboard.timeEST}`,
-              );
-              continue;
-            }
-            
-            // Include scheduled time in job key to allow multiple times per day
-            const jobKey = `admin_sms_${dashboard.periodType}_${sub.email}_${dashboard.timeEST || "09:00"}`;
-            if (hasJobExecutedRecently(jobKey)) {
-              log.info(`Skipping duplicate admin SMS for ${jobKey}`);
-              continue;
-            }
-            
-            // Get KPI data for admin coaching
-            const kpiData = (await KPIDataModel.findOne({
-              periodType: dashboard.periodType,
-              status: "completed",
-            })
-              .sort({ createdAt: -1 })
-              .lean()) as KPIData | null;
-              
-            // Debug the KPI data structure
-            log.info(`[DEBUG] KPI data for ${dashboard.periodType}: ${JSON.stringify({
-              hasKpiData: !!kpiData,
-              hasData: !!kpiData?.data,
-              hasCurrent: !!kpiData?.data?.current,
-              hasOverallMetrics: !!kpiData?.data?.current?.overallMetrics,
-              hasAssociatePerformance: !!kpiData?.data?.current?.associatePerformance,
-              dataKeys: kpiData?.data ? Object.keys(kpiData.data) : 'N/A',
-              currentKeys: kpiData?.data?.current ? Object.keys(kpiData.data.current) : 'N/A'
-            })}`);
-              
-            if (!kpiData?.data?.current?.associatePerformance) {
-              log.warn(
-                `No KPI data for ${dashboard.periodType} admin SMS to ${sub.email}`,
-              );
-              continue;
-            }
-            
-            // Import admin coaching generator
-            const { generateAdminCoachingMessage } = await import("../lib/sms/admin-coaching-generator.js");
-            
-            // Get active staff member names for admin coaching
-            const activeStaffNames = sub.smsCoaching.staffMembers
-              ?.filter(staff => staff.isActive)
-              ?.map(staff => staff.name) || [];
+             // ADMIN SMS COACHING
+       if (
+         sub.smsCoaching?.adminCoaching?.isActive &&
+         sub.smsCoaching.adminCoaching.dashboards
+       ) {
+         log.info(
+           `[DEBUG] Processing admin coaching for ${sub.email}, adminActive: ${sub.smsCoaching.adminCoaching.isActive}, dashboardsCount: ${sub.smsCoaching.adminCoaching.dashboards.length}`,
+         );
+         
+         for (const dashboard of sub.smsCoaching.adminCoaching.dashboards) {
+           log.info(
+             `[DEBUG] Checking admin dashboard: periodType=${dashboard.periodType}, dashboardActive=${dashboard.isActive}, timeEST=${dashboard.timeEST}`,
+           );
+           
+           try {
+             if (!dashboard.isActive) {
+               log.info(
+                 `[DEBUG] Skipping admin dashboard (${dashboard.periodType}) at ${dashboard.timeEST} (inactive)`,
+               );
+               continue;
+             }
+             
+             if (!isJobDueNow(dashboard, now)) {
+               log.info(
+                 `[DEBUG] Admin dashboard not due now: periodType=${dashboard.periodType}, timeEST=${dashboard.timeEST}`,
+               );
+               continue;
+             }
+             
+             // Include scheduled time in job key to allow multiple times per day
+             const jobKey = `admin_sms_${dashboard.periodType}_${sub.email}_${dashboard.timeEST || "09:00"}`;
+             if (hasJobExecutedRecently(jobKey)) {
+               log.info(`Skipping duplicate admin SMS for ${jobKey}`);
+               continue;
+             }
+             
+             // Get KPI data for admin coaching
+             const kpiData = (await KPIDataModel.findOne({
+               periodType: dashboard.periodType,
+               status: "completed",
+             })
+               .sort({ createdAt: -1 })
+               .lean()) as KPIData | null;
+               
+             // Debug the KPI data structure
+             log.info(`[DEBUG] KPI data for ${dashboard.periodType}: ${JSON.stringify({
+               hasKpiData: !!kpiData,
+               hasData: !!kpiData?.data,
+               hasCurrent: !!kpiData?.data?.current,
+               hasOverallMetrics: !!kpiData?.data?.current?.overallMetrics,
+               hasAssociatePerformance: !!kpiData?.data?.current?.associatePerformance,
+               dataKeys: kpiData?.data ? Object.keys(kpiData.data) : 'N/A',
+               currentKeys: kpiData?.data?.current ? Object.keys(kpiData.data.current) : 'N/A'
+             })}`);
+               
+             if (!kpiData?.data?.current?.associatePerformance) {
+               log.warn(
+                 `No KPI data for ${dashboard.periodType} admin SMS to ${sub.email}`,
+               );
+               continue;
+             }
+             
+             // Import admin coaching generator
+             const { generateAdminCoachingMessage } = await import("../lib/sms/admin-coaching-generator.js");
             
             // Generate admin coaching message
             const adminMessage = await generateAdminCoachingMessage(
               sub.name,
               kpiData,
               dashboard.periodType,
-              activeStaffNames,
+              selectedStaffNames,
               sub.smsCoaching.adminCoaching,
               dashboard
             );
@@ -916,8 +932,8 @@ function setupCronJobs() {
 
   // Scheduled Communications - Every 5 minutes (PRODUCTION MODE)
   // This interval checks for scheduled jobs like admin SMS coaching
-  // - More efficient for production use
-  // - Reduces server load while still being responsive
+  // - Runs every 5 minutes for production use
+  // - Balanced frequency for timely processing
   cron.schedule(
     "*/5 * * * *",
     async () => {

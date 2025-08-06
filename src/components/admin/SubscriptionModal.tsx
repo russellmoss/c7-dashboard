@@ -1,8 +1,6 @@
 "use client";
 
 // @ts-nocheck - Temporarily disabling TypeScript checking for deployment
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
 import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

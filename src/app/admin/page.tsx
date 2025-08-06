@@ -198,36 +198,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleTestAdminSMS = async (subscription: EmailSubscription) => {
-    try {
-      console.log('[UI] Testing admin SMS for subscription:', subscription._id);
-      
-      const response = await fetch('/api/admin/test-admin-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subscriptionId: subscription._id,
-          periodType: 'mtd'
-        })
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        alert(
-          `✅ Admin SMS sent successfully!\n\n` +
-          `Message (${result.messageLength} chars):\n${result.message}\n\n` +
-          `Sent to: ${result.phoneNumber}\n` +
-          `Staff count: ${result.staffCount}`
-        );
-      } else {
-        alert(`❌ Failed to send admin SMS: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('[UI] Error testing admin SMS:', error);
-      alert('❌ Failed to send admin SMS. Check console for details.');
-    }
-  };
+
 
   const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this subscription?")) {
@@ -434,14 +405,7 @@ export default function AdminDashboard() {
                       >
                         Edit
                       </button>
-                      {subscription.smsCoaching?.adminCoaching?.isActive && (
-                        <button
-                          onClick={() => handleTestAdminSMS(subscription)}
-                          className="text-purple-600 hover:text-purple-800 text-sm font-medium underline"
-                        >
-                          Test Admin SMS
-                        </button>
-                      )}
+
                       <button
                         onClick={() => handleDelete(subscription._id!)}
                         className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"

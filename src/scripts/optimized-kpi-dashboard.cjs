@@ -593,7 +593,7 @@ function calculateKPIsForPeriod(
         orderGuestCount += item.quantity;
         kpiData.guestBreakdown[guestType] += item.quantity;
         hasGuestItems = true;
-        if (guestType === "Non-Club Guest" || guestType === "Trade Guest") {
+        if (guestType === "Non-Club Guest" || guestType === "Trade Guest" || guestType === "Guest Count") {
           orderNonClubAndTradeGuestCount += item.quantity;
         }
       }

@@ -46,6 +46,7 @@ out/
 
 # Ignore documentation with secrets
 dashboard-implementation.md
+APP-overview.md
 
 # Ignore other sensitive files
 *.local

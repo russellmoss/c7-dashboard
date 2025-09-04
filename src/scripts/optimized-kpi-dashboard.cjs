@@ -33,6 +33,7 @@ const GUEST_PRODUCT_IDS = {
   "fe778da9-5164-4688-acd2-98d044d7ce84": "Non-Club Guest",
   "75d4f6cf-cf69-4e76-8f3b-bb35cc7ddeb3": "Club Member",
   "718b9fbb-4e23-48c7-8b2d-da86d2624b36": "Trade Guest",
+  "7a5d9556-33e4-4d97-a3e8-37adefc6dcf0": "Guest Count",
 };
 const WINE_BOTTLE_DEPARTMENT_ID = "7f3a16cc-62b3-4625-b995-e4a3af41e441";
 const TASTING_DEPARTMENT_ID = "8571508b-bcfe-4d96-b12d-0a2b941bc3f1";
